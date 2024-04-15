@@ -2,32 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
+    --background: 220 30% 90%;
+    --foreground: 220 10% 5%;
+
+    --card: 220 30% 85%;
+    --card-foreground: 220 20% 5%;
+
+    --popover: 220 30% 80%;
+    --popover-foreground: 220 10% 5%;
+
+    --primary: 220 65% 30%;
+    --primary-foreground: 220 5% 90%;
+
+    --secondary: 180 65% 30%;
+    --secondary-foreground: 180 5% 90%;
+
+    --muted: 220 20% 75%;
+    --muted-foreground: 220 20% 15%;
+
+    --accent: 220 65% 70%;
+    --accent-foreground: 220 20% 5%;
+
+    --destructive: 0 65% 40%;
+    --destructive-foreground: 0 5% 90%;
+
+    --success: 120 65% 40%;
+    --success-foreground: 120 5% 5%;
+
+    --warning: 40 65% 40%;
+    --warning-foreground: 40 5% 5%;
+
+    --border: 220 15% 75%;
+    --input: 220 15% 75%;
+    --ring: 220 15% 25%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 220 30% 15%;
+    --foreground: 220 10% 90%;
+
+    --card: 220 10% 20%;
+    --card-foreground: 220 0% 90%;
+
+    --popover: 220 30% 25%;
+    --popover-foreground: 220 0% 90%;
+
+    --primary: 220 65% 65%;
+    --primary-foreground: 220 5% 10%;
+
+    --secondary: 180 45% 45%;
+    --secondary-foreground: 180 5% 10%;
+
+    --muted: 220 20% 30%;
+    --muted-foreground: 220 5% 85%;
+
+    --accent: 220 35% 35%;
+    --accent-foreground: 220 0% 90%;
+
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 85%;
+
+    --success: 120 55% 40%;
+    --success-foreground: 120 5% 5%;
+
+    --warning: 40 65% 45%;
+    --warning-foreground: 40 5% 5%;
+
+    --border: 220 10% 25%;
+    --input: 220 10% 25%;
+    --ring: 220 10% 65%;
   }
 }
 
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
