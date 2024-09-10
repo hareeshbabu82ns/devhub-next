@@ -37,13 +37,7 @@ function Sidebar(props: SidebarProps) {
 
   // SIDEBAR
   return fixedSidebar ? (
-    // <div
-    //   // eslint-disable-next-line tailwindcss/enforces-negative-arbitrary-values
-    //   className={`lg:!z-99 fixed !z-[99] min-h-full w-[300px] transition-all md:!z-[99] xl:!z-0 ${
-    //     props.variant === "auth" ? "xl:hidden" : "xl:block"
-    //   } ${props.open ? "" : "-translate-x-[120%] xl:translate-x-[unset]"}`}
-    // >
-    <div className="fixed left-0 top-0 min-h-full w-80">
+    <div className="fixed left-0 top-0 min-h-full w-72">
       <SidebarContent {...props} routes={routes} />
     </div>
   ) : (
@@ -65,10 +59,10 @@ function SidebarContent(props: SidebarProps) {
 
   // SIDEBAR
   return (
-    <Card className={`h-svh w-full overflow-y-auto rounded-none pe-4`}>
+    <Card className={`h-svh w-full overflow-y-auto rounded-none`}>
       <div className="flex h-full flex-col justify-between">
         <div>
-          <div className={`mt-8 flex items-center ml-4`}>
+          <div className={`mt-4 flex items-center ml-4`}>
             <div className="bg-primary text-primary-foreground me-2 flex size-10 items-center justify-center rounded-md">
               <Icons.logo className="size-5" />
             </div>
@@ -77,7 +71,7 @@ function SidebarContent(props: SidebarProps) {
             </h5>
           </div>
           {/* Nav item */}
-          <ul className="mt-8">
+          <ul className="mt-6 px-2">
             <Links routes={routes} />
           </ul>
         </div>

@@ -5,7 +5,7 @@ import {
   DEFAULT_LOGIN_REDIRECT,
   // privateRoutes,
   publicRoutes,
-} from "./src/config/routes";
+} from "./config/routes";
 
 const { auth } = NextAuth(authOptionsPartial);
 

@@ -31,9 +31,9 @@ export function SidebarLinks(props: SidebarLinksProps) {
         return (
           <li
             key={key}
-            className={`flex w-full max-w-full cursor-not-allowed items-center justify-between rounded-lg py-3 pl-8 font-medium`}
+            className={`flex w-full max-w-full cursor-not-allowed items-center justify-between rounded-lg py-3 pl-4 font-medium`}
           >
-            <div className="flex w-full items-center justify-center gap-3">
+            <div className="flex w-full items-center justify-center gap-4">
               <div className={`text opacity-30`}>{route.icon}</div>
               <p className={`mr-auto text-sm opacity-30`}>{route.name}</p>
             </div>
@@ -43,7 +43,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
         return (
           <li
             key={key}
-            className={`flex w-full max-w-full items-center justify-between rounded-lg py-3 pl-8 ${
+            className={`flex w-full max-w-full items-center justify-between rounded-lg py-3 pl-4 ${
               activeRoute(route.path.toLowerCase())
                 ? "bg-accent text-accent-foreground font-semibold"
                 : "font-medium"
@@ -57,7 +57,7 @@ export function SidebarLinks(props: SidebarLinksProps) {
                 route.items ? createAccordionLinks(route.items) : null
               }
             >
-              <div className="flex w-full items-center justify-center gap-3">
+              <div className="flex w-full items-center justify-center gap-4">
                 <div
                   className={`text ${
                     activeRoute(route.path.toLowerCase())
