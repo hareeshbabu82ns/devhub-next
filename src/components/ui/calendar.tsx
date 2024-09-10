@@ -1,18 +1,22 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { addYears } from "date-fns";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  defaultMonth,
+  fromYear,
+  toYear,
   ...props
 }: CalendarProps) {
   return (
@@ -21,17 +25,27 @@ function Calendar({
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
+        month: "space-y-4 w-full flex flex-col",
         caption: "flex justify-center pt-1 relative items-center",
-        caption_label: "text-sm font-medium",
+        caption_label: cn(
+          "text-sm font-medium",
+          ["dropdown", "dropdown-buttons"].includes(props.captionLayout || "")
+            ? "sr-only"
+            : "",
+        ),
+        caption_dropdowns: "flex flex-row space-x-1",
+        dropdown_month:
+          "flex items-center rounded-md bg-background border border-input [&>select]:bg-background [&>select]:py-1 [&>select]:px-1",
+        dropdown_year:
+          "flex items-center rounded-md bg-background border border-input [&>select]:bg-background [&>select]:py-1 [&>select]:px-1",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
           buttonVariants({ variant: "outline" }),
-          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
+        table: "w-full border-collapse space-y-1 flex flex-col items-center",
         head_row: "flex",
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
@@ -39,7 +53,7 @@ function Calendar({
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100",
         ),
         day_range_end: "day-range-end",
         day_selected:
@@ -51,6 +65,7 @@ function Calendar({
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
         day_hidden: "invisible",
+        vhidden: "sr-only",
         ...classNames,
       }}
       components={{
@@ -58,9 +73,22 @@ function Calendar({
         IconRight: ({ ...props }) => <ChevronRight className="h-4 w-4" />,
       }}
       {...props}
+      defaultMonth={defaultMonth || (props.selected as Date) || new Date()}
+      fromYear={
+        fromYear ||
+        ["dropdown", "dropdown-buttons"].includes(props.captionLayout || "")
+          ? new Date().getFullYear() - 25
+          : undefined
+      }
+      toYear={
+        toYear ||
+        ["dropdown", "dropdown-buttons"].includes(props.captionLayout || "")
+          ? new Date().getFullYear() + 25
+          : undefined
+      }
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = "Calendar";
 
-export { Calendar }
+export { Calendar };
