@@ -47,7 +47,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
 
   const onSearchChange = (value: string) => {
     const newSearchString = createQueryString({ search: value, offset: "0" });
-    router.push(`${pathname}?${newSearchString}`);
+    router.replace(`${pathname}?${newSearchString}`);
   };
 
   const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);

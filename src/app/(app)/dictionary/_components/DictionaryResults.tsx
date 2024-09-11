@@ -70,21 +70,21 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
     const newSearchString = createQueryString({
       offset: offset.toString(),
     });
-    router.push(`${pathname}?${newSearchString}`);
+    router.replace(`${pathname}?${newSearchString}`);
   };
 
   const paginateFwdAction = () => {
     const newSearchString = createQueryString({
       offset: (offset + 1).toString(),
     });
-    router.push(`${pathname}?${newSearchString}`);
+    router.replace(`${pathname}?${newSearchString}`);
   };
 
   const paginateBackAction = () => {
     const newSearchString = createQueryString({
       offset: (offset - 1).toString(),
     });
-    router.push(`${pathname}?${newSearchString}`);
+    router.replace(`${pathname}?${newSearchString}`);
   };
 
   const { data, isFetching, isLoading, isError, error, refetch } = useQuery({
