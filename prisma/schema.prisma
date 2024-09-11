@@ -88,3 +88,34 @@ model Authenticator {
 }
 
 //********** AuthJS End **********//
+
+//********** Dictionary Begin **********//
+model DictionaryWord {
+  id          String               @id @default(auto()) @map("_id") @db.ObjectId
+  wordIndex   Int
+  origin      String
+  word        LanguageValueType[]
+  description LanguageValueType[]
+  attributes  AttributeValueType[]
+  phonetic    String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@unique([wordIndex, origin])
+  @@index([phonetic])
+  @@index([origin, phonetic])
+  @@index([origin, word])
+  @@map("DictWords")
+}
+
+type LanguageValueType {
+  language String @map("lang")
+  value    String
+}
+
+type AttributeValueType {
+  key   String
+  value String
+}
+
+//********** Dictionary End **********//

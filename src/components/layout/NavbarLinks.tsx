@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import React from "react";
 import { useState, useEffect } from "react";
 import { Icons } from "../utils/icons";
+import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 
 export default function HeaderLinks(props: { [x: string]: any }) {
   const { onOpen } = props;
@@ -21,6 +22,7 @@ export default function HeaderLinks(props: { [x: string]: any }) {
 
   return (
     <div className="flex flex-row gap-2">
+      <QuickSettingsTrigger />
       <Button
         variant="outline"
         size="icon"
@@ -29,7 +31,7 @@ export default function HeaderLinks(props: { [x: string]: any }) {
       >
         <Icons.sidebarMenu className="size-4" />
       </Button>
-      <Button
+      {/* <Button
         variant="outline"
         size="icon"
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -39,7 +41,7 @@ export default function HeaderLinks(props: { [x: string]: any }) {
         ) : (
           <Icons.sun className="size-5 stroke-2" />
         )}
-      </Button>
+      </Button> */}
     </div>
   );
 }
