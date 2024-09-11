@@ -1,3 +1,5 @@
+"use client";
+
 import { useLocalStorage } from "usehooks-ts";
 import { LANGUAGES_DDLB } from "@/lib/constants";
 import { Button } from "@/components/ui/button";

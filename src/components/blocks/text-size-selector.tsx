@@ -1,3 +1,5 @@
+"use client";
+
 import { useLocalStorage } from "usehooks-ts";
 import { TEXT_SIZE_DDLB } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
