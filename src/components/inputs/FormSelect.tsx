@@ -30,7 +30,6 @@ interface FormSelectProps {
   label: string;
   description?: string;
   options: FormSelectOptions[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
 }
 

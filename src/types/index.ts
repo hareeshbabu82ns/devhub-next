@@ -42,6 +42,7 @@ export interface FileUploadProps {
   showPreviews?: boolean;
   label?: string;
   loading?: boolean;
+  basePath?: string;
   onChangeFiles?: (files: File[]) => void;
   onUploadSuccess?: (urls: string[]) => Promise<void>;
 }

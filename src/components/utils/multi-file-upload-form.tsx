@@ -1,195 +1,241 @@
 "use client";
 
-import Image from "next/image";
-import { ChangeEvent, MouseEvent, useState } from "react";
+import mime from "mime";
+import { ChangeEvent, MouseEvent, useCallback, useState } from "react";
 import { Button } from "../ui/button";
 import { Icons } from "./icons";
 import { toast } from "sonner";
 import { FileUploadProps } from "@/types";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+
+function getAcceptTypes(allowedTypes: string[]) {
+  // return allowedTypes.map((t) => mime.getAllExtensions(t)).join(",");
+  const exts: string[] = [];
+  for (const type of allowedTypes) {
+    mime.getAllExtensions(type)?.forEach((e) => exts.push(`.${e}`));
+  }
+  return exts.join(",");
+}
 
 const MultipleFileUploadForm = ({
   allowedTypes = ["all"],
+  disabled = false,
+  showPreviews = true,
+  loading = false,
   label,
+  basePath = "/",
   onUploadSuccess,
+  onChangeFiles,
 }: FileUploadProps) => {
   const [files, setFiles] = useState<File[] | null>(null);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
-  const onFilesUploadChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    const fileInput = e.target;
+  const acceptTypes = getAcceptTypes(allowedTypes);
 
-    if (!fileInput.files) {
-      // alert("No files were chosen");
-      toast.error("No files were chosen!", {
-        id: "file-upload-error",
-      });
-      return;
-    }
+  const onFilesUploadChange = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const fileInput = e.target;
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-      // alert("Files list is empty");
-      toast.error("Files list is empty!", {
-        id: "file-upload-error",
-      });
-      return;
-    }
-
-    /** Files validation */
-    const validFiles: File[] = [];
-    for (let i = 0; i < fileInput.files.length; i++) {
-      const file = fileInput.files[i];
-
-      if (
-        !allowedTypes.includes("all") &&
-        allowedTypes.filter((t) => file.type.startsWith(t)).length === 0
-      ) {
-        // alert(`File with idx: ${i} is invalid`);
-        toast.error(`File with idx: ${i} is invalid!`, {
+      if (!fileInput.files) {
+        // alert("No files were chosen");
+        toast.error("No files were chosen!", {
           id: "file-upload-error",
         });
         return;
       }
 
-      validFiles.push(file);
-    }
+      if (!fileInput.files || fileInput.files.length === 0) {
+        // alert("Files list is empty");
+        toast.error("Files list is empty!", {
+          id: "file-upload-error",
+        });
+        return;
+      }
 
-    if (!validFiles.length) {
-      // alert("No valid files were chosen");
-      toast.error("No valid files were chosen!", {
-        id: "file-upload-error",
-      });
-      return;
-    }
+      /** Files validation */
+      const validFiles: File[] = [];
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const file = fileInput.files[i];
 
-    setFiles(validFiles);
-    setPreviewUrls(
-      validFiles
-        // .filter((f) => f.type.startsWith("image"))
-        .map((validFile) =>
-          validFile.type.startsWith("image")
-            ? URL.createObjectURL(validFile)
-            : "/assets/file-generic.svg",
-        ),
-    );
+        if (
+          !allowedTypes.includes("all") &&
+          allowedTypes.filter((t) => file.type.startsWith(t)).length === 0
+        ) {
+          // alert(`File with idx: ${i} is invalid`);
+          toast.error(`File with idx: ${i} is invalid!`, {
+            id: "file-upload-error",
+          });
+          return;
+        }
 
-    /** Reset file input */
-    fileInput.type = "text";
-    fileInput.type = "file";
-  };
+        validFiles.push(file);
+      }
 
-  const onUploadFile = async (e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+      if (!validFiles.length) {
+        // alert("No valid files were chosen");
+        toast.error("No valid files were chosen!", {
+          id: "file-upload-error",
+        });
+        return;
+      }
 
-    if (!files) {
-      return;
-    }
+      setFiles(validFiles);
+      setPreviewUrls(
+        validFiles
+          // .filter((f) => f.type.startsWith("image"))
+          .map((validFile) =>
+            validFile.type.startsWith("image")
+              ? URL.createObjectURL(validFile)
+              : "/assets/file-generic.svg",
+          ),
+      );
+      onChangeFiles && onChangeFiles(validFiles);
 
-    /** Uploading files to the server */
-    try {
-      var formData = new FormData();
-      files.forEach((file) => formData.append("media", file));
+      /** Reset file input */
+      fileInput.type = "text";
+      fileInput.type = "file";
+    },
+    [allowedTypes, onChangeFiles],
+  );
 
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+  const onCancelFile = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      if (!previewUrls && !files) {
+        return;
+      }
+      setFiles(null);
+      setPreviewUrls([]);
+      onChangeFiles && onChangeFiles([]);
+    },
+    [files, onChangeFiles, previewUrls],
+  );
 
-      const {
-        data,
-        error,
-      }: {
-        data: {
-          url: string[];
-        } | null;
-        error: string | null;
-      } = await res.json();
+  const onUploadFile = useCallback(
+    async (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
 
-      if (error || !data) {
-        // alert(error || "Sorry! something went wrong.");
+      if (!files) {
+        return;
+      }
+
+      /** Uploading files to the server */
+      try {
+        var formData = new FormData();
+        formData.append("basePath", basePath);
+        files.forEach((file) => formData.append("media", file));
+
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const {
+          data,
+          error,
+        }: {
+          data: {
+            url: string[];
+          } | null;
+          error: string | null;
+        } = await res.json();
+
+        if (error || !data) {
+          // alert(error || "Sorry! something went wrong.");
+          toast.error("Sorry! something went wrong.", {
+            id: "file-upload-error",
+          });
+          return;
+        }
+
+        onUploadSuccess && (await onUploadSuccess(data.url));
+        toast.success("Files were uploaded successfully!");
+      } catch (error) {
+        console.error(error);
+        // alert("Sorry! something went wrong.");
         toast.error("Sorry! something went wrong.", {
           id: "file-upload-error",
         });
-        return;
       }
-
-      onUploadSuccess && (await onUploadSuccess(data.url));
-      // console.log("Files were uploaded successfylly:", data);
-    } catch (error) {
-      console.error(error);
-      // alert("Sorry! something went wrong.");
-      toast.error("Sorry! something went wrong.", {
-        id: "file-upload-error",
-      });
-    }
-  };
+    },
+    [files, onUploadSuccess, basePath],
+  );
 
   return (
     <form
-      className="w-full border border-dashed border-gray-500 p-3"
+      className="border-muted border border-dashed p-3 flex flex-1 overflow-y-auto justify-center"
       onSubmit={(e) => e.preventDefault()}
     >
       {files && files.length > 0 ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 flex-1">
           <div className="flex flex-row items-center justify-between">
             <Button
-              onClick={() => {
-                setPreviewUrls([]);
-                setFiles(null);
-              }}
+              disabled={!previewUrls || disabled}
+              onClick={onCancelFile}
               size="icon"
               variant="outline"
             >
               <Icons.close className="size-4" />
             </Button>
             <p className="text-sm font-medium">{`${files?.length} files selected`}</p>
-            <Button onClick={onUploadFile} size="icon" variant="outline">
-              <Icons.upload className="size-4" />
+            <Button
+              disabled={!previewUrls || disabled}
+              onClick={onUploadFile}
+              size="icon"
+              variant="outline"
+            >
+              {loading ? (
+                <Icons.loaderWheel className="text-muted size-14 animate-spin" />
+              ) : (
+                <Icons.upload className="size-4" />
+              )}
             </Button>
           </div>
-
-          <div className="flex flex-wrap justify-start">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {previewUrls.map((previewUrl, idx) => (
-              <div key={idx} className="w-full space-y-1 p-1.5 md:w-1/2">
-                <Image
-                  alt="file uploader preview"
-                  objectFit="cover"
-                  src={previewUrl}
-                  width={320}
-                  height={218}
-                  layout="responsive"
-                />
-                <p className="text-muted-foreground text-center text-xs">
+              <div
+                key={idx}
+                className="border border-dashed flex flex-col justify-between h-full p-2"
+              >
+                <div className="w-full object-cover rounded-md">
+                  <Image
+                    objectFit="cover"
+                    alt="file uploader preview"
+                    src={previewUrl}
+                    width={300}
+                    height={200}
+                    loading="lazy"
+                  />
+                </div>
+                <h5 className="text-sm font-medium text-center mt-4 w-full whitespace-nowrap overflow-hidden text-ellipsis">
                   {files[idx]?.name}
-                </p>
+                </h5>
               </div>
             ))}
           </div>
         </div>
       ) : (
-        <label className="flex h-full cursor-pointer flex-col items-center justify-center py-8 transition-colors duration-150 hover:text-gray-600">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="size-14"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
+        <label
+          className={cn(
+            "hover:text-muted-foreground flex h-full cursor-pointer flex-col items-center justify-center py-3 transition-colors duration-150",
+            disabled && "cursor-default",
+          )}
+        >
+          <Icons.upload className={cn("size-14", disabled && "text-muted")} />
+          <strong
+            className={cn("text-sm font-medium", disabled && "text-muted")}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"
-            />
-          </svg>
-          <strong className="text-sm font-medium">
             {label || "Select Files"}
           </strong>
           <input
-            className="block size-0"
+            disabled={disabled}
+            className="hidden"
             name="file"
             type="file"
             onChange={onFilesUploadChange}
             multiple
+            accept={acceptTypes}
           />
         </label>
       )}

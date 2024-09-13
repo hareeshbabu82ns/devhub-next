@@ -12,7 +12,6 @@ import {
   ChevronRight,
   ClipboardIcon,
   Clock,
-  Command,
   CreditCard,
   Download,
   Mail as eMail,
@@ -63,7 +62,7 @@ import {
 } from "react-icons/fa6";
 
 import { MdArchive, MdBatchPrediction, MdCode } from "react-icons/md";
-import { PiArrowsSplitFill } from "react-icons/pi";
+import { PiArrowsSplitFill, PiFiles } from "react-icons/pi";
 
 export type Icon = typeof LucideIcon;
 
@@ -88,6 +87,7 @@ export const Icons = {
   artist: FaPersonRays,
   dictionary: MdBatchPrediction,
   sanscript: MdCode,
+  assetsExplorer: PiFiles,
   users: Users,
   phone: Phone,
   email: eMail,

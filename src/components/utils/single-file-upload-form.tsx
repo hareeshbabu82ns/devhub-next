@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import mime from "mime";
-import { ChangeEvent, MouseEvent, useEffect, useState } from "react";
+import { ChangeEvent, MouseEvent, useState } from "react";
 import { Button } from "../ui/button";
 import { Icons } from "./icons";
 import { FileUploadProps } from "@/types";

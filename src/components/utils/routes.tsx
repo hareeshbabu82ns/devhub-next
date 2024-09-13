@@ -29,6 +29,11 @@ export const routes: IRoute[] = [
     icon: <Icons.sanscript className="size-4 stroke-2 text-inherit" />,
   },
   {
+    name: "Assets",
+    path: "/assets",
+    icon: <Icons.assetsExplorer className="size-4 stroke-2 text-inherit" />,
+  },
+  {
     name: "Settings",
     path: "/settings",
     icon: <Icons.settings className="size-4 stroke-2 text-inherit" />,
