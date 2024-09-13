@@ -107,7 +107,6 @@ export const searchDictionary = async ({
       ).value;
       return item;
     });
-    // console.log("searchDictionary", { total: countRes });
     return { results, total: ((countRes[0] as any)?.count as number) || 0 };
   }
 };

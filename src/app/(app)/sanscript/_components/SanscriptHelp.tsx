@@ -7,7 +7,6 @@ interface SanscriptHelpProps {
 }
 
 const SanscriptHelp = ({ language }: SanscriptHelpProps) => {
-  // console.log(language);
   const itransHelp = ITRANS_DRAVIDIAN_HELP[language];
 
   return (

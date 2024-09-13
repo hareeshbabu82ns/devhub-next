@@ -52,7 +52,6 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
       text: string,
       cb: (result: Record<string, string>[]) => void,
     ) => {
-      // console.log(text);
       const transOut = transliterateText({
         text,
         toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
@@ -61,8 +60,6 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
         key: text,
         value: t,
       }));
-      //   // console.log(outputItrans);
-      //   // setTimeout(() => cb(outputItrans), 1000);
       cb(outputItrans);
     };
 
