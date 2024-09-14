@@ -3,22 +3,38 @@ export type LanguageDDLB = {
   label: string;
 };
 
-export enum EntityTypeEnum {
-  GOD = "GOD",
-  AUTHOR = "AUTHOR",
-  ITIHASAM = "ITIHASAM",
-  PURANAM = "PURANAM",
-  STHOTRAM = "STHOTRAM",
-  DANDAKAM = "DANDAKAM",
-  KAANDAM = "KAANDAM",
-  SARGA = "SARGA",
-  PARVAM = "PARVAM",
-  ADHYAAYAM = "ADHYAAYAM",
-  SLOKAM = "SLOKAM",
-  OTHERS = "OTHERS",
-  SKANDAM = "SKANDAM",
-  GHATTAM = "GHATTAM",
-}
+export type EntityTypeEnum =
+  | "GOD"
+  | "AUTHOR"
+  | "ITIHASAM"
+  | "PURANAM"
+  | "STHOTRAM"
+  | "DANDAKAM"
+  | "KAANDAM"
+  | "SARGA"
+  | "PARVAM"
+  | "ADHYAAYAM"
+  | "SLOKAM"
+  | "OTHERS"
+  | "SKANDAM"
+  | "GHATTAM";
+
+// export enum EntityTypeEnum {
+//   GOD = "GOD",
+//   AUTHOR = "AUTHOR",
+//   ITIHASAM = "ITIHASAM",
+//   PURANAM = "PURANAM",
+//   STHOTRAM = "STHOTRAM",
+//   DANDAKAM = "DANDAKAM",
+//   KAANDAM = "KAANDAM",
+//   SARGA = "SARGA",
+//   PARVAM = "PARVAM",
+//   ADHYAAYAM = "ADHYAAYAM",
+//   SLOKAM = "SLOKAM",
+//   OTHERS = "OTHERS",
+//   SKANDAM = "SKANDAM",
+//   GHATTAM = "GHATTAM",
+// }
 
 export type LanguageValueInput = {
   language: string;

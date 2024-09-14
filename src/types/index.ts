@@ -1,3 +1,11 @@
+import {
+  RowEditInstance,
+  RowEditOptions,
+  RowEditRow,
+  RowEditTableState,
+} from "@/components/data-table/datatable-feature-row-editing";
+import { Option } from "@/components/ui/multi-select";
+import { RowData } from "@tanstack/react-table";
 import { ComponentType } from "react";
 
 export interface PageMeta {
@@ -25,6 +33,55 @@ declare global {
   var Paddle: any;
 }
 
+declare module "@tanstack/react-table" {
+  interface TableState extends RowEditTableState {}
+
+  interface TableOptionsResolved<TData extends RowData>
+    extends RowEditOptions<TData> {}
+
+  interface Table<TData extends RowData> extends RowEditInstance<TData> {}
+
+  interface Row<TData extends RowData> extends RowEditRow {}
+
+  interface TableMeta<TData extends RowData> {
+    deleteData?: (data: { rowId: string; rowData?: TData }) => void;
+    updateData?: (data: { rowId: string; rowData: TData }) => void;
+    updateCellData?: (data: {
+      rowId: string;
+      rowData: TData;
+      columnId: string;
+      value: unknown;
+    }) => void;
+  }
+
+  //allows us to define custom properties for our columns
+  interface ColumnMeta<TData extends RowData, TValue> {
+    cellInputVariant?:
+      | "text"
+      | "textArea"
+      | "number"
+      | "switch"
+      | "checkbox"
+      | "select"
+      | "multiSelect"
+      | "date"
+      | "dateRange"
+      | "skeleton";
+    filterVariant?:
+      | "text"
+      | "range"
+      | "select"
+      | "multiSelect"
+      | "date"
+      | "dateRange";
+    filterOptions?: Option[];
+    filterOptionsFn?: () => Promise<Option[] | undefined>;
+    dbMapId?: string;
+    fieldType?: "array" | "subObject";
+    subObjectLabelField?: string;
+  }
+}
+
 export type UploadFileType =
   | "application/pdf"
   | "application/json"
@@ -36,6 +93,7 @@ export type UploadFileType =
   | "video"
   | "audio"
   | "all";
+
 export interface FileUploadProps {
   allowedTypes?: UploadFileType[];
   disabled?: boolean;

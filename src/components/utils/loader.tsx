@@ -2,10 +2,20 @@
 
 import React from "react";
 import { Icons } from "./icons";
+import { cn } from "@/lib/utils";
 
-const Loader = () => {
+interface CompProps {
+  className?: string;
+}
+
+const Loader = ({ className }: CompProps) => {
   return (
-    <div className="flex size-full items-center justify-center">
+    <div
+      className={cn(
+        "flex-1 flex size-full items-center justify-center",
+        className,
+      )}
+    >
       <Icons.loaderWheel className="text-primary size-8 animate-spin" />
     </div>
   );

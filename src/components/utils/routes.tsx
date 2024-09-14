@@ -10,12 +10,12 @@ export const routes: IRoute[] = [
   },
   {
     name: "Gods",
-    path: "/gods",
+    path: "/entities?type=GOD&offset=0",
     icon: <Icons.god className="size-4 stroke-2 text-inherit" />,
   },
   {
     name: "Artists",
-    path: "/artists",
+    path: "/entities?type=AUTHOR&offset=0",
     icon: <Icons.artist className="size-4 stroke-2 text-inherit" />,
   },
   {

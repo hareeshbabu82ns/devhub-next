@@ -10,7 +10,7 @@ interface DictionaryPageProps {
 }
 const DictionaryPage = ({ asBrowse }: DictionaryPageProps) => {
   return (
-    <main className="flex flex-1 flex-col gap-4">
+    <main className="flex flex-1 flex-col gap-4 min-h-[calc(100vh_-_theme(spacing.20))]">
       <SearchToolBar asBrowse={asBrowse} />
       <DictionaryResults asBrowse={asBrowse} />
     </main>

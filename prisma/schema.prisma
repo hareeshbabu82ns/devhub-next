@@ -89,6 +89,60 @@ model Authenticator {
 
 //********** AuthJS End **********//
 
+//********** Entities Begin **********//
+
+model Entity {
+  id             String               @id @default(auto()) @map("_id") @db.ObjectId
+  order          Int                  @default(0)
+  type           String
+  imageThumbnail String?              @default("")
+  bookmarked     Boolean              @default(false)
+  audio          String?              @default("")
+  text           LanguageValueType[]
+  meaning        LanguageValueType[]
+  attributes     AttributeValueType[]
+  notes          String?              @default("")
+  parents        TypeEntityType[]
+  children       TypeEntityType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("Entities")
+}
+
+type TypeEntityType {
+  type   String
+  entity String @db.ObjectId
+}
+
+model EntityType {
+  id          String              @id @default(auto()) @map("_id") @db.ObjectId
+  code        String              @unique
+  name        LanguageValueType[]
+  description String?             @default("")
+  // createdAt   DateTime            @default(now())
+  // updatedAt   DateTime            @updatedAt
+
+  @@map("EntityTypes")
+}
+
+//********** Entities End **********//
+
+//********** Extras Begin **********//
+model Language {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  iso       String  @unique
+  name      String
+  direction String? @default("")
+  // createdAt DateTime @default(now())
+  // updatedAt DateTime @updatedAt
+
+  @@map("Languages")
+}
+
+//********** Extras End **********//
+
 //********** Dictionary Begin **********//
 model DictionaryWord {
   id          String               @id @default(auto()) @map("_id") @db.ObjectId

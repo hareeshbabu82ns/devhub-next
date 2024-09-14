@@ -23,7 +23,7 @@ const WithDefaultLayout = ({
           onOpen={() => setOpen(!open)}
           brandText={getActiveRoute(routes, pathname)}
         />
-        <main className="mx-2.5 flex-none transition-all">
+        <main className="mx-2.5 flex-1">
           <div className="@container/main-content overflow-y-auto p-2">
             {children}
           </div>

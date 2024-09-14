@@ -30,7 +30,7 @@ const SanscriptPage = () => {
   };
 
   return (
-    <main className="flex flex-1 flex-col gap-4 h-svh">
+    <main className="flex flex-1 flex-col gap-4 h-[calc(100vh_-_theme(spacing.20))]">
       <Tabs
         defaultValue={searchParams.get("tab") || "editor"}
         className="flex flex-col flex-1 space-y-6"

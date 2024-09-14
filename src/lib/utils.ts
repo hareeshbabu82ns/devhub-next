@@ -1,4 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
+import { ReadonlyURLSearchParams } from "next/navigation";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -159,4 +160,16 @@ export const trimQuotes = (val: any) => {
     return val.replace(/^["']+|["']+$/g, "");
   }
   return val;
+};
+
+export const updateSearchParams = (
+  oldParams: ReadonlyURLSearchParams,
+  newParams: Record<string, string>,
+  replace: boolean = false,
+) => {
+  const params = new URLSearchParams(replace ? "" : oldParams.toString());
+  for (const [key, value] of Object.entries(newParams)) {
+    params.set(key, value);
+  }
+  return params.toString();
 };
