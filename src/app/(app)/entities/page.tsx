@@ -6,11 +6,12 @@ import { ENTITY_TYPES_CHILDREN } from "@/lib/constants";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
+import EntityBulkCreatorTrigger from "./_components/EntityBulkCreatorTrigger";
 
 const Page = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const type = searchParams.get("type");
+  const type = searchParams.get("type") as EntityTypeEnum;
   const types = [type] as EntityTypeEnum[];
 
   // const onTileClicked = (tile: Entity) => console.log(tile);
@@ -28,7 +29,7 @@ const Page = () => {
 
   const actionButtons = (
     <>
-      {/* <EntityBulkCreatorTrigger parentId={tile?.id} parentType={tile?.type} /> */}
+      <EntityBulkCreatorTrigger />
       <Button
         size="icon"
         type="button"

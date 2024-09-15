@@ -157,7 +157,7 @@ function EntitySearchGrid({
         query,
         language,
         pagination: { pageIndex: offset, pageSize: limit },
-        sorting: [],
+        sorting: [{ id: "order", desc: true }],
         filters,
       });
       return entities;

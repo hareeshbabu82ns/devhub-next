@@ -13,11 +13,81 @@ import {
 } from "@/components/data-table/utils";
 import { columns } from "./columns";
 import { Prisma, Entity as DBEntity } from "@prisma/client";
-import { Entity, EntityWithRelations } from "@/lib/types";
+import { EntityWithRelations } from "@/lib/types";
+import { LANGUAGE_SELECT_DEFAULT } from "@/components/blocks/language-selector";
+
+export const createEntity = async (data: {
+  entity: Prisma.EntityCreateInput;
+  children?: Prisma.EntityCreateInput[];
+}): Promise<EntityWithRelations | null> => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  db.$transaction(async (txn) => {
+    const entity = await txn.entity.create({ data: data.entity });
+    if (data.children) {
+      const childenData = data.children.map(
+        (c, idx) =>
+          ({
+            ...c,
+            order: idx,
+            parents: [{ entity: entity.id, type: entity.type }],
+          }) as Prisma.EntityCreateInput,
+      );
+      await txn.entity.createMany({
+        data: childenData,
+      });
+      const childIds = await txn.entity.findMany({
+        where: { parents: { some: { entity: entity.id } } },
+        select: { id: true, type: true },
+      });
+
+      const finalEntity = await txn.entity.update({
+        where: { id: entity.id },
+        data: {
+          children: childIds.map((c) => ({ entity: c.id, type: c.type })),
+        },
+      });
+      return finalEntity
+        ? mapDbToEntity(finalEntity, LANGUAGE_SELECT_DEFAULT)
+        : finalEntity;
+    }
+    return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
+  });
+  return null;
+};
 
 export const readEntity = async (entityId: string, language: string) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
   const entity = await db.entity.findUnique({ where: { id: entityId } });
   return entity ? mapDbToEntity(entity, language) : entity;
+};
+
+export const getEntityByText = async (text: string, types: string[]) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const entity = await db.entity.findFirst({
+    where: {
+      text: {
+        some: {
+          value: text,
+        },
+      },
+      type: {
+        in: types,
+      },
+    },
+  });
+  return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
 };
 
 export const fetchEntities = async ({

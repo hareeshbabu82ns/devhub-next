@@ -12,6 +12,7 @@ import { ENTITY_TYPES_CHILDREN } from "@/lib/constants";
 import { Entity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
+import EntityBulkCreatorTrigger from "../_components/EntityBulkCreatorTrigger";
 
 const Page = () => {
   const params = useParams();
@@ -55,7 +56,7 @@ const Page = () => {
 
   const actionButtons = (
     <>
-      {/* <EntityBulkCreatorTrigger parentId={tile?.id} parentType={tile?.type} /> */}
+      <EntityBulkCreatorTrigger parentId={tile?.id} parentType={tile?.type} />
       <Button
         size="icon"
         type="button"
