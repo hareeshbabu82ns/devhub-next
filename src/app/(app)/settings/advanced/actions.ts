@@ -2,111 +2,125 @@
 
 import { db } from "@/lib/db";
 
-export const updateEntitiesAll = async () => {
-  const limit = 1000;
-  let skip = 0;
-  while (true) {
-    const entities = (await db.entity.findRaw({
-      options: { limit, skip },
-    })) as any as any[];
-    if (!entities || entities.length === 0) {
-      console.log(`No more entities to update after skipping ${skip}`);
-      break;
-    }
-
-    for (const entity of entities) {
-      const { _id, ...restEntity } = entity;
-      const newEntity = {
-        parents: entity.parents.map((p: any) => p?.entity["$oid"] || p),
-        children: entity.children.map((p: any) => p?.entity["$oid"] || p),
-      };
-      await db.entity.update({
-        where: { id: _id["$oid"] },
-        data: newEntity,
-      });
-      // console.log(`Updating entity:`, newEntity);
-    }
-
-    console.log(`Done - ${entities.length} entities updated from ${skip}`);
-    skip += limit;
-  }
-};
-
-export const updateEntitiesByParents = async () => {
-  const limit = 1000;
-  let skip = 0;
-  while (true) {
-    const entities = (await db.entity.findRaw({
-      filter: { parents: { $elemMatch: { entity: { $exists: true } } } },
-      options: { limit, skip },
-    })) as any as any[];
-    if (!entities || entities.length === 0) {
-      console.log(`No more entities to update after skipping ${skip}`);
-      break;
-    }
-
-    for (const entity of entities) {
-      const { _id, ...restEntity } = entity;
-      const newEntity = {
-        parents: entity.parents.map((p: any) => p?.entity["$oid"] || p),
-      };
-      await db.entity.update({
-        where: { id: _id["$oid"] },
-        data: newEntity,
-      });
-      // console.log(`Updating entity:`, newEntity);
-    }
-
-    console.log(`Done - ${entities.length} entities updated from ${skip}`);
-    skip += limit;
-  }
-};
-
-export const updateEntitiesByChildren = async () => {
-  const limit = 20;
-  let skip = 0;
-  while (true) {
-    const entities = (await db.entity.findRaw({
-      filter: { children: { $elemMatch: { entity: { $exists: true } } } },
-      options: { limit, skip },
-    })) as any as any[];
-    if (!entities || entities.length === 0) {
-      console.log(`No more entities to update after skipping ${skip}`);
-      break;
-    }
-    // console.log(entities);
-    for (const entity of entities) {
-      const newEntity = mapOldToNewEntity(entity, -1);
-      await db.entity.update({
-        where: { id: entity._id["$oid"] },
-        data: newEntity,
-      });
-      // console.log(`Updating entity:`, newEntity);
-
-      const childEntities = (await db.entity.findRaw({
-        filter: { _id: { $in: newEntity.children } },
-      })) as any as any[];
-
-      let childIdx = 0;
-      for (const childEntity of childEntities) {
-        const newChildEntity = mapOldToNewEntity(childEntity, childIdx);
-        await db.entity.update({
-          where: { id: childEntity._id["$oid"] },
-          data: newChildEntity,
-        });
-        // console.log(`Updating child entity ${childIdx}:`, newChildEntity);
-        childIdx++;
-      }
-    }
-    console.log(`Done - ${entities.length} entities updated from ${skip}`);
-    skip += limit;
-  }
-};
-
 export const updateEntitiesScript = async () => {
-  // await updateEntitiesByChildren();
-  // await updateEntitiesByParents();
-  // await updateEntitiesAll();
+  await upgradeEntitiesAll();
+};
+
+const upgradeEntitiesAll = async () => {
+  // await upgradeGods();
+  // await upgradeAuthors();
+  // await upgradeEntitiesByType(["DANDAKAM"], true);
+  await upgradeEntitiesByRootIDs(["6335da675bba420327665885"], true);
+};
+
+const upgradeEntitiesByRootIDs = async (
+  rootIds: string[],
+  recursive: Boolean = false,
+) => {
+  const entities = (await db.entity.findRaw({
+    filter: {
+      _id: { $in: rootIds.map((id) => ({ $oid: id })) },
+      order: { $exists: false },
+    },
+    // options: { limit: 2, skip: 0 },
+  })) as any as any[];
+  for (const entity of entities) {
+    await upgradeEntity(entity, -1, recursive);
+  }
+};
+
+const upgradeEntitiesByType = async (
+  types: string[],
+  recursive: Boolean = false,
+) => {
+  const entities = (await db.entity.findRaw({
+    filter: {
+      type: { $in: types },
+      order: { $exists: false },
+    },
+    // options: { limit: 2, skip: 0 },
+  })) as any as any[];
+  for (const entity of entities) {
+    await upgradeEntity(entity, -1, recursive);
+  }
+};
+
+const upgradeEntitiesByIds = async (
+  entityIds: string[],
+  recursive: Boolean = false,
+) => {
+  const entities = (await db.entity.findRaw({
+    filter: {
+      _id: { $in: entityIds.map((id) => ({ $oid: id })) },
+      order: { $exists: false },
+    },
+    // options: { limit: 2, skip: 0 },
+  })) as any as any[];
+  let idx = 0;
+  for (const entity of entities) {
+    await upgradeEntity(entity, idx, recursive);
+    idx++;
+  }
+};
+
+const upgradeGods = async () => {
+  const entities = (await db.entity.findRaw({
+    filter: { type: "GOD", order: { $exists: false } },
+  })) as any as any[];
+  for (const entity of entities) {
+    await upgradeEntity(entity);
+  }
+};
+
+const upgradeAuthors = async () => {
+  const entities = (await db.entity.findRaw({
+    filter: { type: "AUTHOR", order: { $exists: false } },
+  })) as any as any[];
+  for (const entity of entities) {
+    await upgradeEntity(entity);
+  }
+};
+
+const upgradeEntity = async (
+  oldEntity: any,
+  newOrder: number = -1,
+  recursive: Boolean = false,
+) => {
+  const isUpgraded = oldEntity.order !== undefined;
+  console.log(oldEntity._id["$oid"], oldEntity.type, isUpgraded);
+  // console.log(
+  //   `Old entity:\n`,
+  //   oldEntity._id["$oid"],
+  //   oldEntity.type,
+  //   oldEntity?.text[0]?.value?.substring(0, 20),
+  //   // oldEntity,
+  //   "upgraded?:",
+  //   isUpgraded,
+  // );
+  if (isUpgraded) {
+    return;
+  }
+  const newEntity = mapOldToNewEntity(oldEntity, newOrder);
+  console.log(`Updating entity:\n`, newEntity?.order);
+  // console.log(
+  //   `Updating entity:\n`,
+  //   oldEntity._id["$oid"],
+  //   newEntity?.type,
+  //   newEntity?.order,
+  //   newEntity?.text[0]?.value?.substring(0, 20),
+  //   newEntity?.parents,
+  //   newEntity?.children,
+  //   // newEntity
+  // );
+
+  // await db.entity.update({
+  //   where: { id: oldEntity._id["$oid"] },
+  //   data: newEntity,
+  // });
+
+  if (recursive && newEntity.children && newEntity.children.length > 0) {
+    await upgradeEntitiesByIds(newEntity.children, recursive);
+  }
 };
 
 const mapOldToNewEntity = (old: any, order: number) => {
