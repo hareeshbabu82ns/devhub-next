@@ -17,25 +17,31 @@ import { LANGUAGES } from "@/lib/constants";
 interface EntityBulkCreatorProps {
   parentId?: string;
   parentType?: EntityTypeEnum;
+  entityType?: EntityTypeEnum;
 }
 const EntityBulkCreator = ({
   parentId,
   parentType,
+  entityType,
 }: EntityBulkCreatorProps) => {
   const defaultUploadText =
-    parentId && parentType
+    parentId || parentType || entityType
       ? {
           ...DEFAULT_ENTITY_UPLOAD_TEXT,
           entities: [
             ...DEFAULT_ENTITY_UPLOAD_TEXT.entities.map((e) => ({
               ...e,
-              parentIDs: [
-                ...(e.parentIDs ?? []),
-                {
-                  id: parentId,
-                  type: parentType,
-                },
-              ],
+              type: entityType ?? e.type,
+              parentIDs:
+                parentId && parentType
+                  ? [
+                      ...(e.parentIDs ?? []),
+                      {
+                        id: parentId,
+                        type: parentType,
+                      },
+                    ]
+                  : [],
             })),
           ],
         }
@@ -390,6 +396,7 @@ const DEFAULT_ENTITY_UPLOAD_TEXT: z.infer<typeof EntityUploadCurrentSchema> = {
   version: "current",
   entities: [
     {
+      order: 0,
       parentIDs: [],
       type: "STHOTRAM",
       imageThumbnail: "/default-om_256.png",
@@ -417,6 +424,7 @@ const DEFAULT_ENTITY_UPLOAD_TEXT: z.infer<typeof EntityUploadCurrentSchema> = {
       ],
       children: [
         {
+          order: 0,
           type: "SLOKAM",
           text: [
             {
