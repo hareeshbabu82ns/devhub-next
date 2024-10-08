@@ -150,14 +150,13 @@ function EntitySearchGrid({
           id: "type",
           value: forTypes.map((t) => t.toString()),
         });
-      if (forEntity)
-        filters.push({ id: "parents", value: { entity: forEntity.id } });
+      if (forEntity) filters.push({ id: "parents", value: forEntity.id });
 
       const entities = await fetchEntities({
         query,
         language,
         pagination: { pageIndex: offset, pageSize: limit },
-        sorting: [{ id: "order", desc: true }],
+        sorting: [{ id: "order", desc: false }],
         filters,
       });
       return entities;

@@ -102,8 +102,12 @@ model Entity {
   meaning        LanguageValueType[]
   attributes     AttributeValueType[]
   notes          String?              @default("")
-  parents        TypeEntityType[]
-  children       TypeEntityType[]
+
+  parentsRel Entity[] @relation("EntityRels", fields: [parents], references: [id])
+  parents    String[] @db.ObjectId
+
+  childrenRel Entity[] @relation("EntityRels", fields: [children], references: [id])
+  children    String[] @db.ObjectId
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -163,7 +167,7 @@ model DictionaryWord {
 }
 
 type LanguageValueType {
-  language String @map("lang")
+  language String @map("lang") // lanugage is a reserved keyword
   value    String
 }
 

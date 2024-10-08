@@ -23,7 +23,7 @@ export const columns = [
     id: "parents",
     header: "Parents",
     meta: {
-      fieldType: "subObject",
+      fieldType: "array",
       filterVariant: "multiSelect",
     },
   }),

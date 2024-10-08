@@ -144,6 +144,7 @@ const EntityUploadV1ContentsSchema = z.object({
   category: z.string().optional(),
   source: z.string().optional(),
   contents: z.array(z.string()),
+  meanings: z.array(z.string()).optional(),
 });
 
 export const EntityUploadV1Schema = z.object({
@@ -160,5 +161,5 @@ export const EntityUploadV1Schema = z.object({
 
 export const EntityUploadCurrentSchema = z.object({
   version: z.string().optional(),
-  entity: EntityInputSchema,
+  entities: z.lazy(() => EntityInputSchema.array()),
 });

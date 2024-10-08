@@ -82,13 +82,15 @@ export const ENTITY_TYPES_DDLB = [
   { label: "Ghattam", value: "GHATTAM" },
 ] as Option[];
 
-export const LANGUAGES = ["SAN", "TEL", "IAST", "SLP1", "ENG"] as const;
+export type LANGUAGES_TYPE = "SAN" | "TEL" | "IAST" | "SLP1" | "ENG" | "TAM";
+export const LANGUAGES = ["SAN", "TEL", "IAST", "SLP1", "ENG", "TAM"] as const;
 
 export const LANGUAGES_DDLB = [
   { label: "Sanskrit", value: "SAN" },
   { label: "Telugu", value: "TEL" },
   { label: "IAST", value: "IAST" },
   { label: "SLP1", value: "SLP1" },
+  { label: "Tamil", value: "TAM" },
   { label: "English", value: "ENG" },
 ] as Option[];
 

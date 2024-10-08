@@ -33,21 +33,21 @@ export const createEntity = async (data: {
           ({
             ...c,
             order: idx,
-            parents: [{ entity: entity.id, type: entity.type }],
+            parents: [entity.id],
           }) as Prisma.EntityCreateInput,
       );
       await txn.entity.createMany({
         data: childenData,
       });
       const childIds = await txn.entity.findMany({
-        where: { parents: { some: { entity: entity.id } } },
+        where: { parents: { has: entity.id } },
         select: { id: true, type: true },
       });
 
       const finalEntity = await txn.entity.update({
         where: { id: entity.id },
         data: {
-          children: childIds.map((c) => ({ entity: c.id, type: c.type })),
+          children: childIds.map((c) => c.id),
         },
       });
       return finalEntity
@@ -110,7 +110,6 @@ export const fetchEntities = async ({
 
   const whereFilters: Prisma.EntityFindManyArgs["where"] =
     convertColumnFiltersToPrisma(filters, columns);
-  // console.dir({ filters, where }, { depth: 3 });
 
   const orderBy: Prisma.EntityFindManyArgs["orderBy"] = convertSortingToPrisma(
     sorting,
@@ -118,7 +117,7 @@ export const fetchEntities = async ({
   );
   // console.dir({ sorting, orderBy }, { depth: 3 });
   const whereRest: Prisma.EntityFindManyArgs["where"] = {};
-  if (query) {
+  if (query && query.length && query !== ".*") {
     whereRest.text = { some: { value: { contains: query } } };
     // whereRest.meaning = { some: { value: { contains: query } } };
   }
@@ -129,6 +128,8 @@ export const fetchEntities = async ({
     // userId: session.user.id,
   };
 
+  // console.dir({ filters, where }, { depth: 4 });
+
   const entitiesCount = await db.entity.count({
     where,
   });
@@ -136,7 +137,7 @@ export const fetchEntities = async ({
   const entities = await db.entity.findMany({
     skip: pagination.pageIndex * pagination.pageSize,
     take: pagination.pageSize,
-    orderBy: sorting?.length ? (orderBy as any) : { order: "desc" },
+    orderBy: sorting?.length ? (orderBy as any) : { order: "asc" },
     where,
   });
 

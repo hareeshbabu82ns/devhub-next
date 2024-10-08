@@ -46,10 +46,11 @@ export type AttributeValueInput = {
   value: string;
 };
 
-export type TypeEntityInput = {
-  type: EntityTypeEnum;
-  entity: string;
-};
+export type TypeEntityInput = string;
+// export type TypeEntityInput = {
+//   type: EntityTypeEnum;
+//   entity: string;
+// };
 
 export type Entity = {
   id: string;

@@ -13,6 +13,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createEntity, getEntityByText } from "../actions";
 import { Prisma } from "@prisma/client";
 import { toast } from "sonner";
+import { LANGUAGES } from "@/lib/constants";
 interface EntityBulkCreatorProps {
   parentId?: string;
   parentType?: EntityTypeEnum;
@@ -25,16 +26,18 @@ const EntityBulkCreator = ({
     parentId && parentType
       ? {
           ...DEFAULT_ENTITY_UPLOAD_TEXT,
-          entity: {
-            ...DEFAULT_ENTITY_UPLOAD_TEXT.entity,
-            parentIDs: [
-              ...(DEFAULT_ENTITY_UPLOAD_TEXT.entity.parentIDs ?? []),
-              {
-                id: parentId,
-                type: parentType,
-              },
-            ],
-          },
+          entities: [
+            ...DEFAULT_ENTITY_UPLOAD_TEXT.entities.map((e) => ({
+              ...e,
+              parentIDs: [
+                ...(e.parentIDs ?? []),
+                {
+                  id: parentId,
+                  type: parentType,
+                },
+              ],
+            })),
+          ],
         }
       : DEFAULT_ENTITY_UPLOAD_TEXT;
 
@@ -65,13 +68,14 @@ const EntityBulkCreator = ({
       const entity: Prisma.EntityCreateInput = {
         type: data.type,
         text: data.text,
-        parents: data.parentIDs?.map((e) => ({
-          entity: e.id,
-          type: e.type,
-        })),
+        parentsRel: {
+          connect: data.parentIDs?.map((e) => ({
+            id: e.id,
+          })),
+        },
         attributes: data.attributes,
         audio: data.audio,
-        imageThumbnail: data.imageThumbnail,
+        imageThumbnail: data.imageThumbnail || "/default-om_256.png",
         bookmarked: data.bookmarked,
         meaning: data.meaning,
         order: data.order,
@@ -94,60 +98,66 @@ const EntityBulkCreator = ({
   });
 
   const createEntityAction = async () => {
-    const res = convertJsonToEntity(text);
-    if (res.errors) {
-      console.log(res.errors);
+    const resEntities = convertJsonToEntity(text);
+    if (resEntities.errors) {
+      console.log(resEntities.errors);
       toast.error("Entity conversion failed");
       // toast({
       //   title: "Entity conversion failed",
-      //   description: res.errors.join(", "),
+      //   description: resEntities.errors.join(", "),
       //   variant: "destructive",
       // });
     } else {
-      if (res.entity?.parentIDs?.length === 0 && res.entity?.parents) {
-        const parents: EntityInputType[] = res.entity.parents;
+      if (resEntities.entities === undefined) {
+        toast.error("No entities found");
+        return;
+      }
+      for (const res of resEntities.entities) {
+        if (res?.parentIDs?.length === 0 && res?.parents) {
+          const parents: EntityInputType[] = res.parents;
 
-        const resParent = await getEntityByTextFn({
-          text: parents[0].text[0].value,
-          types: [parents[0].type],
-        });
+          const resParent = await getEntityByTextFn({
+            text: parents[0].text[0].value,
+            types: [parents[0].type],
+          });
 
-        if (resParent !== null && res.entity) {
-          res.entity.parents?.pop();
-          res.entity.parents = undefined;
-          res.entity.parentIDs = [
-            {
-              id: resParent.id,
-              type: resParent.type,
-            },
-          ];
+          if (resParent !== null && res) {
+            res.parents?.pop();
+            res.parents = undefined;
+            res.parentIDs = [
+              {
+                id: resParent.id,
+                type: resParent.type,
+              },
+            ];
+          }
         }
-      }
-      const data: EntityInputType = {
-        ...res.entity,
-        type: res.entity?.type || "STHOTRAM",
-        text: res.entity?.text || [],
-        parentIDs: res.entity?.parentIDs?.map((e) => ({
-          id: e.id,
-          type: e.type,
-        })),
-      };
-      const resEntity = await createEntityFn({ data });
-      if (resEntity) {
-        toast.success("Entity created successfully");
-        // toast({
-        //   title: "Entity created",
-        //   description: "Entity created successfully",
-        //   duration: 1000,
-        // });
-      }
-      if (createEntityError) {
-        toast.error("Entity creation failed");
-        // toast({
-        //   title: "Entity creation failed",
-        //   description: createEntityError.message,
-        //   variant: "destructive",
-        // });
+        const data: EntityInputType = {
+          ...res,
+          type: res?.type || "STHOTRAM",
+          text: res?.text || [],
+          parentIDs: res?.parentIDs?.map((e) => ({
+            id: e.id,
+            type: e.type,
+          })),
+        };
+        const resEntity = await createEntityFn({ data });
+        if (resEntity) {
+          toast.success("Entity created successfully");
+          // toast({
+          //   title: "Entity created",
+          //   description: "Entity created successfully",
+          //   duration: 1000,
+          // });
+        }
+        if (createEntityError) {
+          toast.error("Entity creation failed");
+          // toast({
+          //   title: "Entity creation failed",
+          //   description: createEntityError.message,
+          //   variant: "destructive",
+          // });
+        }
       }
     }
   };
@@ -186,10 +196,10 @@ export default EntityBulkCreator;
 
 const convertJsonToEntity = (text: string) => {
   const res: {
-    entity?: Partial<EntityInputType>;
+    entities?: Partial<EntityInputType>[];
     errors?: Array<Record<string, string>>;
   } = {
-    entity: undefined,
+    entities: undefined,
     errors: undefined,
   };
 
@@ -223,10 +233,10 @@ const convertJsonToEntity = (text: string) => {
 
 const convertV1JsonToEntity = (json: never) => {
   const res: {
-    entity?: Partial<EntityInputType>;
+    entities?: Partial<EntityInputType>[];
     errors?: Array<Record<string, string>>;
   } = {
-    entity: undefined,
+    entities: undefined,
     errors: undefined,
   };
   const resValidation = validateEntityV1JSON(json);
@@ -273,75 +283,60 @@ const convertV1JsonToEntity = (json: never) => {
     });
   }
 
-  if (entityV1.entity.textData.TEL) {
-    entity.text?.push({
-      language: "TEL",
-      value: entityV1.entity.textData.TEL.text,
-    });
-  }
-  if (entityV1.entity.textData.SAN) {
-    entity.text?.push({
-      language: "SAN",
-      value: entityV1.entity.textData.SAN.text,
-    });
-  }
-  if (entityV1.entity.textData.IAST) {
-    entity.text?.push({
-      language: "IAST",
-      value: entityV1.entity.textData.IAST.text,
-    });
-  }
-
-  entityV1.contents.SAN?.contents.forEach((content) => {
-    if (!content) {
-      entity.children!.push({
-        type: entityV1.contents.type,
-        text: [],
+  LANGUAGES.forEach((lang) => {
+    const textData =
+      entityV1.entity.textData[lang as keyof typeof entityV1.entity.textData];
+    if (textData) {
+      entity.text?.push({
+        language: lang,
+        value: textData.text,
       });
-    } else {
-      entity.children!.push({
-        type: entityV1.contents.type,
-        text: [
-          {
-            language: "SAN",
+    }
+  });
+
+  LANGUAGES.forEach((lang) => {
+    const contents =
+      entityV1.contents[lang as keyof Omit<typeof entityV1.contents, "type">];
+    if (contents?.contents) {
+      const contentMeanings = contents.meanings || [];
+      contents.contents.forEach((content, idx) => {
+        const entityChildAtIdx = entity.children![idx];
+        const meaningAtIdx = contentMeanings[idx];
+        if (!entityChildAtIdx) {
+          entity.children!.push({
+            type: entityV1.contents.type,
+            text: [
+              {
+                language: lang as any,
+                value: content,
+              },
+            ],
+            meaning: meaningAtIdx
+              ? [
+                  {
+                    language: lang as any,
+                    value: meaningAtIdx,
+                  },
+                ]
+              : [],
+          });
+        } else {
+          entity.children![idx].text.push({
+            language: lang as any,
             value: content,
-          },
-        ],
+          });
+          if (meaningAtIdx) {
+            entity.children![idx].meaning?.push({
+              language: lang as any,
+              value: meaningAtIdx,
+            });
+          }
+        }
       });
     }
   });
 
-  entityV1.contents.TEL?.contents.forEach((content, i) => {
-    if (!entity.children![i]) {
-      entity.children!.push({
-        type: entityV1.contents.type,
-        text: [],
-      });
-    }
-    if (content) {
-      entity.children![i].text.push({
-        language: "TEL",
-        value: content,
-      });
-    }
-  });
-
-  entityV1.contents.IAST?.contents.forEach((content, i) => {
-    if (!entity.children![i]) {
-      entity.children!.push({
-        type: entityV1.contents.type,
-        text: [],
-      });
-    }
-    if (content) {
-      entity.children![i].text.push({
-        language: "IAST",
-        value: content,
-      });
-    }
-  });
-
-  return { ...res, entity };
+  return { ...res, entities: [entity] };
 };
 
 const validateEntityV1JSON = (json: never) => {
@@ -369,16 +364,16 @@ const validateEntityV1JSON = (json: never) => {
 
 const validateEntityCurrentJSON = (json: never) => {
   const res: {
-    entity?: EntityInputType;
+    entities?: EntityInputType[];
     errors?: Array<Record<string, string>>;
   } = {
     errors: undefined,
-    entity: undefined,
+    entities: undefined,
   };
 
   try {
     const currSchema = EntityUploadCurrentSchema.parse(json);
-    res.entity = currSchema.entity;
+    res.entities = currSchema.entities;
   } catch (e) {
     console.error(e);
     res.errors = [
@@ -393,87 +388,89 @@ const validateEntityCurrentJSON = (json: never) => {
 
 const DEFAULT_ENTITY_UPLOAD_TEXT: z.infer<typeof EntityUploadCurrentSchema> = {
   version: "current",
-  entity: {
-    parentIDs: [],
-    type: "STHOTRAM",
-    imageThumbnail: "/default-om_256.png",
-    text: [
-      {
-        language: "ENG",
-        value: "",
-      },
-      {
-        language: "TEL",
-        value: "",
-      },
-      {
-        language: "SAN",
-        value: "$transliterateFrom=TEL",
-      },
-      {
-        language: "IAST",
-        value: "$transliterateFrom=TEL",
-      },
-      {
-        language: "SLP1",
-        value: "$transliterateFrom=TEL",
-      },
-    ],
-    children: [
-      {
-        type: "SLOKAM",
-        text: [
-          {
-            language: "ENG",
-            value: "",
-          },
-          {
-            language: "TEL",
-            value: "",
-          },
-          {
-            language: "SAN",
-            value: "$transliterateFrom=TEL",
-          },
-          {
-            language: "IAST",
-            value: "$transliterateFrom=TEL",
-          },
-          {
-            language: "SLP1",
-            value: "$transliterateFrom=TEL",
-          },
-        ],
-        meaning: [
-          {
-            language: "ENG",
-            value: "",
-          },
-          {
-            language: "TEL",
-            value: "",
-          },
-          {
-            language: "SAN",
-            value: "$transliterateFrom=TEL",
-          },
+  entities: [
+    {
+      parentIDs: [],
+      type: "STHOTRAM",
+      imageThumbnail: "/default-om_256.png",
+      text: [
+        {
+          language: "ENG",
+          value: "",
+        },
+        {
+          language: "TEL",
+          value: "",
+        },
+        {
+          language: "SAN",
+          value: "$transliterateFrom=TEL",
+        },
+        {
+          language: "IAST",
+          value: "$transliterateFrom=TEL",
+        },
+        {
+          language: "SLP1",
+          value: "$transliterateFrom=TEL",
+        },
+      ],
+      children: [
+        {
+          type: "SLOKAM",
+          text: [
+            {
+              language: "ENG",
+              value: "",
+            },
+            {
+              language: "TEL",
+              value: "",
+            },
+            {
+              language: "SAN",
+              value: "$transliterateFrom=TEL",
+            },
+            {
+              language: "IAST",
+              value: "$transliterateFrom=TEL",
+            },
+            {
+              language: "SLP1",
+              value: "$transliterateFrom=TEL",
+            },
+          ],
+          meaning: [
+            {
+              language: "ENG",
+              value: "",
+            },
+            {
+              language: "TEL",
+              value: "",
+            },
+            {
+              language: "SAN",
+              value: "$transliterateFrom=TEL",
+            },
 
-          {
-            language: "IAST",
-            value: "$transliterateFrom=TEL",
-          },
-          {
-            language: "SLP1",
-            value: "$transliterateFrom=TEL",
-          },
-        ],
-      },
-    ],
-    attributes: [
-      {
-        key: "source",
-        value: "",
-      },
-    ],
-  },
+            {
+              language: "IAST",
+              value: "$transliterateFrom=TEL",
+            },
+            {
+              language: "SLP1",
+              value: "$transliterateFrom=TEL",
+            },
+          ],
+        },
+      ],
+      attributes: [
+        {
+          key: "source",
+          value: "",
+        },
+      ],
+    },
+  ],
 };

@@ -80,9 +80,17 @@ export const convertColumnFiltersToPrisma = (
       case "multiSelect": {
         switch (column?.meta.fieldType) {
           case "array":
-            const values = (value as Option[]).map((o) => o.value);
-            if (!values.length) break;
-            acc[dbId] = { hasSome: values };
+            if (!value) break;
+            if (typeof value === "string") {
+              acc[dbId] = { has: value };
+            } else {
+              const values = (value as any[]).map((o) => {
+                if (typeof o === "string") return o;
+                return o?.value || o;
+              });
+              if (!values.length) break;
+              acc[dbId] = { hasSome: values };
+            }
             break;
           case "subObject":
             const valuesObj = value as Record<string, any>;
