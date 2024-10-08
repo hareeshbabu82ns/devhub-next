@@ -59,14 +59,18 @@ export const createEntity = async (data: {
   return null;
 };
 
-export const readEntity = async (entityId: string, language: string) => {
+export const readEntity = async (
+  entityId: string,
+  language: string,
+  meaning?: string,
+) => {
   const session = await auth();
   if (!session) {
     throw new Error("Unauthorized");
   }
 
   const entity = await db.entity.findUnique({ where: { id: entityId } });
-  return entity ? mapDbToEntity(entity, language) : entity;
+  return entity ? mapDbToEntity(entity, language, meaning) : entity;
 };
 
 export const getEntityByText = async (text: string, types: string[]) => {
@@ -145,7 +149,7 @@ export const fetchEntities = async ({
   return { results, total: entitiesCount };
 };
 
-const mapDbToEntity = (e: DBEntity, language: string) => {
+const mapDbToEntity = (e: DBEntity, language: string, meaning?: string) => {
   const item: EntityWithRelations = {
     id: e.id,
     type: e.type as any,
@@ -158,11 +162,14 @@ const mapDbToEntity = (e: DBEntity, language: string) => {
     meaningData: e.meaning,
     childrenCount: e.children.length,
     parentsCount: e.parents.length,
+    order: e.order,
   };
   item.text = (e.text.find((w) => w.language === language) || e.text[0]).value;
+  const meaningLang = meaning || language;
   item.meaning =
     e.meaning.length === 0
       ? ""
-      : (e.meaning.find((w) => w.language === language) || e.meaning[0]).value;
+      : (e.meaning.find((w) => w.language === meaningLang) || e.meaning[0])
+          .value;
   return item;
 };

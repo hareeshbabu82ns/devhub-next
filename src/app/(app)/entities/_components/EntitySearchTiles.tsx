@@ -177,6 +177,7 @@ function EntitySearchGrid({
       src: g.imageThumbnail || "",
       childrenCount: g.childrenCount || 0,
       audio: g.audio,
+      order: g.order,
     })) || [];
 
   const entitiesCount = data.total;

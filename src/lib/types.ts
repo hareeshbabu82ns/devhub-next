@@ -64,6 +64,7 @@ export type Entity = {
   meaningData?: LanguageValueInput[];
   attributes?: AttributeValueInput[];
   notes?: string;
+  order?: number;
 };
 
 export type EntityWithRelations = Entity & {

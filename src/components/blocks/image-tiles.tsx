@@ -12,6 +12,7 @@ export interface TileModel {
   subTitle?: string;
   src: string;
   childrenCount?: number;
+  order?: number;
 }
 
 interface ArtTileProps extends React.HTMLAttributes<HTMLDivElement> {

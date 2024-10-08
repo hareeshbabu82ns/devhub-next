@@ -16,6 +16,7 @@ import {
 } from "./text-size-selector";
 import AudioPlayPauseButton from "./AudioPlayPauseButton";
 import Image from "next/image";
+import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 // import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 // import AudioPlayPauseButton from "./AudioPlayPauseButton";
 
@@ -26,6 +27,7 @@ export interface TileModel {
   subTitle?: string;
   src: string;
   audio?: string;
+  order?: number;
 }
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -85,13 +87,15 @@ export const ArtSlokamTile = ({
         </div>
         <div className="flex items-center justify-between h-8">
           <div>
-            {/* {index > 0 && (
+            {index > 0 && (
               <SlokamDisplayDlgTrigger
                 key={model.id}
-                triggerTitle={index.toString().padStart(3, "0")}
+                triggerTitle={(model.order ? model.order + 1 : index)
+                  .toString()
+                  .padStart(3, "0")}
                 forSlokamId={model.id}
               />
-            )} */}
+            )}
           </div>
           <div className="hidden group-hover:flex flex-row">
             {model.audio && <AudioPlayPauseButton url={model.audio} />}
