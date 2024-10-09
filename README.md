@@ -1,4 +1,4 @@
-### init project
+### init project (public project)
 
 ```sh
 pnpm create next-app@latest kbase --typescript --tailwind --eslint
