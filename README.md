@@ -79,3 +79,21 @@ git push origin --tags
 
 pnpm run release:patch # pushes to origin and tags together
 ```
+
+### mount path
+```sh
+docker ps
+# instance id for 'coder-rrrrr-ws-test' is coder-xxxxxxx
+docker inspect coder-rrrrr-ws-test
+
+# go to mount folder
+cd /_data/dev/home-hub/data
+mkdir mnt_books
+
+mount -t cifs //xxxxd.10/books /_data/books -o username=rrrrr,password=<XXX>,rw,vers=2.1
+
+mount -t cifs //xxxxd.10/books /_data/books -o username=rrrrr,password=<XXX>,rw,vers=2.1
+
+umount /_data/dev/home-hub/data/mnt_books
+
+```
