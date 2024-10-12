@@ -5,7 +5,7 @@ import { useReadLocalStorage } from "usehooks-ts";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
-import { deleteEntity, readEntity } from "../../actions";
+import { createEntity, deleteEntity, readEntity, updateEntity } from "../../actions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -16,6 +16,7 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { EntityWithRelations } from "@/lib/types";
 import { toast } from "sonner";
 import { useMemo } from "react";
+import { Prisma } from "@prisma/client";
 
 interface CompProps extends React.HTMLAttributes<HTMLDivElement> {
 }
@@ -49,13 +50,75 @@ const Page = ( { className }: CompProps ) => {
     }
   } );
 
-  const onDelete = useMemo( () => async () => {
+  const {
+    mutateAsync: createEntityFn,
+    isPending: createLoading,
+    error: createEntityError,
+  } = useMutation( {
+    mutationKey: [ "createEntity" ],
+    mutationFn: async ( { data }: { data: Prisma.EntityCreateInput } ) => {
+      const res = await createEntity( { entity: data } );
+      return res;
+    }
+  } );
+
+  const {
+    mutateAsync: updateEntityFn,
+    isPending: updateLoading,
+    error: updateEntityError,
+  } = useMutation( {
+    mutationKey: [ "updateEntity", entityId ],
+    mutationFn: async ( { data }: { data: Prisma.EntityUpdateInput } ) => {
+      const res = await updateEntity( entityId!, { entity: data } );
+      return res;
+    },
+  } );
+
+  const onDelete = useMemo( () => async ( entityId: string ) => {
     // ( entityId ) => deleteEntityFn( undefined, { onSuccess: () => toast.success( "Entity Deleted Successfully" ) } )
     if ( !entityId ) return;
-    const res = await deleteEntityFn();
-    if ( res ) {
-      toast.success( "Entity deleted" );
-      router.back();
+    await deleteEntityFn( undefined, {
+      onSuccess: () => {
+        toast.success( "Entity Deleted Successfully" );
+        router.back();
+      },
+      onError: ( error ) => {
+        toast.error( "Error deleting entity" );
+      }
+    } );
+  }, [ entityId ] );
+
+  const onSubmit = useMemo( () => async ( data: Partial<z.infer<typeof EntityFormSchema>> ) => {
+    if ( entityId ) {
+      await updateEntityFn( { data }, {
+        onSuccess: ( data ) => {
+          toast.success( "Entity updated successfully" );
+          refetch();
+        },
+        onError: ( error ) => {
+          toast.error( "Error updating entity" );
+        }
+      } );
+    } else {
+
+      if ( !data.type ) {
+        toast.error( "Entity type is required" );
+        return;
+      }
+      const dataFinal = {
+        ...data,
+        type: data.type!,
+      }
+      const res = await createEntityFn( { data: dataFinal }, {
+        onSuccess: ( data ) => {
+          toast.success( "Entity created successfully" );
+          if ( data?.id )
+            router.replace( `/entities/${data.id}/edit` );
+        },
+        onError: ( error ) => {
+          toast.error( "Error creating entity" );
+        }
+      } );
     }
   }, [ entityId ] );
 
@@ -75,7 +138,8 @@ const Page = ( { className }: CompProps ) => {
       <EntityForm entityId={entityId}
         data={entityForm} onRefresh={refetch}
         onDelete={onDelete}
-        updating={isLoading || isFetching || deleteLoading}
+        onSubmit={onSubmit}
+        updating={isLoading || isFetching || deleteLoading || createLoading || updateLoading}
       />
     </div>
   );
