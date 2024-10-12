@@ -23,16 +23,16 @@ export const ENTITY_TYPES = [
 export const ENTITY_TYPES_PARENTS = {
   GOD: [],
   AUTHOR: [],
-  ITIHASAM: ["GOD", "AUTHOR"],
-  PURANAM: ["GOD", "AUTHOR"],
-  STHOTRAM: ["GOD", "AUTHOR"],
-  DANDAKAM: ["GOD", "AUTHOR"],
-  KAANDAM: ["ITIHASAM"],
-  SARGA: ["KAANDAM"],
-  PARVAM: ["PURANAM"],
-  ADHYAAYAM: ["PURANAM"],
-  SKANDAM: ["PURANAM"],
-  GHATTAM: ["SKANDAM"],
+  ITIHASAM: [ "GOD", "AUTHOR" ],
+  PURANAM: [ "GOD", "AUTHOR" ],
+  STHOTRAM: [ "GOD", "AUTHOR" ],
+  DANDAKAM: [ "GOD", "AUTHOR" ],
+  KAANDAM: [ "ITIHASAM" ],
+  SARGA: [ "KAANDAM" ],
+  PARVAM: [ "PURANAM" ],
+  ADHYAAYAM: [ "PURANAM" ],
+  SKANDAM: [ "PURANAM" ],
+  GHATTAM: [ "SKANDAM" ],
   SLOKAM: [
     "KAANDAM",
     "SARGA",
@@ -43,25 +43,25 @@ export const ENTITY_TYPES_PARENTS = {
     "GHATTAM",
     "OTHERS",
   ],
-  OTHERS: ["GOD", "AUTHOR", "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM"],
+  OTHERS: [ "GOD", "AUTHOR", "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM" ],
 } as Record<string, EntityTypeEnum[]>;
 
 // leaf node is SLOKAM
 export const ENTITY_TYPES_CHILDREN = {
-  GOD: ["ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS"],
-  AUTHOR: ["ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS"],
+  GOD: [ "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS" ],
+  AUTHOR: [ "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS" ],
 
-  ITIHASAM: ["KAANDAM"],
-  KAANDAM: ["SARGA"],
-  SARGA: ["SLOKAM"],
+  ITIHASAM: [ "KAANDAM" ],
+  KAANDAM: [ "SARGA" ],
+  SARGA: [ "SLOKAM" ],
 
-  PURANAM: ["PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM"],
+  PURANAM: [ "PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM" ],
 
-  SKANDAM: ["GHATTAM"],
-  GHATTAM: ["SLOKAM"],
-  STHOTRAM: ["SLOKAM"],
-  DANDAKAM: ["SLOKAM"],
-  OTHERS: ["SLOKAM"],
+  SKANDAM: [ "GHATTAM" ],
+  GHATTAM: [ "SLOKAM" ],
+  STHOTRAM: [ "SLOKAM" ],
+  DANDAKAM: [ "SLOKAM" ],
+  OTHERS: [ "SLOKAM" ],
   SLOKAM: [],
 } as Record<string, EntityTypeEnum[]>;
 
@@ -83,7 +83,7 @@ export const ENTITY_TYPES_DDLB = [
 ] as Option[];
 
 export type LANGUAGES_TYPE = "SAN" | "TEL" | "IAST" | "SLP1" | "ENG" | "TAM";
-export const LANGUAGES = ["SAN", "TEL", "IAST", "SLP1", "ENG", "TAM"] as const;
+export const LANGUAGES = [ "SAN", "TEL", "IAST", "SLP1", "ENG", "TAM" ] as const;
 
 export const LANGUAGES_DDLB = [
   { label: "Sanskrit", value: "SAN" },
@@ -101,3 +101,18 @@ export const TEXT_SIZE_DDLB = [
   { label: "X Large", value: "xl" },
   { label: "2X Large", value: "2xl" },
 ] as Option[];
+
+export const LANGUAGE_SCHEME_MAP: Record<string, string> = {
+  SAN: "devanagari",
+  TEL: "telugu",
+  HIN: "hindi",
+  TAM: "tamil",
+  IAST: "iast",
+  SLP1: "slp1",
+  ITRANS: "itrans_dravidian",
+};
+
+export const LANGUAGE_TO_TRANSLITERATION_DDLB = {
+  SAN: { label: "Sanskrit", scheme: "devanagari" },
+  TEL: { label: "Telugu", scheme: "telugu" },
+} as Record<string, { label: string; scheme: string }>;

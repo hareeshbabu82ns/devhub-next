@@ -12,51 +12,105 @@ import {
   convertSortingToPrisma,
 } from "@/components/data-table/utils";
 import { columns } from "./columns";
-import { Prisma, Entity as DBEntity } from "@prisma/client";
+import { Prisma, Entity as DBEntity, Entity } from "@prisma/client";
 import { EntityWithRelations } from "@/lib/types";
 import { LANGUAGE_SELECT_DEFAULT } from "@/components/blocks/language-selector";
+import { transliteratedText } from "@/lib/db/entity";
 
-export const createEntity = async (data: {
-  entity: Prisma.EntityCreateInput;
-  children?: Prisma.EntityCreateInput[];
-}): Promise<EntityWithRelations | null> => {
+export const updateEntity = async ( id: Entity[ "id" ], data: {
+  entity: Prisma.EntityUpdateInput;
+  children?: Prisma.EntityUpdateInput[];
+} ): Promise<EntityWithRelations | null> => {
   const session = await auth();
-  if (!session) {
-    throw new Error("Unauthorized");
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
   }
 
-  db.$transaction(async (txn) => {
-    const entity = await txn.entity.create({ data: data.entity });
-    if (data.children) {
+  const entityData = {
+    ...data.entity,
+    text: transliteratedText( data.entity.text as any ),
+  }
+
+  const res = await db.$transaction( async ( txn ) => {
+    const entity = await txn.entity.update( { where: { id }, data: entityData } );
+    if ( data.children ) {
       const childenData = data.children.map(
-        (c, idx) =>
-          ({
+        ( c, idx ) =>
+          ( {
             ...c,
             order: idx,
-            parents: [entity.id],
-          }) as Prisma.EntityCreateInput,
+            parents: [ entity.id ],
+          } ) as Prisma.EntityCreateInput,
       );
-      await txn.entity.createMany({
+      await txn.entity.createMany( {
         data: childenData,
-      });
-      const childIds = await txn.entity.findMany({
+      } );
+      const childIds = await txn.entity.findMany( {
         where: { parents: { has: entity.id } },
         select: { id: true, type: true },
-      });
+      } );
 
-      const finalEntity = await txn.entity.update({
+      const finalEntity = await txn.entity.update( {
         where: { id: entity.id },
         data: {
-          children: childIds.map((c) => c.id),
+          children: childIds.map( ( c ) => c.id ),
         },
-      });
+      } );
       return finalEntity
-        ? mapDbToEntity(finalEntity, LANGUAGE_SELECT_DEFAULT)
+        ? mapDbToEntity( finalEntity, LANGUAGE_SELECT_DEFAULT )
         : finalEntity;
     }
-    return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
-  });
-  return null;
+    return entity ? mapDbToEntity( entity, LANGUAGE_SELECT_DEFAULT ) : entity;
+  } );
+  return res;
+};
+
+export const createEntity = async ( data: {
+  entity: Prisma.EntityCreateInput;
+  children?: Prisma.EntityCreateInput[];
+} ): Promise<EntityWithRelations | null> => {
+  const session = await auth();
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
+  }
+
+  const entityData = {
+    ...data.entity,
+    text: transliteratedText( data.entity.text as any ),
+  }
+
+  const res = await db.$transaction( async ( txn ) => {
+    const entity = await txn.entity.create( { data: entityData } );
+    if ( data.children ) {
+      const childenData = data.children.map(
+        ( c, idx ) =>
+          ( {
+            ...c,
+            order: idx,
+            parents: [ entity.id ],
+          } ) as Prisma.EntityCreateInput,
+      );
+      await txn.entity.createMany( {
+        data: childenData,
+      } );
+      const childIds = await txn.entity.findMany( {
+        where: { parents: { has: entity.id } },
+        select: { id: true, type: true },
+      } );
+
+      const finalEntity = await txn.entity.update( {
+        where: { id: entity.id },
+        data: {
+          children: childIds.map( ( c ) => c.id ),
+        },
+      } );
+      return finalEntity
+        ? mapDbToEntity( finalEntity, LANGUAGE_SELECT_DEFAULT )
+        : finalEntity;
+    }
+    return entity ? mapDbToEntity( entity, LANGUAGE_SELECT_DEFAULT ) : entity;
+  } );
+  return res;
 };
 
 export const readEntity = async (
@@ -65,21 +119,21 @@ export const readEntity = async (
   meaning?: string,
 ) => {
   const session = await auth();
-  if (!session) {
-    throw new Error("Unauthorized");
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
   }
 
-  const entity = await db.entity.findUnique({ where: { id: entityId } });
-  return entity ? mapDbToEntity(entity, language, meaning) : entity;
+  const entity = await db.entity.findUnique( { where: { id: entityId } } );
+  return entity ? mapDbToEntity( entity, language, meaning ) : entity;
 };
 
-export const getEntityByText = async (text: string, types: string[]) => {
+export const getEntityByText = async ( text: string, types: string[] ) => {
   const session = await auth();
-  if (!session) {
-    throw new Error("Unauthorized");
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
   }
 
-  const entity = await db.entity.findFirst({
+  const entity = await db.entity.findFirst( {
     where: {
       text: {
         some: {
@@ -90,11 +144,11 @@ export const getEntityByText = async (text: string, types: string[]) => {
         in: types,
       },
     },
-  });
-  return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
+  } );
+  return entity ? mapDbToEntity( entity, LANGUAGE_SELECT_DEFAULT ) : entity;
 };
 
-export const fetchEntities = async ({
+export const fetchEntities = async ( {
   query,
   language,
   pagination,
@@ -106,27 +160,27 @@ export const fetchEntities = async ({
   pagination: PaginationState;
   sorting: SortingState;
   filters: ColumnFiltersState;
-}) => {
+} ) => {
   const session = await auth();
-  if (!session) {
-    throw new Error("Unauthorized");
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
   }
 
-  const whereFilters: Prisma.EntityFindManyArgs["where"] =
-    convertColumnFiltersToPrisma(filters, columns);
+  const whereFilters: Prisma.EntityFindManyArgs[ "where" ] =
+    convertColumnFiltersToPrisma( filters, columns );
 
-  const orderBy: Prisma.EntityFindManyArgs["orderBy"] = convertSortingToPrisma(
+  const orderBy: Prisma.EntityFindManyArgs[ "orderBy" ] = convertSortingToPrisma(
     sorting,
     columns,
   );
   // console.dir({ sorting, orderBy }, { depth: 3 });
-  const whereRest: Prisma.EntityFindManyArgs["where"] = {};
-  if (query && query.length && query !== ".*") {
+  const whereRest: Prisma.EntityFindManyArgs[ "where" ] = {};
+  if ( query && query.length && query !== ".*" ) {
     whereRest.text = { some: { value: { contains: query } } };
     // whereRest.meaning = { some: { value: { contains: query } } };
   }
 
-  const where: Prisma.EntityFindManyArgs["where"] = {
+  const where: Prisma.EntityFindManyArgs[ "where" ] = {
     ...whereFilters,
     ...whereRest,
     // userId: session.user.id,
@@ -134,22 +188,22 @@ export const fetchEntities = async ({
 
   // console.dir({ filters, where }, { depth: 4 });
 
-  const entitiesCount = await db.entity.count({
+  const entitiesCount = await db.entity.count( {
     where,
-  });
+  } );
 
-  const entities = await db.entity.findMany({
+  const entities = await db.entity.findMany( {
     skip: pagination.pageIndex * pagination.pageSize,
     take: pagination.pageSize,
-    orderBy: sorting?.length ? (orderBy as any) : { order: "asc" },
+    orderBy: sorting?.length ? ( orderBy as any ) : { order: "asc" },
     where,
-  });
+  } );
 
-  const results = entities.map((e) => mapDbToEntity(e, language));
+  const results = entities.map( ( e ) => mapDbToEntity( e, language ) );
   return { results, total: entitiesCount };
 };
 
-const mapDbToEntity = (e: DBEntity, language: string, meaning?: string) => {
+const mapDbToEntity = ( e: DBEntity, language: string, meaning?: string ) => {
   const item: EntityWithRelations = {
     id: e.id,
     type: e.type as any,
@@ -164,12 +218,12 @@ const mapDbToEntity = (e: DBEntity, language: string, meaning?: string) => {
     parentsCount: e.parents.length,
     order: e.order,
   };
-  item.text = (e.text.find((w) => w.language === language) || e.text[0]).value;
+  item.text = ( e.text.find( ( w ) => w.language === language ) || e.text[ 0 ] ).value;
   const meaningLang = meaning || language;
   item.meaning =
     e.meaning.length === 0
       ? ""
-      : (e.meaning.find((w) => w.language === meaningLang) || e.meaning[0])
-          .value;
+      : ( e.meaning.find( ( w ) => w.language === meaningLang ) || e.meaning[ 0 ] )
+        .value;
   return item;
 };
