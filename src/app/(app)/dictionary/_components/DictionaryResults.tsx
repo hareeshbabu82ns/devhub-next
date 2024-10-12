@@ -1,12 +1,11 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useReadLocalStorage } from "usehooks-ts";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import { TEXT_SIZE_SELECT_KEY } from "@/components/blocks/text-size-selector";
 import { QUERY_RESULT_LIMIT_KEY } from "@/components/blocks/result-limit-selector";
-import { useCallback } from "react";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import {
@@ -23,28 +22,14 @@ import { DictionaryItem } from "../types";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import { useQuery } from "@tanstack/react-query";
 import { searchDictionary } from "../actions";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
 }
 
 export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const createQueryString = useCallback(
-    (newParams: Record<string, string>, replace: boolean = false) => {
-      const params = new URLSearchParams(
-        replace ? "" : searchParams.toString(),
-      );
-      for (const [key, value] of Object.entries(newParams)) {
-        params.set(key, value);
-      }
-      return params.toString();
-    },
-    [searchParams],
-  );
+  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
@@ -67,24 +52,15 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   const paginateOffsetAction = (offset: number) => {
-    const newSearchString = createQueryString({
-      offset: offset.toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    updateSearchParams({ offset: offset.toString() });
   };
 
   const paginateFwdAction = () => {
-    const newSearchString = createQueryString({
-      offset: (offset + 1).toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    updateSearchParams({ offset: (offset + 1).toString() });
   };
 
   const paginateBackAction = () => {
-    const newSearchString = createQueryString({
-      offset: (offset - 1).toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    updateSearchParams({ offset: (offset - 1).toString() });
   };
 
   const { data, isFetching, isLoading, isError, error, refetch } = useQuery({
@@ -113,25 +89,6 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
       (originParam.length > 0 && searchParam.length > 0) ||
       (searchParam.length > 0 && ftsParam === "x"),
   });
-  // const { data, loading, error, refetch } =
-  //   useQuery<DictionaryItemQueryResults>(
-  //     searchParam
-  //       ? SEARCH_DICTIONARY_ITEMS_WITHIN_DICT
-  //       : BROWSE_DICTIONARY_ITEMS,
-  //     {
-  //       variables: searchParam
-  //         ? {
-  //             dictFrom: originParam,
-  //             queryText: searchParam,
-  //             queryOperation: ftsParam === "x" ? "FULL_TEXT_SEARCH" : "REGEX",
-  //             language,
-  //             limit,
-  //             offset,
-  //           }
-  //         : { dictFrom: originParam[0], language, limit, offset },
-  //       skip: !originParam || originParam.length === 0,
-  //     },
-  //   );
 
   if (isLoading || isFetching) return <Loader />;
   if (isError) return <SimpleAlert title={error.message} />;

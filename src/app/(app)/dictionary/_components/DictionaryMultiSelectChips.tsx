@@ -5,33 +5,18 @@ import { useLocalStorage } from "usehooks-ts";
 import { DICTIONARY_ORIGINS_DDLB } from "../utils";
 import MultiSelectChips from "@/components/inputs/MultiSelectChips";
 import { FormSelectOptions } from "@/components/inputs/FormSelect";
-// import { updateSearchParams } from "@/lib/utils";
-import { useCallback, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
 export const DICTIONARY_ORIGINS_SELECT_KEY = "dictionary-origins";
 
 const DictionariesMultiSelectChips = () => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
   const [localOrigins, setLocalOrigins] = useLocalStorage<string[]>(
     DICTIONARY_ORIGINS_SELECT_KEY,
     [],
-  );
-
-  const createQueryString = useCallback(
-    (newParams: Record<string, string>, replace: boolean = false) => {
-      const params = new URLSearchParams(
-        replace ? "" : searchParams.toString(),
-      );
-      for (const [key, value] of Object.entries(newParams)) {
-        params.set(key, value);
-      }
-      return params.toString();
-    },
-    [searchParams],
   );
 
   const originParam = (
@@ -48,13 +33,12 @@ const DictionariesMultiSelectChips = () => {
     setOrigins(value);
     const originsChg = value.map((v) => v.value);
     setLocalOrigins(originsChg);
-    const newSearchString = createQueryString(
+    updateSearchParams(
       {
         origin: originsChg.join(","),
       },
-      true,
+      { replace: true },
     );
-    router.push(`${pathname}?${newSearchString}`);
   };
 
   return (

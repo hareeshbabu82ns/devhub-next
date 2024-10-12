@@ -24,8 +24,7 @@ const Header = ({ path }: { path: string }) => {
   const paths = path.split("/").filter(Boolean);
 
   const [openCreateDlg, setOpenCreateDlg] = useState(false);
-  // const [createFolder, { loading: loadingCreateFolder }] =
-  //   useMutation(CREATE_FOLDER);
+
   const { mutate: createFolderFn, isPending: loadingCreateFolder } =
     useMutation({
       mutationKey: ["createFolder", path],
@@ -33,6 +32,7 @@ const Header = ({ path }: { path: string }) => {
         await createFolder(`${path}/${params.name}`);
       },
     });
+
   const { mutate: deleteFolderFn, isPending: loadingDeleteFolder } =
     useMutation({
       mutationKey: ["deleteFolder", path],
@@ -42,9 +42,6 @@ const Header = ({ path }: { path: string }) => {
         );
       },
     });
-
-  // const [deleteFolder, { loading: loadingDeleteFolder }] =
-  //   useMutation(DELETE_FOLDER);
 
   const onCreateFolder = async (name: string) => {
     createFolderFn(
@@ -69,21 +66,6 @@ const Header = ({ path }: { path: string }) => {
         },
       },
     );
-
-    // const res = await deleteFolder({
-    //   variables: { path: `${path}` },
-    // });
-    // if (res.data?.deleteFolder) {
-    //   setParams((params) =>
-    //     updateSearchParams(params, {
-    //       path: paths.slice(0, paths.length - 1).join("/"),
-    //     }),
-    //   );
-    // } else
-    //   toast({
-    //     title: "Failed to delete folder",
-    //     variant: "destructive",
-    //   });
   };
 
   return (
@@ -132,8 +114,6 @@ const Header = ({ path }: { path: string }) => {
 };
 
 const PathNavigator = ({ path }: { path: string }) => {
-  // const searchParams = useSearchParams();
-  // const paths = (searchParams?.get("path") || "/").split("/").filter(Boolean);
   const paths = path.split("/").filter(Boolean);
 
   return (

@@ -3,30 +3,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TabsContent } from "@radix-ui/react-tabs";
 import SanscriptEditor from "./_components/SanscriptEditor";
 import SanscriptConvertor from "./_components/SanscriptConvertor";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
 const SanscriptPage = () => {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const createQueryString = useCallback(
-    (newParams: Record<string, string>, replace: boolean = false) => {
-      const params = new URLSearchParams(
-        replace ? "" : searchParams.toString(),
-      );
-      for (const [key, value] of Object.entries(newParams)) {
-        params.set(key, value);
-      }
-      return params.toString();
-    },
-    [searchParams],
-  );
+  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
   const onTabValueChanged = (value: string) => {
-    const newSearchString = createQueryString({ tab: value });
-    router.replace(`${pathname}?${newSearchString}`);
+    updateSearchParams({ tab: value });
   };
 
   return (

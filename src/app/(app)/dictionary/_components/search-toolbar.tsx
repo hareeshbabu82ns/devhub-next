@@ -5,7 +5,7 @@ import {
   BookPlusIcon as AddIcon,
   SearchIcon,
 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useDebounceCallback, useReadLocalStorage } from "usehooks-ts";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -13,8 +13,8 @@ import { CollapsibleContent } from "@radix-ui/react-collapsible";
 import { Label } from "@/components/ui/label";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
-import { useCallback } from "react";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -22,32 +22,14 @@ interface SearchToolBarProps {
 
 export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  const createQueryString = useCallback(
-    (newParams: Record<string, string>, replace: boolean = false) => {
-      const params = new URLSearchParams(
-        replace ? "" : searchParams.toString(),
-      );
-      for (const [key, value] of Object.entries(newParams)) {
-        params.set(key, value);
-      }
-      return params.toString();
-    },
-    [searchParams],
-  );
+  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
   const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
-  // const localOrigins = useReadLocalStorage<string>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
-
-  // const originParam = (params.get("origin")??"").split(",") ??localOrigins?? [];
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
 
   const onSearchChange = (value: string) => {
-    const newSearchString = createQueryString({ search: value, offset: "0" });
-    router.replace(`${pathname}?${newSearchString}`);
+    updateSearchParams({ search: value, offset: "0" });
   };
 
   const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
@@ -95,10 +77,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
               id="fts"
               checked={ftsParam === "x"}
               onCheckedChange={(checked) => {
-                const newSearchString = createQueryString({
-                  fts: checked ? "x" : "",
-                });
-                router.push(`${pathname}?${newSearchString}`);
+                updateSearchParams({ fts: checked ? "x" : "" });
               }}
             />
             <Label htmlFor="fts">Full Text Search</Label>

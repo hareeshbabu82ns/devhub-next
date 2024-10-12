@@ -22,7 +22,7 @@ export function useSearchParamsUpdater() {
    */
   const updateSearchParams = (
     newParams: Record<string, string | undefined>, // Pass undefined to remove a param
-    options: { replace: boolean, navigateReplace: boolean } = { replace: false, navigateReplace: true }
+    options: { replace?: boolean, navigateReplace?: boolean } = { replace: false, navigateReplace: true }
   ) => {
     const currentParams = getSearchParamsObject();
 
@@ -46,7 +46,8 @@ export function useSearchParamsUpdater() {
   };
 
   return {
-    searchParams: getSearchParamsObject(),
+    searchParams,
     updateSearchParams,
+    searchParamsObject: getSearchParamsObject(),
   };
 }

@@ -17,64 +17,58 @@ import {
 import Loader from "@/components/utils/loader";
 import { deleteAsset, exploreAssets } from "../actions";
 import { useQuery } from "@tanstack/react-query";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import Image from "next/image";
 import { DeleteConfirmDlgTrigger } from "@/components/blocks/DeleteConfirmDlgTrigger";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
-const AssetFileExplorer = ( { path }: { path: string } ) => {
-  // const searchParams = useSearchParams();
-  // const path = searchParams?.get("path") || "/";
-
-  const { data, error, isFetching, isPending, refetch } = useQuery( {
-    queryKey: [ "assetFileExplorer", path ],
+const AssetFileExplorer = ({ path }: { path: string }) => {
+  const { data, error, isFetching, isPending, refetch } = useQuery({
+    queryKey: ["assetFileExplorer", path],
     queryFn: async () => {
-      const data = await exploreAssets( path );
+      const data = await exploreAssets(path);
       return data;
     },
-  } );
+  });
 
-  const onDeleteFile = async ( name: string ) => {
-    await deleteAsset( `${path}/${name}` );
+  const onDeleteFile = async (name: string) => {
+    await deleteAsset(`${path}/${name}`);
     refetch();
   };
 
-  if ( isFetching || isPending ) return <Loader />;
-  if ( error ) return <SimpleAlert title={error.message} />;
+  if (isFetching || isPending) return <Loader />;
+  if (error) return <SimpleAlert title={error.message} />;
 
-  if ( !data || !data.assets )
+  if (!data || !data.assets)
     return <SimpleAlert title={`Could not fetch assets at path ${path}`} />;
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-6 gap-4">
-      {data.assets.map( ( file ) => (
+      {data.assets.map((file) => (
         <FileTile key={file.name} file={file} onDeleteFile={onDeleteFile} />
-      ) )}
+      ))}
     </div>
   );
 };
 
-const FileTile = ( {
+const FileTile = ({
   file,
   onDeleteFile,
 }: {
   file: FileAttributes;
-  onDeleteFile?: ( path: string ) => void;
-} ) => {
-  const [ , copyToClipboard ] = useCopyToClipboard();
+  onDeleteFile?: (path: string) => void;
+}) => {
+  const [, copyToClipboard] = useCopyToClipboard();
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const path = searchParams?.get( "path" ) || "/";
+  const { searchParams } = useSearchParamsUpdater();
+  const path = searchParams?.get("path") || "/";
 
   const onClick = () => {
-    if ( file.isDirectory ) {
+    if (file.isDirectory) {
       const newPath = `${path}/${file.name}`;
-      router.push( `${pathname}/${newPath}` );
-      // const newSearchString = createQueryString({
-      //   path: newPath,
-      // });
-      // router.push(`${pathname}?${newSearchString}`);
+      router.push(`${pathname}/${newPath}`);
     }
   };
 
@@ -85,14 +79,14 @@ const FileTile = ( {
         size="icon"
         variant="ghost"
         onClick={() => {
-          copyToClipboard( file.downloadURL );
+          copyToClipboard(file.downloadURL);
         }}
       >
         <ClipboardIcon className="size-4" />
       </Button>
       <DeleteConfirmDlgTrigger
         onConfirm={() => {
-          onDeleteFile && onDeleteFile( file.name );
+          onDeleteFile && onDeleteFile(file.name);
         }}
         title={`Delete Asset: ${path}`}
       >
@@ -117,7 +111,7 @@ const FileTile = ( {
     </Tooltip>
   );
 
-  if ( file.isDirectory ) {
+  if (file.isDirectory) {
     return (
       <div
         className="border p-2  group flex flex-col text-center cursor-pointer"
@@ -130,7 +124,7 @@ const FileTile = ( {
       </div>
     );
   }
-  if ( [ "jpg", "jpeg", "png", "svg" ].includes( file.ext.toLowerCase() ) ) {
+  if (["jpg", "jpeg", "png", "svg"].includes(file.ext.toLowerCase())) {
     return (
       <div className="border p-2  group flex flex-col">
         <Image

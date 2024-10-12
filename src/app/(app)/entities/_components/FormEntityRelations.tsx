@@ -34,8 +34,8 @@ const FormEntityRelations = ({
   onAddRelationClicked,
 }: FormEntityRelationsProps) => {
   const router = useRouter();
-  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  // const [ params, setParams ] = useSearchParams();
+  const { searchParamsObject: searchParams, updateSearchParams } =
+    useSearchParamsUpdater();
   const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY);
   const limit = parseInt(
     useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
