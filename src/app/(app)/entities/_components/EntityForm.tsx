@@ -57,7 +57,8 @@ export default function EntityForm({
   onDelete,
 }: EntityFormProps) {
   const router = useRouter();
-  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
+  const { searchParamsObject: searchParams, updateSearchParams } =
+    useSearchParamsUpdater();
   const currentTab = searchParams.tab || "details";
 
   const form = useForm<z.infer<typeof EntityFormSchema>>({
