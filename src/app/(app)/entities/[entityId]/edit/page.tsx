@@ -3,9 +3,9 @@
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import { useReadLocalStorage } from "usehooks-ts";
 import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
-import { readEntity } from "../../actions";
+import { deleteEntity, readEntity } from "../../actions";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -14,6 +14,8 @@ import EntityForm from "../../_components/EntityForm";
 import { z } from "zod";
 import { EntityFormSchema } from "@/lib/validations/entities";
 import { EntityWithRelations } from "@/lib/types";
+import { toast } from "sonner";
+import { useMemo } from "react";
 
 interface CompProps extends React.HTMLAttributes<HTMLDivElement> {
 }
@@ -28,11 +30,34 @@ const Page = ( { className }: CompProps ) => {
     data: entity,
     isLoading,
     isFetching,
+    refetch,
   } = useQuery( {
     queryKey: [ "entity", entityId, language ],
     queryFn: () => readEntity( entityId, language ),
     enabled: !!entityId,
   } );
+
+  const {
+    mutateAsync: deleteEntityFn,
+    isPending: deleteLoading,
+    error: deleteEntityError,
+  } = useMutation( {
+    mutationKey: [ "deleteEntity", entityId ],
+    mutationFn: async () => {
+      const res = await deleteEntity( entityId, true );
+      return res;
+    }
+  } );
+
+  const onDelete = useMemo( () => async () => {
+    // ( entityId ) => deleteEntityFn( undefined, { onSuccess: () => toast.success( "Entity Deleted Successfully" ) } )
+    if ( !entityId ) return;
+    const res = await deleteEntityFn();
+    if ( res ) {
+      toast.success( "Entity deleted" );
+      router.back();
+    }
+  }, [ entityId ] );
 
   if ( isLoading || isFetching )
     return <Loader className="min-h-[calc(100vh_-_theme(spacing.20))]" />;
@@ -40,49 +65,18 @@ const Page = ( { className }: CompProps ) => {
 
   const entityForm = entityToEntityForm( entity );
 
-  const actionPreButtons = (
-    <>
-      <Button
-        size="icon"
-        type="button"
-        variant="outline"
-        onClick={() => router.back()}
-      >
-        <Icons.back className="size-4" />
-      </Button>
-    </>
-  );
-  const actionButtons = (
-    <>
-      <Button
-        size="icon"
-        type="button"
-        variant="outline"
-        onClick={() => router.push( `/entities/new?parent=${entityId}` )}
-      >
-        <Icons.save className="size-4" />
-      </Button>
-    </>
-  );
-
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.16))]",
+        "flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.20))]",
         className,
       )}
     >
-      {/* <div className="flex items-center justify-between gap-2">
-        {actionPreButtons && (
-          <div className="flex flex-row space-x-2">{actionPreButtons}</div>
-        )}
-        <div className="relative flex-1">
-          Edit Page
-        </div>
-        <div className="ml-auto flex flex-row space-x-2">{actionButtons}</div>
-      </div> */}
-      {/* <EntityEdit entityData={entity} /> */}
-      <EntityForm data={entityForm} />
+      <EntityForm entityId={entityId}
+        data={entityForm} onRefresh={refetch}
+        onDelete={onDelete}
+        updating={isLoading || isFetching || deleteLoading}
+      />
     </div>
   );
 };

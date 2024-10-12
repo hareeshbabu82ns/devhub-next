@@ -30,15 +30,15 @@ import { ColumnFiltersState } from "@tanstack/react-table";
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
   forTypes?: EntityTypeEnum[];
-  onTileClicked?: (entity: Entity) => void;
-  onDeleteClicked?: (entity: Entity) => void;
-  onEditClicked?: (model: Entity) => void;
+  onTileClicked?: ( entity: Entity ) => void;
+  onDeleteClicked?: ( entity: Entity ) => void;
+  onEditClicked?: ( model: Entity ) => void;
   mode?: "search" | "browse";
   actionButtons?: React.ReactNode;
   actionPreButtons?: React.ReactNode;
 }
 
-const EntitySearchTiles = ({
+const EntitySearchTiles = ( {
   forEntity,
   forTypes,
   onTileClicked,
@@ -48,28 +48,28 @@ const EntitySearchTiles = ({
   mode = "search",
   actionButtons,
   actionPreButtons,
-}: EntitySearchTilesProps) => {
+}: EntitySearchTilesProps ) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const language = useReadLocalStorage<string>( LANGUAGE_SELECT_KEY ) || "";
 
-  const searchParam = searchParams.get("search") ?? "";
+  const searchParam = searchParams.get( "search" ) ?? "";
 
-  const onSearchChange = (value: string) => {
-    const newSearchString = updateSearchParams(searchParams, {
+  const onSearchChange = ( value: string ) => {
+    const newSearchString = updateSearchParams( searchParams, {
       search: value.trim(),
       offset: "0",
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    } );
+    router.replace( `${pathname}?${newSearchString}` );
   };
 
-  const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
+  const debouncedSetParams = useDebounceCallback( onSearchChange, 1000 );
 
   return (
     <div
       className={cn(
-        "flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.16))]",
+        "flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.20))]",
         className,
       )}
     >
@@ -107,7 +107,7 @@ const EntitySearchTiles = ({
 
 export default EntitySearchTiles;
 
-function EntitySearchGrid({
+function EntitySearchGrid( {
   query,
   forEntity,
   forTypes,
@@ -118,26 +118,26 @@ function EntitySearchGrid({
   query: string;
   forEntity?: TileModel;
   forTypes?: EntityTypeEnum[];
-  onClick?: (entity: Entity) => void;
-  onDeleteClicked?: (entity: Entity) => void;
-  onEditClicked?: (model: Entity) => void;
-}) {
+  onClick?: ( entity: Entity ) => void;
+  onDeleteClicked?: ( entity: Entity ) => void;
+  onEditClicked?: ( model: Entity ) => void;
+} ) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const limit = parseInt(
-    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
+    useReadLocalStorage( QUERY_RESULT_LIMIT_KEY ) || "10",
     10,
   );
-  const offset = parseInt(searchParams.get("offset") || "0", 10);
+  const offset = parseInt( searchParams.get( "offset" ) || "0", 10 );
 
-  const [language] = useLocalStorage(
+  const [ language ] = useLocalStorage(
     LANGUAGE_SELECT_KEY,
     LANGUAGE_SELECT_DEFAULT,
   );
 
-  const { data, isFetching, isLoading, error, refetch } = useQuery({
+  const { data, isFetching, isLoading, error, refetch } = useQuery( {
     queryKey: [
       "entities",
       { forTypes, language, forEntity, offset, query, limit },
@@ -145,31 +145,31 @@ function EntitySearchGrid({
     queryFn: async () => {
       const filters: ColumnFiltersState = [];
 
-      if (forTypes)
-        filters.push({
+      if ( forTypes )
+        filters.push( {
           id: "type",
-          value: forTypes.map((t) => t.toString()),
-        });
-      if (forEntity) filters.push({ id: "parents", value: forEntity.id });
+          value: forTypes.map( ( t ) => t.toString() ),
+        } );
+      if ( forEntity ) filters.push( { id: "parents", value: forEntity.id } );
 
-      const entities = await fetchEntities({
+      const entities = await fetchEntities( {
         query,
         language,
         pagination: { pageIndex: offset, pageSize: limit },
-        sorting: [{ id: "order", desc: false }],
+        sorting: [ { id: "order", desc: false } ],
         filters,
-      });
+      } );
       return entities;
     },
-  });
+  } );
 
-  if (isFetching || isLoading) return <Loader />;
-  if (error) return <SimpleAlert title={error.message} />;
-  if (!data || !data.results) return <SimpleAlert title={"no data found"} />;
+  if ( isFetching || isLoading ) return <Loader />;
+  if ( error ) return <SimpleAlert title={error.message} />;
+  if ( !data || !data.results ) return <SimpleAlert title={"no data found"} />;
 
   const children = data.results || [];
   const entities: TileModel[] =
-    children.map((g) => ({
+    children.map( ( g ) => ( {
       id: g.id,
       title: g.text,
       type: g.type,
@@ -178,59 +178,59 @@ function EntitySearchGrid({
       childrenCount: g.childrenCount || 0,
       audio: g.audio,
       order: g.order,
-    })) || [];
+    } ) ) || [];
 
   const entitiesCount = data.total;
 
   const onTileClicked = onClick
-    ? (tile: TileModel) =>
-        onClick({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? ( tile: TileModel ) =>
+      onClick( {
+        id: tile.id,
+        imageThumbnail: tile.src,
+        text: tile.title,
+        type: ( tile.subTitle as EntityTypeEnum ) || "",
+      } )
     : undefined;
 
   const onEditClickedAction = onEditClicked
-    ? (tile: TileModel) =>
-        onEditClicked({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? ( tile: TileModel ) =>
+      onEditClicked( {
+        id: tile.id,
+        imageThumbnail: tile.src,
+        text: tile.title,
+        type: ( tile.subTitle as EntityTypeEnum ) || "",
+      } )
     : undefined;
 
   const onDeleteClickedAction = onDeleteClicked
-    ? (tile: TileModel) =>
-        onDeleteClicked({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? ( tile: TileModel ) =>
+      onDeleteClicked( {
+        id: tile.id,
+        imageThumbnail: tile.src,
+        text: tile.title,
+        type: ( tile.subTitle as EntityTypeEnum ) || "",
+      } )
     : undefined;
 
-  const paginateOffsetAction = (offset: number) => {
-    const newSearchString = updateSearchParams(searchParams, {
+  const paginateOffsetAction = ( offset: number ) => {
+    const newSearchString = updateSearchParams( searchParams, {
       offset: offset.toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    } );
+    router.replace( `${pathname}?${newSearchString}` );
   };
 
   const paginateFwdAction = () => {
-    const newSearchString = updateSearchParams(searchParams, {
-      offset: (offset + 1).toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    const newSearchString = updateSearchParams( searchParams, {
+      offset: ( offset + 1 ).toString(),
+    } );
+    router.replace( `${pathname}?${newSearchString}` );
   };
 
   const paginateBackAction = () => {
-    const newSearchString = updateSearchParams(searchParams, {
-      offset: (offset - 1).toString(),
-    });
-    router.replace(`${pathname}?${newSearchString}`);
+    const newSearchString = updateSearchParams( searchParams, {
+      offset: ( offset - 1 ).toString(),
+    } );
+    router.replace( `${pathname}?${newSearchString}` );
   };
 
   return (
@@ -260,8 +260,8 @@ function EntitySearchGrid({
         />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
-        {entities.map((entity, i) => {
-          if (entity.type === "SLOKAM")
+        {entities.map( ( entity, i ) => {
+          if ( entity.type === "SLOKAM" )
             return (
               <ArtSlokamTile
                 key={entity.id}
@@ -283,7 +283,7 @@ function EntitySearchGrid({
                 onDeleteClicked={onDeleteClickedAction}
               />
             );
-        })}
+        } )}
       </div>
       <div className="flex flex-1 justify-end">
         <ScrollToTopButton />

@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const SettingsPage = ({
+const SettingsPage = ( {
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) => {
+}> ) => {
   const pathname = usePathname();
   const pathPrefix = pathname === "/settings" ? `${pathname}/` : "";
   return (
-    <main className="flex min-h-[calc(100vh_-_theme(spacing.16))] flex-1 flex-col gap-4 md:gap-8 ">
+    <main className="flex min-h-[calc(100vh_-_theme(spacing.20))] flex-1 flex-col gap-4 md:gap-8 ">
       <div className="mx-auto grid w-full max-w-6xl gap-2">
         <h1 className="text-3xl font-semibold">Settings</h1>
       </div>

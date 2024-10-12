@@ -15,7 +15,28 @@ import { columns } from "./columns";
 import { Prisma, Entity as DBEntity, Entity } from "@prisma/client";
 import { EntityWithRelations } from "@/lib/types";
 import { LANGUAGE_SELECT_DEFAULT } from "@/components/blocks/language-selector";
-import { transliteratedText } from "@/lib/db/entity";
+import { transliteratedText } from "../sanscript/_components/utils";
+
+export const deleteEntity = async ( id: Entity[ "id" ], cascadingChildren: boolean = false ): Promise<EntityWithRelations | null> => {
+  const session = await auth();
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
+  }
+
+  const res = await db.$transaction( async ( txn ) => {
+
+    const entity = await txn.entity.delete( { where: { id } } );
+
+    if ( cascadingChildren && entity.children ) {
+      await txn.entity.deleteMany( {
+        where: { parents: { has: id } },
+      } );
+    }
+    return entity ? mapDbToEntity( entity, LANGUAGE_SELECT_DEFAULT ) : entity;
+  } );
+
+  return res;
+};
 
 export const updateEntity = async ( id: Entity[ "id" ], data: {
   entity: Prisma.EntityUpdateInput;

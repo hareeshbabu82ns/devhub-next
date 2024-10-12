@@ -5,7 +5,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Icons } from '@/components/utils/icons';
 import { defaultEntityCreateInput } from '@/lib/db/entity';
 import { EntityWithRelations } from '@/lib/types';
-import { EntityInputType } from '@/lib/validations/entities';
 import { Prisma } from '@prisma/client';
 import { useMutation } from '@tanstack/react-query';
 import React from 'react'
