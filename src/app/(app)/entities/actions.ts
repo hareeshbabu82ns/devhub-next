@@ -144,7 +144,14 @@ export const readEntity = async (
     throw new Error( "Unauthorized" );
   }
 
-  const entity = await db.entity.findUnique( { where: { id: entityId } } );
+  const entity = await db.entity.findUnique( {
+    where: { id: entityId }, include: {
+      // children: true,
+      // parentsRel: true,
+      childrenRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
+      parentsRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
+    },
+  } );
   return entity ? mapDbToEntity( entity, language, meaning ) : entity;
 };
 
@@ -168,6 +175,36 @@ export const getEntityByText = async ( text: string, types: string[] ) => {
   } );
   return entity ? mapDbToEntity( entity, LANGUAGE_SELECT_DEFAULT ) : entity;
 };
+
+export const findEntities = async ( {
+  where,
+  language,
+  pagination,
+  orderBy = { order: "asc" },
+}: {
+  where: Prisma.EntityFindManyArgs[ "where" ];
+  language: string;
+  pagination?: PaginationState;
+  orderBy?: Prisma.EntityFindManyArgs[ "orderBy" ];
+} ) => {
+  // console.dir({ filters, where }, { depth: 4 });
+
+  const entities = await db.entity.findMany( {
+    ...pagination ? {
+      skip: pagination.pageIndex * pagination.pageSize,
+      take: pagination.pageSize,
+    } : {},
+    orderBy,
+    where,
+  } );
+
+  const entitiesCount = pagination ? await db.entity.count( {
+    where,
+  } ) : entities.length;
+
+  const results = entities.map( ( e ) => mapDbToEntity( e, language ) );
+  return { results, total: entitiesCount };
+}
 
 export const fetchEntities = async ( {
   query,
@@ -218,13 +255,18 @@ export const fetchEntities = async ( {
     take: pagination.pageSize,
     orderBy: sorting?.length ? ( orderBy as any ) : { order: "asc" },
     where,
+    // include: {
+    //   // children: true,
+    //   childrenRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
+    //   parentsRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
+    // },
   } );
 
   const results = entities.map( ( e ) => mapDbToEntity( e, language ) );
   return { results, total: entitiesCount };
 };
 
-const mapDbToEntity = ( e: DBEntity, language: string, meaning?: string ) => {
+const mapDbToEntity = ( e: any, language: string, meaning?: string ) => {
   const item: EntityWithRelations = {
     id: e.id,
     type: e.type as any,
@@ -235,16 +277,18 @@ const mapDbToEntity = ( e: DBEntity, language: string, meaning?: string ) => {
     attributes: e.attributes,
     textData: e.text,
     meaningData: e.meaning,
-    childrenCount: e.children.length,
-    parentsCount: e.parents.length,
+    childrenCount: e.children?.length,
+    parentsCount: e.parents?.length,
     order: e.order,
   };
-  item.text = ( e.text.find( ( w ) => w.language === language ) || e.text[ 0 ] ).value;
+  item.text = ( e.text.find( ( w: any ) => w.language === language ) || e.text[ 0 ] ).value;
   const meaningLang = meaning || language;
   item.meaning =
-    e.meaning.length === 0
+    e.meaning ? e.meaning.length === 0
       ? ""
-      : ( e.meaning.find( ( w ) => w.language === meaningLang ) || e.meaning[ 0 ] )
-        .value;
+      : ( e.meaning.find( ( w: any ) => w.language === meaningLang ) || e.meaning[ 0 ] )
+        .value : "";
+  item.children = e.childrenRel?.map( ( p: any ) => mapDbToEntity( p, language, meaning ) );
+  item.parents = e.parentsRel?.map( ( p: any ) => mapDbToEntity( p, language, meaning ) );
   return item;
 };

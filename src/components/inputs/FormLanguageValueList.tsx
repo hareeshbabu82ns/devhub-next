@@ -29,7 +29,6 @@ import WebIMEIde from "@/app/(app)/sanscript/_components/WebIMEIde";
 
 interface FormLanguageValueListProps {
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
 }
 

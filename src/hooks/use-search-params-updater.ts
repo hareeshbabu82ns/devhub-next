@@ -22,7 +22,7 @@ export function useSearchParamsUpdater() {
    */
   const updateSearchParams = (
     newParams: Record<string, string | undefined>, // Pass undefined to remove a param
-    options: { replace: boolean } = { replace: false }
+    options: { replace: boolean, navigateReplace: boolean } = { replace: false, navigateReplace: true }
   ) => {
     const currentParams = getSearchParamsObject();
 
@@ -41,7 +41,8 @@ export function useSearchParamsUpdater() {
     const queryString = new URLSearchParams( cleanedParams ).toString();
 
     // Navigate to the updated URL
-    router.push( `?${queryString}` );
+    options.navigateReplace ? router.replace( `?${queryString}` ) :
+      router.push( `?${queryString}` );
   };
 
   return {

@@ -81,6 +81,7 @@ pnpm run release:patch # pushes to origin and tags together
 ```
 
 ### mount path
+
 ```sh
 docker ps
 # instance id for 'coder-rrrrr-ws-test' is coder-xxxxxxx
@@ -97,3 +98,8 @@ mount -t cifs //xxxxd.10/books /_data/books -o username=rrrrr,password=<XXX>,rw,
 umount /_data/dev/home-hub/data/mnt_books
 
 ```
+
+### TODOs
+
+- TODO remove extra fetching of relation data from readEntity as relations are fetched using IDs in the edit mode
+- TODO adjust the useSearchParamsUpdater to be used in all places

@@ -3,12 +3,9 @@ import { FormField } from "@/components/ui/form";
 import { Entity, EntityTypeEnum } from "@/lib/types";
 import { useState } from "react";
 import { Control, useController } from "react-hook-form";
-// import { useNavigate, useSearchParams } from "react-router-dom";
 import { PlusIcon as AddIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
-import { updateSearchParams } from "@/lib/utils";
-// import { QUERY_ENTITY_TILES_BY_IDS } from "./queries";
 import { useReadLocalStorage } from "usehooks-ts";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -18,89 +15,104 @@ import Loader from "@/components/utils/loader";
 import EntitySearchDlgTrigger from "./EntitySearchDlgTrigger";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { findEntities } from "../actions";
 
 interface FormEntityRelationsProps {
   name: string;
   label: string;
   forTypes?: EntityTypeEnum[];
   onAddRelationClicked?: () => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
 }
 
-const FormEntityRelations = ( {
+const FormEntityRelations = ({
   name,
   label,
   control,
   forTypes,
   onAddRelationClicked,
-}: FormEntityRelationsProps ) => {
+}: FormEntityRelationsProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   // const [ params, setParams ] = useSearchParams();
-  const language = useReadLocalStorage( LANGUAGE_SELECT_KEY );
+  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY);
   const limit = parseInt(
-    useReadLocalStorage( QUERY_RESULT_LIMIT_KEY ) || "10",
-    10
+    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
+    10,
   );
-  const offset = parseInt( searchParams.offset || "0", 10 );
+  const offset = parseInt(searchParams.offset || "0", 10);
 
-  const [ dlgOpen, setDlgOpen ] = useState( false );
+  const [dlgOpen, setDlgOpen] = useState(false);
   // const navigate = useNavigate();
 
-  const { field } = useController( {
+  const { field } = useController({
     name,
     control,
-  } );
+  });
 
-  const relationCount = field.value.length;
-  const ids = field.value
-    .map( ( rel: Entity ) => rel.id )
-    .slice( limit * offset, limit * offset + limit );
+  const relationCount = field.value?.length || 0;
+  const ids =
+    field.value
+      ?.map((rel: Entity) => rel.id)
+      .slice(limit * offset, limit * offset + limit) || [];
 
-  const { data, loading, error } = useQuery<{
-    entities: Entity[];
-  }>( QUERY_ENTITY_TILES_BY_IDS, {
-    variables: { ids, language, limit },
-  } );
+  const { data, isFetching, isLoading, error } = useQuery({
+    queryKey: ["queryEntitiesByIDs", ids, language, limit],
+    queryFn: async () => {
+      const entities = await findEntities({
+        where: {
+          id: {
+            in: ids,
+          },
+        },
+        language: language!,
+      });
+      return {
+        entities,
+      };
+    },
+  });
 
-  if ( loading ) return <Loader />;
-  if ( error ) return <SimpleAlert title={error.message} />;
+  if (isLoading || isFetching) return <Loader />;
+  if (error) return <SimpleAlert title={error.message} />;
 
-  if ( !data || !data?.entities )
+  if (!data || !data?.entities)
     return <SimpleAlert title={"Error loading Entities Tile Data"} />;
 
-  const paginateOffsetAction = ( offset: number ) => {
-    updateSearchParams( { offset: offset.toString() } );
+  const paginateOffsetAction = (offset: number) => {
+    updateSearchParams({ offset: offset.toString() });
   };
 
   const onBackAction = () => {
-    updateSearchParams( { offset: ( offset - 1 ).toString() } );
+    updateSearchParams({ offset: (offset - 1).toString() });
   };
 
   const onFwdAction = () => {
-    updateSearchParams( { offset: ( offset + 1 ).toString() } );
+    updateSearchParams({ offset: (offset + 1).toString() });
   };
 
   return (
     <FormField
       control={control}
       name={name}
-      render={( { field } ) => {
-        const tiles: TileModel[] = data!.entities.map( ( rel: Entity ) => ( {
-          id: rel.id,
-          type: rel.type,
-          title: rel.text,
-          subTitle: rel.type,
-          src: rel.imageThumbnail || "",
-        } ) );
+      render={({ field }) => {
+        const tiles: TileModel[] = data!.entities.results.map(
+          (rel: Entity) => ({
+            id: rel.id,
+            type: rel.type,
+            title: rel.text,
+            subTitle: rel.type,
+            src: rel.imageThumbnail || "",
+          }),
+        );
 
-        const onEditClicked = ( tile: TileModel ) =>
-          router.push( `/entities/${tile.id}/edit` );
+        const onEditClicked = (tile: TileModel) =>
+          router.push(`/entities/${tile.id}/edit`);
 
-        const onDeleteClicked = ( tile: TileModel ) => {
+        const onDeleteClicked = (tile: TileModel) => {
           field.onChange(
-            field.value.filter( ( rel: Entity ) => rel.id !== tile.id )
+            field.value.filter((rel: Entity) => rel.id !== tile.id),
           );
         };
         return (
@@ -113,10 +125,10 @@ const FormEntityRelations = ( {
                     <EntitySearchDlgTrigger
                       open={dlgOpen}
                       forTypes={forTypes}
-                      onOpenChange={( open ) => setDlgOpen( open )}
-                      onClick={( entity ) => {
-                        field.onChange( [ ...field.value, entity ] );
-                        setDlgOpen( false );
+                      onOpenChange={(open) => setDlgOpen(open)}
+                      onClick={(entity) => {
+                        field.onChange([...(field?.value || []), entity]);
+                        setDlgOpen(false);
                       }}
                     />
                     {onAddRelationClicked && (
@@ -142,8 +154,8 @@ const FormEntityRelations = ( {
               </div>
             </div>
             <div className="grid max-w-[26rem] sm:max-w-[52.5rem] grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mx-auto gap-6 lg:gap-y-8 xl:gap-x-8 lg:max-w-7xl mt-4 overflow-y-auto w-full">
-              {tiles.map( ( tile: TileModel, i ) => {
-                if ( tile.type === "SLOKAM" )
+              {tiles.map((tile: TileModel, i) => {
+                if (tile.type === "SLOKAM")
                   return (
                     <ArtSlokamTile
                       key={tile.id}
@@ -163,7 +175,7 @@ const FormEntityRelations = ( {
                       onDeleteClicked={onDeleteClicked}
                     />
                   );
-              } )}
+              })}
             </div>
           </div>
         );

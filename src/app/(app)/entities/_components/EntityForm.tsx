@@ -26,7 +26,6 @@ import {
   RefreshCcw as RefreshIcon,
 } from "lucide-react";
 import { EntityTypeEnum } from "@/lib/types";
-// import { useNavigate, useSearchParams } from "react-router-dom";
 import FormInputMDXTextArea from "@/components/inputs/FormInputMDXTextArea";
 import { DeleteConfirmDlgTrigger } from "@/components/blocks/DeleteConfirmDlgTrigger";
 import ImageUploadDlgTrigger from "@/components/blocks/FileUploadDlgTrigger";
@@ -45,27 +44,26 @@ interface EntityFormProps {
   entityExtras?: EntityExtraProps;
   updating?: boolean;
   onRefresh?: () => void;
-  onSubmit?: ( data: Partial<z.infer<typeof EntityFormSchema>> ) => void;
-  onDelete?: ( entityId: string ) => void;
+  onSubmit?: (data: Partial<z.infer<typeof EntityFormSchema>>) => void;
+  onDelete?: (entityId: string) => void;
 }
 
-export default function EntityForm( {
+export default function EntityForm({
   entityId,
   data,
   updating = false,
   onSubmit: onFormSubmit,
   onRefresh,
   onDelete,
-}: EntityFormProps ) {
-
+}: EntityFormProps) {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const currentTab = searchParams.tab || "details";
 
-  const form = useForm<z.infer<typeof EntityFormSchema>>( {
-    resolver: zodResolver( EntityFormSchema ),
+  const form = useForm<z.infer<typeof EntityFormSchema>>({
+    resolver: zodResolver(EntityFormSchema),
     defaultValues: { ...data },
-  } );
+  });
 
   const {
     getValues,
@@ -73,45 +71,44 @@ export default function EntityForm( {
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [ imageThumbnailValue, typeValue ] = getValues( [
+  const [imageThumbnailValue, typeValue] = getValues([
     "imageThumbnail",
     "type",
-  ] );
+  ]);
 
-  useEffect( () => {
-    const keys = Object.keys( errors ) as Array<keyof typeof errors>;
-    if ( keys.length === 0 ) return;
-    console.error( "Form errors:", errors );
-    toast( {
+  useEffect(() => {
+    const keys = Object.keys(errors) as Array<keyof typeof errors>;
+    if (keys.length === 0) return;
+    console.error("Form errors:", errors);
+    toast({
       title: "Form errors:",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">
-            {keys.map( ( key ) => `${key}: ${errors[ key ]?.message}` ).join( "\n" )}
+            {keys.map((key) => `${key}: ${errors[key]?.message}`).join("\n")}
           </code>
         </pre>
       ),
       variant: "destructive",
-    } );
-  }, [ errors ] );
+    });
+  }, [errors]);
 
-  function onSubmit( data: z.infer<typeof EntityFormSchema> ) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function onSubmit(data: z.infer<typeof EntityFormSchema>) {
     const changeData: Partial<z.infer<typeof EntityFormSchema>> = {};
 
     changeData.type = data.type;
-    if ( dirtyFields.imageThumbnail )
+    if (dirtyFields.imageThumbnail)
       changeData.imageThumbnail = data.imageThumbnail;
-    if ( dirtyFields.audio ) changeData.audio = data.audio;
-    if ( dirtyFields.bookmarked ) changeData.bookmarked = data.bookmarked;
-    if ( dirtyFields.text ) changeData.text = data.text;
-    if ( dirtyFields.meaning ) changeData.meaning = data.meaning;
-    if ( dirtyFields.attributes ) changeData.attributes = data.attributes;
-    if ( dirtyFields.notes ) changeData.notes = data.notes;
-    if ( dirtyFields.childIDs ) changeData.childIDs = data.childIDs;
+    if (dirtyFields.audio) changeData.audio = data.audio;
+    if (dirtyFields.bookmarked) changeData.bookmarked = data.bookmarked;
+    if (dirtyFields.text) changeData.text = data.text;
+    if (dirtyFields.meaning) changeData.meaning = data.meaning;
+    if (dirtyFields.attributes) changeData.attributes = data.attributes;
+    if (dirtyFields.notes) changeData.notes = data.notes;
+    if (dirtyFields.childIDs) changeData.childIDs = data.childIDs;
     changeData.parentIDs = data.parentIDs;
 
-    onFormSubmit && onFormSubmit( changeData );
+    onFormSubmit && onFormSubmit(changeData);
   }
 
   const detailElements = (
@@ -162,11 +159,7 @@ export default function EntityForm( {
 
   const actionButtons = (
     <div className="flex justify-end gap-4">
-      <Button
-        type="button"
-        disabled={isDirty || updating}
-        onClick={() => router.back()}
-      >
+      <Button type="button" disabled={updating} onClick={() => router.back()}>
         <BackIcon className="size-4 mr-2" />
         Back
       </Button>
@@ -196,7 +189,7 @@ export default function EntityForm( {
       </Button>
       {entityId && onDelete && (
         <DeleteConfirmDlgTrigger
-          onConfirm={() => onDelete( entityId! )}
+          onConfirm={() => onDelete(entityId!)}
           title="Delete Entity"
           description="Are you sure you want to delete this entity?"
         >
@@ -238,13 +231,13 @@ export default function EntityForm( {
     </Tabs>
   );
 
-  const onTabValueChanged = ( value: string ) =>
-    updateSearchParams( { tab: value, offset: "0" } );
+  const onTabValueChanged = (value: string) =>
+    updateSearchParams({ tab: value, offset: "0" });
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit( onSubmit )}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col space-y-4 flex-1"
       >
         <Tabs
@@ -289,9 +282,9 @@ export default function EntityForm( {
               control={form.control}
               name="parentIDs"
               label="Parent Relations"
-              forTypes={ENTITY_TYPES_PARENTS[ typeValue ] || []}
+              forTypes={ENTITY_TYPES_PARENTS[typeValue] || []}
             />
-            {/* <pre>{JSON.stringify(data?.parentIDs, null, 2)}</pre> */}
+            {/* <pre>{JSON.stringify( data?.parentIDs, null, 2 )}</pre> */}
           </TabsContent>
           <TabsContent
             value="children"
@@ -301,10 +294,10 @@ export default function EntityForm( {
               control={form.control}
               name="childIDs"
               label="Child Relations"
-              forTypes={ENTITY_TYPES_CHILDREN[ typeValue ] || []}
+              forTypes={ENTITY_TYPES_CHILDREN[typeValue] || []}
               onAddRelationClicked={
                 entityId
-                  ? () => router.push( `/entities/new?parent=${entityId}` )
+                  ? () => router.push(`/entities/new?parent=${entityId}`)
                   : undefined
               }
             />

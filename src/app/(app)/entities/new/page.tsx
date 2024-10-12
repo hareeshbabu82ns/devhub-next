@@ -8,9 +8,13 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { ENTITY_DEFAULT_IMAGE_THUMBNAIL } from "@/lib/constants";
 import { useMemo } from "react";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Prisma } from "@prisma/client";
-import { createEntity } from "../actions";
+import { createEntity, findEntities } from "../actions";
+import Loader from "@/components/utils/loader";
+import SimpleAlert from "@/components/utils/SimpleAlert";
+import { useReadLocalStorage } from "usehooks-ts";
+import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 
 const defaultValues: z.infer<typeof EntityFormSchema> = {
   type: "GOD",
@@ -28,54 +32,103 @@ const defaultValues: z.infer<typeof EntityFormSchema> = {
 const EntityNewPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const entityType = searchParams.get( "type" ) as EntityTypeEnum;
+
+  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+
+  const entityType = searchParams.get("type") as EntityTypeEnum;
+  const parentId = searchParams.get("parent");
+
+  const {
+    data: parentEntity,
+    isFetching: isParentFetching,
+    isLoading: isParentLoading,
+    error: parentLoadingError,
+  } = useQuery({
+    queryKey: ["queryEntityParent", parentId],
+    queryFn: async () => {
+      const entities = await findEntities({
+        where: {
+          id: parentId!,
+        },
+        language: language!,
+      });
+      return entities?.results?.[0];
+    },
+    enabled: !!parentId,
+  });
 
   const defaultEntityCreateInput = {
     ...defaultValues,
     type: entityType || defaultValues.type,
+    parentIDs: parentEntity
+      ? [
+          {
+            id: parentEntity.id,
+            type: parentEntity.type,
+            imageThumbnail: parentEntity.imageThumbnail,
+          },
+        ]
+      : [],
   };
 
   const {
     mutateAsync: createEntityFn,
     isPending: createLoading,
     error: createEntityError,
-  } = useMutation( {
-    mutationKey: [ "createEntity" ],
-    mutationFn: async ( { data }: { data: Prisma.EntityCreateInput } ) => {
-      const res = await createEntity( { entity: data } );
+  } = useMutation({
+    mutationKey: ["createEntity"],
+    mutationFn: async ({ data }: { data: Prisma.EntityCreateInput }) => {
+      const res = await createEntity({ entity: data });
       return res;
-    }
-  } );
+    },
+  });
 
-  const onSubmit = useMemo( () => async ( data: Partial<z.infer<typeof EntityFormSchema>> ) => {
-    if ( !data.type ) {
-      toast.error( "Entity type is required" );
-      return;
-    }
-    const { parentIDs, childIDs, ...rest } = { ...defaultEntityCreateInput, ...data };
-    const dataFinal = {
-      ...rest,
-      type: data.type!,
-      parentsRel: {
-        connect: data.parentIDs?.map( ( { id } ) => ( { id } ) )
+  const onSubmit = useMemo(
+    () => async (data: Partial<z.infer<typeof EntityFormSchema>>) => {
+      if (!data.type) {
+        toast.error("Entity type is required");
+        return;
       }
-    }
-    const res = await createEntityFn( { data: dataFinal }, {
-      onSuccess: ( data ) => {
-        toast.success( "Entity created successfully" );
-        if ( data?.id )
-          router.replace( `/entities/${data.id}/edit` );
-      },
-      onError: ( error ) => {
-        toast.error( "Error creating entity" );
-      }
-    } );
-  }, [] );
+      const { parentIDs, childIDs, ...rest } = {
+        ...defaultEntityCreateInput,
+        ...data,
+      };
+      const dataFinal = {
+        ...rest,
+        type: data.type!,
+        parentsRel: {
+          connect: data.parentIDs?.map(({ id }) => ({ id })),
+        },
+      };
+      const res = await createEntityFn(
+        { data: dataFinal },
+        {
+          onSuccess: (data) => {
+            toast.success("Entity created successfully");
+            if (data?.id) router.replace(`/entities/${data.id}/edit`);
+          },
+          onError: (error) => {
+            toast.error("Error creating entity");
+          },
+        },
+      );
+    },
+    [],
+  );
+
+  if (isParentLoading || isParentFetching) return <Loader />;
+  if (parentLoadingError)
+    return <SimpleAlert title={parentLoadingError.message} />;
+
+  // if (!parentEntity) return <SimpleAlert title={"Error loading Parent"} />;
 
   return (
     <div className="min-h-[calc(100vh_-_theme(spacing.20))] w-full flex">
-      <EntityForm data={defaultEntityCreateInput} onSubmit={onSubmit}
-        updating={createLoading} />
+      <EntityForm
+        data={defaultEntityCreateInput}
+        onSubmit={onSubmit}
+        updating={createLoading}
+      />
     </div>
   );
 };

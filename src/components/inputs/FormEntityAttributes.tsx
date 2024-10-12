@@ -16,19 +16,18 @@ import { AttributeValueInput } from "@/lib/types";
 
 interface FormEntityAttributesProps {
   name: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
 }
 
-export default function FormEntityAttributes({
+export default function FormEntityAttributes( {
   name,
   control,
-}: FormEntityAttributesProps) {
+}: FormEntityAttributesProps ) {
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field }) => {
+      render={( { field } ) => {
         const attributes = field.value as AttributeValueInput[];
         return (
           <div className="grid flex-1">
@@ -43,10 +42,10 @@ export default function FormEntityAttributes({
                       size="icon"
                       type="button"
                       onClick={() => {
-                        field.onChange([
+                        field.onChange( [
                           { key: "", value: "" },
                           ...field.value,
-                        ]);
+                        ] );
                       }}
                     >
                       <AddIcon className="size-4" />
@@ -55,24 +54,24 @@ export default function FormEntityAttributes({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attributes.map((attr, index) => (
+                {attributes.map( ( attr, index ) => (
                   <TableRow key={`attrs-${index}`}>
                     <TableCell className="p-2">
                       <Input
                         name={`attr-key-${index}`}
                         placeholder="Key"
                         value={attr.key}
-                        onChange={(e) => {
+                        onChange={( e ) => {
                           field.onChange(
-                            attributes.map((_, i) => {
-                              if (i === index) {
+                            attributes.map( ( _, i ) => {
+                              if ( i === index ) {
                                 return {
                                   key: e.target.value,
                                   value: attr.value,
                                 };
                               }
                               return _;
-                            })
+                            } )
                           );
                         }}
                       />
@@ -82,14 +81,14 @@ export default function FormEntityAttributes({
                         name={`attr-value-${index}`}
                         value={attr.value}
                         placeholder="Value"
-                        onChange={(e) => {
+                        onChange={( e ) => {
                           field.onChange(
-                            attributes.map((_, i) => {
-                              if (i === index) {
+                            attributes.map( ( _, i ) => {
+                              if ( i === index ) {
                                 return { key: attr.key, value: e.target.value };
                               }
                               return _;
-                            })
+                            } )
                           );
                         }}
                       />
@@ -101,7 +100,7 @@ export default function FormEntityAttributes({
                         size="icon"
                         onClick={() => {
                           field.onChange(
-                            attributes.filter((_, i) => i !== index)
+                            attributes.filter( ( _, i ) => i !== index )
                           );
                         }}
                       >
@@ -109,7 +108,7 @@ export default function FormEntityAttributes({
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                ) )}
               </TableBody>
             </Table>
           </div>

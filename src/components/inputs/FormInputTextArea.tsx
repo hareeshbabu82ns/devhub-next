@@ -12,12 +12,12 @@ import { Textarea } from "../ui/textarea";
 const handleMaxLengthChange = (
   event: { target: { value: string } },
   maxLength: number,
-  originalOnChange: (value: string) => void
+  originalOnChange: ( value: string ) => void
 ) => {
   const inputValue = event.target.value;
   // Check if the input value length is less than or equal to 10
-  if (inputValue.length <= maxLength) {
-    originalOnChange(inputValue);
+  if ( inputValue.length <= maxLength ) {
+    originalOnChange( inputValue );
   }
 };
 
@@ -27,27 +27,26 @@ interface FormInputTextAreaProps {
   maxLength?: number;
   description?: string;
   className?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<any>;
 }
 
-const FormInputTextArea = ({
+const FormInputTextArea = ( {
   name,
   control,
   label,
   description,
   className,
   maxLength,
-}: FormInputTextAreaProps) => {
+}: FormInputTextAreaProps ) => {
   return (
     <FormField
       control={control}
       name={name}
-      render={({ field }) => {
+      render={( { field } ) => {
         const { onChange } = field;
 
         const customOnChange = maxLength
-          ? (e: never) => handleMaxLengthChange(e, maxLength, onChange)
+          ? ( e: never ) => handleMaxLengthChange( e, maxLength, onChange )
           : onChange;
 
         return (
