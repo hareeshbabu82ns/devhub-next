@@ -7,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/utils/providers";
 
 export const metadata: Metadata = {
+  manifest: "/manifest.webmanifest",
   title: {
     default: siteConfig.name,
     template: `%s - ${siteConfig.name}`,
@@ -16,11 +17,12 @@ export const metadata: Metadata = {
   //   { media: "(prefers-color-scheme: light)", color: "white" },
   //   { media: "(prefers-color-scheme: dark)", color: "black" },
   // ],
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
-  },
+  // icons: {
+  //   // icon: "/favicon.ico",
+  //   icon: "/pwa-64x64.png",
+  //   shortcut: "/pwa-16x16.png",
+  //   apple: "/apple-touch-icon-180x180.png",
+  // },
 };
 
 export default function RootLayout({
