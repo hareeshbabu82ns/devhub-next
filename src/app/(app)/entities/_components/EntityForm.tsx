@@ -265,7 +265,11 @@ export default function EntityForm({
             value="text"
             className="hidden data-[state='active']:flex flex-1 flex-col gap-4 overflow-y-auto"
           >
-            <FormLanguageValueList control={form.control} name="text" />
+            <FormLanguageValueList
+              control={form.control}
+              name="text"
+              placeholder="$transliterateFrom=TEL"
+            />
             {/* <pre>{JSON.stringify(data?.text, null, 2)}</pre> */}
           </TabsContent>
           <TabsContent
