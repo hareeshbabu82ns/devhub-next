@@ -102,4 +102,3 @@ umount /_data/dev/home-hub/data/mnt_books
 ### TODOs
 
 - TODO remove extra fetching of relation data from readEntity as relations are fetched using IDs in the edit mode
-- TODO adjust the useSearchParamsUpdater to be used in all places

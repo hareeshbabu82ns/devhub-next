@@ -13,6 +13,7 @@ import { Entity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import EntityBulkCreatorTrigger from "../_components/EntityBulkCreatorTrigger";
+import { upgradeChildEntities } from "../../settings/advanced/actions";
 
 const Page = () => {
   const params = useParams();
@@ -65,6 +66,14 @@ const Page = () => {
       >
         <Icons.add className="size-4" />
       </Button>
+      {/* <Button
+        size="icon"
+        type="button"
+        variant="outline"
+        onClick={() => upgradeChildEntities(entityId, false)}
+      >
+        <Icons.upload className="size-4" />
+      </Button> */}
     </>
   );
 
