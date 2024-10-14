@@ -82,14 +82,15 @@ export const ENTITY_TYPES_DDLB = [
   { label: "Ghattam", value: "GHATTAM" },
 ] as Option[];
 
-export type LANGUAGES_TYPE = "SAN" | "TEL" | "IAST" | "SLP1" | "ENG" | "TAM";
-export const LANGUAGES = [ "SAN", "TEL", "IAST", "SLP1", "ENG", "TAM" ] as const;
+export type LANGUAGES_TYPE = "SAN" | "TEL" | "ITRANS" | "IAST" | "SLP1" | "ENG" | "TAM";
+export const LANGUAGES = [ "SAN", "TEL", "TAM", "ITRANS", "IAST", "SLP1", "ENG" ] as const;
 
 export const LANGUAGES_DDLB = [
   { label: "Sanskrit", value: "SAN" },
   { label: "Telugu", value: "TEL" },
   { label: "IAST", value: "IAST" },
   { label: "SLP1", value: "SLP1" },
+  { label: "ITRANS", value: "ITRANS" },
   { label: "Tamil", value: "TAM" },
   { label: "English", value: "ENG" },
 ] as Option[];
@@ -107,9 +108,9 @@ export const LANGUAGE_SCHEME_MAP: Record<string, string> = {
   TEL: "telugu",
   HIN: "hindi",
   TAM: "tamil",
+  ITRANS: "itrans_dravidian",
   IAST: "iast",
   SLP1: "slp1",
-  ITRANS: "itrans_dravidian",
 };
 
 export const LANGUAGE_TO_TRANSLITERATION_DDLB = {

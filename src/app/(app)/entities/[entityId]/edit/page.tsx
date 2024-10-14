@@ -18,6 +18,7 @@ import { EntityWithRelations } from "@/lib/types";
 import { toast } from "sonner";
 import { useMemo } from "react";
 import { Prisma } from "@prisma/client";
+import { entityLanguageValueTransliterateHelper } from "../../utils";
 
 const Page = () => {
   const params = useParams();
@@ -119,7 +120,6 @@ const Page = () => {
               }
             : undefined,
         };
-        console.log("dataFinal", dataFinal);
         await updateEntityFn(
           { data: dataFinal },
           {
@@ -198,9 +198,12 @@ const entityToEntityForm = (entity: EntityWithRelations) => {
   const entityForm: z.infer<typeof EntityFormSchema> = {
     type: entity.type,
     imageThumbnail: entity.imageThumbnail,
-    text: (entity.textData || []) as any,
+    text: entityLanguageValueTransliterateHelper(entity.textData || []) as any,
     attributes: entity.attributes,
     meaning: (entity.meaningData || []) as any,
+    audio: entity.audio,
+    order: entity.order,
+    notes: entity.notes,
     // text: entity.text,
     // children: entity.children.map( ( child ) => entityToEntityForm( child ) ),
     parentIDs: entity.parents?.map((parent) => ({

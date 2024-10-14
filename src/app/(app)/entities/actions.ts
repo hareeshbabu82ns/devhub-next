@@ -280,6 +280,7 @@ const mapDbToEntity = ( e: any, language: string, meaning?: string ) => {
     childrenCount: e.children?.length,
     parentsCount: e.parents?.length,
     order: e.order,
+    notes: e.notes,
   };
   item.text = ( e.text.find( ( w: any ) => w.language === language ) || e.text[ 0 ] ).value;
   const meaningLang = meaning || language;

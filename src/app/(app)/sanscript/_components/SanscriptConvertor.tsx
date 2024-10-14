@@ -33,8 +33,8 @@ const SanscriptConvertor = () => {
   const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
 
   const [state, setState] = useState<SanscriptConvertorState>({
-    fromScheme: "IAST",
-    toScheme: "SAN",
+    fromScheme: "ITRANS",
+    toScheme: "TEL",
     fromText: "",
     toText: "",
   });
@@ -47,7 +47,7 @@ const SanscriptConvertor = () => {
         computedState.toText = Sanscript.t(
           newState.fromText,
           LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme
+          LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
         );
       } else if (newState.fromText === "") {
         computedState.fromText = "";
@@ -59,7 +59,7 @@ const SanscriptConvertor = () => {
         computedState.fromText = Sanscript.t(
           newState.toText,
           LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme
+          LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
         );
       } else if (newState.toText === "") {
         computedState.fromText = "";
@@ -72,7 +72,7 @@ const SanscriptConvertor = () => {
           computedState.fromText = Sanscript.t(
             state.toText,
             LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme
+            LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
           );
         }
       }
@@ -83,7 +83,7 @@ const SanscriptConvertor = () => {
           computedState.toText = Sanscript.t(
             state.fromText,
             LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme
+            LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
           );
         }
       }
@@ -117,7 +117,7 @@ const SanscriptConvertor = () => {
               className={`flex flex-1 overflow-y-auto antialiased text-${textSize} leading-8 tracking-wider`}
             >
               {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
-                state.fromScheme
+                state.fromScheme,
               ) < 0 ? (
                 <Textarea
                   key={`textarea-${state.fromScheme}`}
@@ -158,7 +158,7 @@ const SanscriptConvertor = () => {
               className={`flex flex-1 overflow-y-auto antialiased text-${textSize} leading-8 tracking-wider`}
             >
               {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
-                state.toScheme
+                state.toScheme,
               ) < 0 ? (
                 <Textarea
                   key={`textarea-${state.toScheme}`}

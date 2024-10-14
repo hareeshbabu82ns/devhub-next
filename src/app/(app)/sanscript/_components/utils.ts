@@ -140,12 +140,19 @@ export function replaceWordAtCursor( {
 export const transliteratedText = ( textData: { value: string, language: string }[] ) => {
   return textData?.map( ( t ) => {
     if ( t.value.startsWith( "$transliterateFrom=" ) ) {
-      const fromLang = t.value.split( "=" ).pop();
-      const from = fromLang ? LANGUAGE_SCHEME_MAP[ fromLang ] : "SAN";
-      const to = LANGUAGE_SCHEME_MAP[ t.language ] || t.language;
-      const text = textData.find( ( v ) => v.language === fromLang )?.value;
-      const resText = text ? Sanscript.t( text, from, to ) : t.value;
-      return { language: t.language, value: resText };
+      const fromLangs = t.value.split( "=" ).pop()?.split( "|" );
+      if ( fromLangs ) {
+        for ( const fromLang of fromLangs ) {
+          const from = LANGUAGE_SCHEME_MAP[ fromLang ];
+          const to = LANGUAGE_SCHEME_MAP[ t.language ];
+          const text = textData.find( ( v ) => v.language === fromLang )?.value;
+          if ( from && to && text ) {
+            const resText = Sanscript.t( text, from, to );
+            console.log( { from, to, text, original: t.value, resText } );
+            return { language: t.language, value: resText };
+          }
+        }
+      }
     }
     return t;
   } );

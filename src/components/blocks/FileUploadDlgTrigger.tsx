@@ -13,16 +13,20 @@ import { useState } from "react";
 import Image from "next/image";
 import MultipleFileUploadForm from "../utils/multi-file-upload-form";
 import { useRouter } from "next/navigation";
+import SingleFileUploadForm from "../utils/single-file-upload-form";
 
 interface FileUploadDlgTriggerProps extends DialogProps {
   currentPath?: string;
   accept?: string;
-  onUploaded?: (path: string) => void | undefined;
+  multiple?: boolean;
+  onUploaded?: (path: string[]) => void | undefined;
 }
 export default function FileUploadDlgTrigger({
   // onUploaded,
   currentPath,
   accept = "*.*",
+  multiple = true,
+  onUploaded,
   ...rest
 }: FileUploadDlgTriggerProps) {
   const router = useRouter();
@@ -39,13 +43,23 @@ export default function FileUploadDlgTrigger({
         <DialogHeader>
           <DialogTitle>Upload Files</DialogTitle>
         </DialogHeader>
-        <MultipleFileUploadForm
-          allowedTypes={["image/jpeg", "image/png", "image/jpeg"]}
-          basePath={`/uploads/${currentPath}`}
-          onUploadSuccess={async (urls: string[]) => {
-            router.refresh();
-          }}
-        />
+        {multiple ? (
+          <MultipleFileUploadForm
+            allowedTypes={["image/jpeg", "image/png", "image/jpeg"]}
+            basePath={`/uploads/${currentPath}`}
+            onUploadSuccess={async (urls: string[]) => {
+              router.refresh();
+            }}
+          />
+        ) : (
+          <SingleFileUploadForm
+            allowedTypes={["image/jpeg", "image/png", "image/jpeg"]}
+            basePath={`/uploads/${currentPath}`}
+            onUploadSuccess={async (urls: string[]) => {
+              onUploaded && onUploaded(urls);
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

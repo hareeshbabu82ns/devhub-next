@@ -118,6 +118,7 @@ const SingleFileUploadForm = ({
       }
 
       onUploadSuccess && (await onUploadSuccess(data.url));
+      toast.success("File uploaded successfully!");
       // console.log("File was uploaded successfylly:", data);
     } catch (error) {
       // console.error(error);

@@ -1,9 +1,13 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { readFileSync } from "fs";
+import path from "path";
+// import { config } from "@/config";
 
 export const updateEntitiesScript = async () => {
-  await upgradeEntitiesAll();
+  // await updateAudioUrlsRamayanam( "63366f12a55ed064583701eb" );
+  // await upgradeEntitiesAll();
 };
 
 const upgradeEntitiesAll = async () => {
@@ -12,6 +16,79 @@ const upgradeEntitiesAll = async () => {
   // await upgradeEntitiesByType(["DANDAKAM"], true);
   // await upgradeEntitiesByRootIDs(["6335da675bba420327665885"], true);
   // await upgradeChildEntities( "62e1582d3393789723f45adb" );
+};
+
+const ramayanamStructure = [
+  {
+    "kandam": "baala",
+    "saragaCount": 77,
+  },
+  {
+    "kandam": "ayodhya",
+    "saragaCount": 119,
+  },
+  {
+    "kandam": "aranya",
+    "saragaCount": 75,
+  },
+  {
+    "kandam": "kish",
+    "saragaCount": 67,
+  },
+  {
+    "kandam": "sundara",
+    "saragaCount": 68,
+  },
+  {
+    "kandam": "yuddha",
+    "saragaCount": 128,
+  }
+] as const;
+
+export const updateAudioUrlsRamayanam = async ( entityId: string ) => {
+  if ( !entityId ) return;
+
+  const csvKeys = readFileSync( path.resolve( "./data/ramayanam_audio_src.csv" ), "utf-8" )
+    .split( "\n" ).map( ( line ) => line.split( "," )[ 0 ] );
+
+  // console.log( `csvKeys:\n`, csvKeys.splice( 0, 10 ) );
+
+  const entity = await db.entity.findFirst( { where: { id: entityId }, select: { children: true } } );
+  const children = entity?.children || [];
+
+  const kandaEntities = await db.entity.findMany( { where: { id: { in: children } }, select: { order: true, children: true }, orderBy: { order: 'asc' } } );
+  for ( const kanda of kandaEntities ) {
+
+    const children = kanda?.children || [];
+    const sargaEntities = await db.entity.findMany( { where: { id: { in: children } }, select: { order: true, children: true }, orderBy: { order: 'asc' } } );
+    console.log( `Checking kanda: `, kanda.order + 1, ramayanamStructure[ kanda.order ].kandam, sargaEntities.length );
+
+    for ( const sarga of sargaEntities ) {
+      const children = sarga?.children || [];
+      const slokaEntities = await db.entity.findMany( { where: { id: { in: children } }, select: { id: true, order: true, audio: true }, orderBy: { order: 'asc' } } );
+      const paddedSarga = String( sarga.order + 1 ).padStart( 3, '0' );
+      console.log( `\tChecking sarga: `, paddedSarga );
+
+      for ( const sloka of slokaEntities ) {
+        const paddedSloka = String( sloka.order + 2 ).padStart( 3, '0' );
+        const csvKey = `${kanda.order + 1}_${ramayanamStructure[ kanda.order ].kandam}_kanda_sarga_${paddedSarga}_${paddedSloka}.mp3`;
+        const fileName = `${kanda.order + 1}-${ramayanamStructure[ kanda.order ].kandam}-kanda-sarga-${paddedSarga}-${paddedSloka}.mp3`;
+        const fileWithPath = `/api/assets/uploads/valmiki_ramayanam/audio/${fileName}`;
+        // console.log( `\t\tChecking sloka: `, paddedSloka, csvKey );
+
+        // console.log( `Checking csvkey:\n`, csvKey, fileName, sloka.audio );
+        // return;
+        if ( sloka.audio && sloka.audio.endsWith( fileName ) ) {
+        } else if ( csvKeys.indexOf( csvKey ) >= 0 ) {
+          console.log( `Updating audio url for entity: `, fileName, sloka.audio );
+          await db.entity.update( {
+            where: { id: sloka.id },
+            data: { audio: fileWithPath },
+          } );
+        }
+      }
+    }
+  }
 };
 
 // called from ui and from already upgraded entity

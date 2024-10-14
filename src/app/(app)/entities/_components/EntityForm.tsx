@@ -33,6 +33,8 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import FormEntityAttributes from "@/components/inputs/FormEntityAttributes";
+import { useReadLocalStorage } from "usehooks-ts";
+import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 
 export interface EntityExtraProps {
   childrenCount: number;
@@ -57,6 +59,8 @@ export default function EntityForm({
   onDelete,
 }: EntityFormProps) {
   const router = useRouter();
+  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
   const currentTab = searchParams.tab || "details";
@@ -72,9 +76,10 @@ export default function EntityForm({
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [imageThumbnailValue, typeValue] = getValues([
+  const [imageThumbnailValue, typeValue, text] = getValues([
     "imageThumbnail",
     "type",
+    "text",
   ]);
 
   useEffect(() => {
@@ -98,29 +103,42 @@ export default function EntityForm({
     const changeData: Partial<z.infer<typeof EntityFormSchema>> = {};
 
     changeData.type = data.type;
-    if (dirtyFields.imageThumbnail)
+    if (!entityId || dirtyFields.imageThumbnail)
       changeData.imageThumbnail = data.imageThumbnail;
-    if (dirtyFields.audio) changeData.audio = data.audio;
-    if (dirtyFields.bookmarked) changeData.bookmarked = data.bookmarked;
-    if (dirtyFields.text) changeData.text = data.text;
-    if (dirtyFields.meaning) changeData.meaning = data.meaning;
-    if (dirtyFields.attributes) changeData.attributes = data.attributes;
-    if (dirtyFields.notes) changeData.notes = data.notes;
-    if (dirtyFields.childIDs) changeData.childIDs = data.childIDs;
+    if (!entityId || dirtyFields.audio) changeData.audio = data.audio;
+    if (!entityId || dirtyFields.order) changeData.order = data.order;
+    if (!entityId || dirtyFields.bookmarked)
+      changeData.bookmarked = data.bookmarked;
+    if (!entityId || dirtyFields.text) changeData.text = data.text;
+    if (!entityId || dirtyFields.meaning) changeData.meaning = data.meaning;
+    if (!entityId || dirtyFields.attributes)
+      changeData.attributes = data.attributes;
+    if (!entityId || dirtyFields.notes) changeData.notes = data.notes;
+    if (!entityId || dirtyFields.childIDs) changeData.childIDs = data.childIDs;
     changeData.parentIDs = data.parentIDs;
+    if (!entityId || dirtyFields.notes) changeData.notes = data.notes;
 
     onFormSubmit && onFormSubmit(changeData);
   }
 
   const detailElements = (
     <div className="flex flex-1 flex-col gap-6">
-      {/* Type */}
-      <FormSelect
-        control={form.control}
-        name="type"
-        label="Type"
-        options={ENTITY_TYPES_DDLB}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Type */}
+        <FormSelect
+          control={form.control}
+          name="type"
+          label="Type"
+          options={ENTITY_TYPES_DDLB}
+        />
+        <FormInputText
+          control={form.control}
+          name="order"
+          label="Order"
+          type="number"
+        />
+      </div>
+
       {/* Thumbnail */}
       <div className="flex flex-row gap-2 items-end">
         <FormInputText
@@ -131,11 +149,18 @@ export default function EntityForm({
           type="search"
         />
         {/* Upload Image */}
-        <ImageUploadDlgTrigger currentPath={imageThumbnailValue} />
+        <ImageUploadDlgTrigger
+          currentPath={imageThumbnailValue}
+          multiple={false}
+          onUploaded={(urls) => {
+            form.setValue("imageThumbnail", urls[0] || "");
+          }}
+        />
       </div>
 
       {/* Audio */}
       <FormInputText control={form.control} name="audio" label="Audio" />
+
       {/* Bookmarked */}
       <FormCheckbox
         control={form.control}
@@ -151,7 +176,13 @@ export default function EntityForm({
         model={{
           id: "",
           type: typeValue as EntityTypeEnum,
-          title: typeValue,
+          title:
+            text && text[0]
+              ? text.find((t) => t.language === language)
+                ? text.find((t) => t.language === language)!.value
+                : text[0].value
+              : "",
+          subTitle: typeValue,
           src: imageThumbnailValue || "",
         }}
       />
@@ -268,7 +299,7 @@ export default function EntityForm({
             <FormLanguageValueList
               control={form.control}
               name="text"
-              placeholder="$transliterateFrom=TEL"
+              placeholder="$transliterateFrom=TEL|SAN"
             />
             {/* <pre>{JSON.stringify(data?.text, null, 2)}</pre> */}
           </TabsContent>

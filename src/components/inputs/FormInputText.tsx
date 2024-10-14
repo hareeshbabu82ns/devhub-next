@@ -13,12 +13,12 @@ import { cn } from "@/lib/utils";
 const handleMaxLengthChange = (
   event: { target: { value: string } },
   maxLength: number,
-  originalOnChange: ( value: string ) => void
+  originalOnChange: (value: string) => void,
 ) => {
   const inputValue = event.target.value;
   // Check if the input value length is less than or equal to 10
-  if ( inputValue.length <= maxLength ) {
-    originalOnChange( inputValue );
+  if (inputValue.length <= maxLength) {
+    originalOnChange(inputValue);
   }
 };
 
@@ -31,7 +31,7 @@ interface FormInputTextProps extends InputProps {
   className?: string;
 }
 
-const FormInputText = ( {
+const FormInputText = ({
   name,
   control,
   label,
@@ -39,20 +39,23 @@ const FormInputText = ( {
   maxLength,
   className,
   type,
-}: FormInputTextProps ) => {
+}: FormInputTextProps) => {
   return (
     <FormField
       control={control}
       name={name}
-      render={( { field } ) => {
+      render={({ field }) => {
         const { onChange } = field;
 
         const customOnChange = maxLength
-          ? ( e: never ) => handleMaxLengthChange( e, maxLength, onChange )
-          : onChange;
+          ? (e: never) => handleMaxLengthChange(e, maxLength, onChange)
+          : (e: any) =>
+              onChange(
+                type === "number" ? e.target.valueAsNumber : e.target.value,
+              );
 
         return (
-          <FormItem className={cn( "", className )}>
+          <FormItem className={cn("", className)}>
             <FormLabel>{label}</FormLabel>
             <FormControl>
               <Input

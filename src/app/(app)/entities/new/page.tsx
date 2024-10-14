@@ -15,13 +15,15 @@ import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { useReadLocalStorage } from "usehooks-ts";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
+import { entityLanguageValueTransliterateHelper } from "../utils";
 
 const defaultValues: z.infer<typeof EntityFormSchema> = {
-  type: "GOD",
+  type: "SLOKAM",
+  order: 0,
   imageThumbnail: ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   audio: undefined,
   bookmarked: false,
-  text: [],
+  text: entityLanguageValueTransliterateHelper([]) as any,
   meaning: [],
   attributes: [],
   notes: "",
