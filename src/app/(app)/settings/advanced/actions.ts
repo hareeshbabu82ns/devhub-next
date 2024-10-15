@@ -1,11 +1,14 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { processSlokas, createEntityDB } from "@/lib/scrape/mahabharatham";
 import { readFileSync } from "fs";
 import path from "path";
 // import { config } from "@/config";
 
 export const updateEntitiesScript = async () => {
+  // await processSlokas();
+  // await createEntityDB();
   // await updateAudioUrlsRamayanam( "63366f12a55ed064583701eb" );
   // await upgradeEntitiesAll();
 };

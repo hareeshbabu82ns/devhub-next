@@ -148,7 +148,7 @@ export const transliteratedText = ( textData: { value: string, language: string 
           const text = textData.find( ( v ) => v.language === fromLang )?.value;
           if ( from && to && text ) {
             const resText = Sanscript.t( text, from, to );
-            console.log( { from, to, text, original: t.value, resText } );
+            // console.log( { from, to, text, original: t.value, resText } );
             return { language: t.language, value: resText };
           }
         }
