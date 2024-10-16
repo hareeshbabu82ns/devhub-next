@@ -158,7 +158,7 @@ const baseStructure = Array( 18 )
     };
   } );
 
-export async function createEntityDB() {
+export async function createMahabharathaEntityDB( parentId: string ) {
   // const filePath = path.resolve( `${config.dataFolder}/mahabharatham/0_structure.json` );
   // const baseStructure = readFileSync( filePath, "utf-8" );
   // console.log( baseStructure );
@@ -198,7 +198,7 @@ export async function createEntityDB() {
       ] ),
       parentsRel: {
         connect: {
-          id: "67097f0c685941d233751dc9"
+          id: parentId
         }
       },
       childrenRel: {

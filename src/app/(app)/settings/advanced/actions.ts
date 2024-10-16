@@ -1,14 +1,27 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { processSlokas, createEntityDB } from "@/lib/scrape/mahabharatham";
+import { createMahabharathaEntityDB } from "@/lib/scrape/mahabharatham";
+import { scrapeMeaningPages, scrapeMeaningPagesJSON } from "@/lib/scrape/mahabharatham_meanings";
+import { scrapeRamayanamPages, scrapeRayayanamPagesJSON } from "@/lib/scrape/ramayanam";
 import { readFileSync } from "fs";
 import path from "path";
 // import { config } from "@/config";
 
 export const updateEntitiesScript = async () => {
+
+  // 1
+  // await scrapeRamayanamPages();
+  // 2
+  // await scrapeRayayanamPagesJSON();
+
+  // 1
+  // await scrapeMeaningPages();
+  // 2
+  // await scrapeMeaningPagesJSON();
+
   // await processSlokas();
-  // await createEntityDB();
+  await createMahabharathaEntityDB( "62e1582d3393789723f45aab" );
   // await updateAudioUrlsRamayanam( "63366f12a55ed064583701eb" );
   // await upgradeEntitiesAll();
 };
