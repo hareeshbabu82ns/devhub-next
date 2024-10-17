@@ -25,6 +25,7 @@ export default function SlokamDisplayDlgTrigger({
           type="button"
           size="icon"
           className="text-muted-foreground"
+          onClick={(e) => e.stopPropagation()}
         >
           {triggerTitle}
         </Button>

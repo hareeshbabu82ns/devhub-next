@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
 }
 
 datasource db {
@@ -161,8 +162,9 @@ model DictionaryWord {
 
   @@unique([wordIndex, origin])
   @@index([phonetic])
-  @@index([origin, phonetic])
+  @@index([origin, phonetic, wordIndex])
   @@index([origin, word])
+  @@fulltext([word, description, phonetic])
   @@map("DictWords")
 }
 

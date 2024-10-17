@@ -33,12 +33,10 @@ const DictionariesMultiSelectChips = () => {
     setOrigins(value);
     const originsChg = value.map((v) => v.value);
     setLocalOrigins(originsChg);
-    updateSearchParams(
-      {
-        origin: originsChg.join(","),
-      },
-      { replace: true },
-    );
+    updateSearchParams({
+      origin: originsChg.join(","),
+      offset: "0",
+    });
   };
 
   return (

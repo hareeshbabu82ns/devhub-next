@@ -14,6 +14,7 @@ import Image from "next/image";
 import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
+import { toast } from "sonner";
 // import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 // import AudioPlayPauseButton from "./AudioPlayPauseButton";
 
@@ -100,6 +101,7 @@ export const ArtSlokamTile = ({
               variant="ghost"
               onClick={(e) => {
                 copyToClipboard(model.title);
+                toast.info("Copied to clipboard");
                 e.stopPropagation();
               }}
             >

@@ -12,14 +12,14 @@ interface SearchDictParams {
   limit: number;
   offset: number;
 }
-export const searchDictionary = async ({
+export const searchDictionary = async ( {
   dictFrom,
   queryText,
   queryOperation,
   language,
   limit,
   offset,
-}: SearchDictParams) => {
+}: SearchDictParams ) => {
   // console.log("searchDictionary", {
   //   dictFrom,
   //   queryText,
@@ -28,16 +28,16 @@ export const searchDictionary = async ({
   //   limit,
   //   offset,
   // });
-  if (dictFrom.length === 0 && queryText.length === 0) {
+  if ( dictFrom.length === 0 && queryText.length === 0 ) {
     return { results: [], total: 0 };
   }
 
-  if (queryOperation !== "FULL_TEXT_SEARCH") {
-    const where: Prisma.DictionaryWordFindManyArgs["where"] = {};
-    if (dictFrom.length > 0) {
+  if ( queryOperation !== "FULL_TEXT_SEARCH" ) {
+    const where: Prisma.DictionaryWordFindManyArgs[ "where" ] = {};
+    if ( dictFrom.length > 0 ) {
       where.origin = { in: dictFrom };
     }
-    if (queryText.length > 0 && queryOperation === "REGEX") {
+    if ( queryText.length > 0 && queryOperation === "REGEX" ) {
       where.OR = [
         {
           word: {
@@ -46,16 +46,17 @@ export const searchDictionary = async ({
         },
       ];
     }
-    const count = await db.dictionaryWord.count({
+    const count = await db.dictionaryWord.count( {
       where,
-    });
-    const res = await db.dictionaryWord.findMany({
+    } );
+    const res = await db.dictionaryWord.findMany( {
       where,
       take: limit,
       skip: offset,
-    });
+      orderBy: { wordIndex: "asc" },
+    } );
 
-    const results = res.map((r) => {
+    const results = res.map( ( r ) => {
       const item: DictionaryItem = {
         id: r.id,
         origin: r.origin,
@@ -67,28 +68,28 @@ export const searchDictionary = async ({
         descriptionData: r.description,
       };
       item.word = (
-        r.word.find((w) => w.language === language) || r.word[0]
+        r.word.find( ( w ) => w.language === language ) || r.word[ 0 ]
       ).value;
       item.description = (
-        r.description.find((w) => w.language === language) || r.description[0]
+        r.description.find( ( w ) => w.language === language ) || r.description[ 0 ]
       ).value;
       return item;
-    });
+    } );
     return { results, total: count };
-  } else if (queryOperation === "FULL_TEXT_SEARCH") {
+  } else if ( queryOperation === "FULL_TEXT_SEARCH" ) {
     const filter: any = { $text: { $search: queryText } };
-    if (dictFrom.length > 0) {
+    if ( dictFrom.length > 0 ) {
       filter.origin = { $in: dictFrom };
     }
-    const countRes = await db.dictionaryWord.aggregateRaw({
-      pipeline: [{ $match: filter }, { $count: "count" }],
-    });
-    const res = await db.dictionaryWord.findRaw({
+    const countRes = await db.dictionaryWord.aggregateRaw( {
+      pipeline: [ { $match: filter }, { $count: "count" } ],
+    } );
+    const res = await db.dictionaryWord.findRaw( {
       filter,
       options: { limit, skip: offset },
-    });
+    } );
 
-    const results: DictionaryItem[] = (res as any).map((r: any) => {
+    const results: DictionaryItem[] = ( res as any ).map( ( r: any ) => {
       const item: DictionaryItem = {
         id: r._id,
         origin: r.origin,
@@ -100,13 +101,13 @@ export const searchDictionary = async ({
         descriptionData: r.description,
       };
       item.word = (
-        r.word.find((w: any) => w.lang === language) || r.word[0]
+        r.word.find( ( w: any ) => w.lang === language ) || r.word[ 0 ]
       ).value;
       item.description = (
-        r.description.find((w: any) => w.lang === language) || r.description[0]
+        r.description.find( ( w: any ) => w.lang === language ) || r.description[ 0 ]
       ).value;
       return item;
-    });
-    return { results, total: ((countRes[0] as any)?.count as number) || 0 };
+    } );
+    return { results, total: ( ( countRes[ 0 ] as any )?.count as number ) || 0 };
   }
 };
