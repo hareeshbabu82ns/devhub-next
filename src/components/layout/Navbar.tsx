@@ -31,7 +31,7 @@ export default function Navbar(props: {
 
   return (
     <nav
-      className={`bg-muted flex flex-row items-center justify-between px-4 py-2 backdrop-blur-sm transition-all`}
+      className={`bg-muted flex flex-row items-center justify-between px-4 py-2 h-[theme(spacing.14)]`}
     >
       <div className="ml-1">
         {/* <p className="text-md shrink capitalize md:text-3xl">

@@ -62,8 +62,10 @@ function SidebarContent(props: SidebarProps) {
     <Card className={`h-svh w-full overflow-y-auto rounded-none`}>
       <div className="flex h-full flex-col justify-between">
         <div>
-          <div className={`mt-4 flex items-center ml-4`}>
-            <div className="bg-primary text-primary-foreground me-2 flex size-10 items-center justify-center rounded-md">
+          <div
+            className={`flex items-center h-[theme(spacing.14)] border-b pl-4`}
+          >
+            <div className="bg-primary text-primary-foreground me-2 flex size-8 items-center justify-center rounded-md">
               <Icons.logo className="size-5" />
             </div>
             <h5 className="text-card-foreground me-2 text-2xl font-bold leading-5">
@@ -81,7 +83,7 @@ function SidebarContent(props: SidebarProps) {
               <SidebarCard />
             </div> */}
           {/* Sidebar profile info */}
-          <div className="mt-5 flex w-full items-center rounded-none border-t p-4">
+          <div className="flex items-center rounded-none border-t px-4 h-[theme(spacing.14)]">
             <a href="/settings">
               <Avatar className="min-h-10 min-w-10">
                 <AvatarImage src={session?.data?.user.image ?? ""} />
@@ -96,8 +98,8 @@ function SidebarContent(props: SidebarProps) {
               </p>
             </a>
             <Button
-              variant="outline"
-              className="ml-auto flex size-[40px] cursor-pointer items-center justify-center rounded-full p-0 text-center text-sm font-medium"
+              variant="ghost"
+              className="ml-auto flex size-[40px] cursor-pointer items-center justify-center p-0 text-center text-sm font-medium"
               onClick={async () => {
                 await signOut();
                 router.push("/");

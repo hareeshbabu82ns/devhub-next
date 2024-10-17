@@ -5,25 +5,25 @@
 /* generated from: https://zippystarter.com/tools/shadcn-ui-theme-generator */
 @layer base {
   :root {
-    --background: 19 47% 95%;
-    --foreground: 19 5% 10%;
-    --card: 19 47% 90%;
-    --card-foreground: 19 5% 15%;
-    --popover: 19 47% 95%;
-    --popover-foreground: 19 95% 10%;
-    --primary: 19 100% 29%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 19 30% 70%;
-    --secondary-foreground: 0 0% 0%;
-    --muted: -19 30% 85%;
-    --muted-foreground: 19 5% 35%;
-    --accent: -19 30% 80%;
-    --accent-foreground: 19 5% 15%;
-    --destructive: 0 50% 30%;
-    --destructive-foreground: 19 5% 90%;
-    --border: 19 30% 50%;
-    --input: 19 30% 20%;
-    --ring: 19 100% 29%;
+    --background: 166 25% 90%;
+    --foreground: 166 10% 10%;
+    --card: 166 30% 87%;
+    --card-foreground: 166 30% 10%;
+    --popover: 166 30% 85%;
+    --popover-foreground: 166 30% 10%;
+    --primary: 166 30% 40%;
+    --primary-foreground: 166 5% 90%;
+    --secondary: 220 40% 40%;
+    --secondary-foreground: 220 5% 20%;
+    --muted: 166 10% 85%;
+    --muted-foreground: 166 5% 40%;
+    --accent: 166 35% 80%;
+    --accent-foreground: 166 0% 10%;
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 166 15% 80%;
+    --input: 166 15% 80%;
+    --ring: 166 15% 55%;
     --radius: 0.5rem;
 
     --success: 120 55% 40%;
@@ -65,25 +65,25 @@
   }
 
   .dark {
-    --background: 19 47% 10%;
-    --foreground: 19 5% 90%;
-    --card: 19 47% 10%;
-    --card-foreground: 19 5% 90%;
-    --popover: 19 47% 5%;
-    --popover-foreground: 19 5% 90%;
-    --primary: 19 100% 29%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 19 30% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: -19 30% 20%;
-    --muted-foreground: 19 5% 60%;
-    --accent: -19 30% 20%;
-    --accent-foreground: 19 5% 90%;
-    --destructive: 0 50% 30%;
-    --destructive-foreground: 19 5% 90%;
-    --border: 19 30% 20%;
-    --input: 19 30% 20%;
-    --ring: 19 100% 29%;
+    --background: 166 25% 10%;
+    --foreground: 166 10% 90%;
+    --card: 166 30% 12%;
+    --card-foreground: 166 30% 90%;
+    --popover: 166 30% 15%;
+    --popover-foreground: 166 30% 90%;
+    --primary: 166 30% 60%;
+    --primary-foreground: 166 5% 10%;
+    --secondary: 220 30% 60%;
+    --secondary-foreground: 220 5% 10%;
+    --muted: 166 10% 15%;
+    --muted-foreground: 166 5% 65%;
+    --accent: 166 35% 25%;
+    --accent-foreground: 166 0% 98%;
+    --destructive: 0 45% 30%;
+    --destructive-foreground: 0 0% 80%;
+    --border: 166 15% 20%;
+    --input: 166 15% 20%;
+    --ring: 166 15% 65%;
     --radius: 0.5rem;
 
     --success: 120 35% 45%;

@@ -6,7 +6,7 @@ import {
 } from "@/components/blocks/language-selector";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import React from "react";
-import { useLocalStorage } from "usehooks-ts";
+import { useLocalStorage, useReadLocalStorage } from "usehooks-ts";
 import { fetchBookmarkedEntities } from "../actions";
 import { Loader } from "lucide-react";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -23,9 +23,20 @@ import { bookmarkEntity } from "../../entities/actions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
+import { QUERY_RESULT_LIMIT_KEY } from "@/components/blocks/result-limit-selector";
 
 const BookmarkedEntitiesGrid = () => {
   const router = useRouter();
+  const { searchParamsObject: searchParams, updateSearchParams } =
+    useSearchParamsUpdater();
+
+  const limit = parseInt(
+    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
+    10,
+  );
+  const offset = parseInt(searchParams.offset || "0", 10);
 
   const [language] = useLocalStorage(
     LANGUAGE_SELECT_KEY,
@@ -47,10 +58,12 @@ const BookmarkedEntitiesGrid = () => {
   });
 
   const { data, isFetching, isLoading, error, refetch } = useQuery({
-    queryKey: ["bookmarkedEntities", { language }],
+    queryKey: ["bookmarkedEntities", { language, limit, offset }],
     queryFn: async () => {
       const entities = await fetchBookmarkedEntities({
         language,
+        pageIndex: offset,
+        pageSize: limit,
       });
       return entities;
     },
@@ -61,16 +74,27 @@ const BookmarkedEntitiesGrid = () => {
   if (!data || !data.results) return <SimpleAlert title={"no data found"} />;
   // console.log(data.results);
   const tiles = data.results.map((e) => {
-    const parentBreadcrumb = flattenEntityParents(e)
-      .map((e) => e.text)
-      .join(" > ");
-    console.log(parentBreadcrumb);
+    const parents = flattenEntityParents(e);
+    const parentBreadcrumb = parents.map((e) => e.text).join(" > ");
     const tile = mapEntityToTileModel(e);
     return {
       ...tile,
       subTitle: parentBreadcrumb,
+      src: parents[0].imageThumbnail || e.imageThumbnail || tile.src,
     };
   });
+
+  const paginateOffsetAction = (offset: number) => {
+    updateSearchParams({ offset: offset.toString() });
+  };
+
+  const onBackAction = () => {
+    updateSearchParams({ offset: (offset - 1).toString() });
+  };
+
+  const onFwdAction = () => {
+    updateSearchParams({ offset: (offset + 1).toString() });
+  };
 
   const onTileClicked = (tile: Entity) => {
     const entity = data.results.find((e) => e.id === tile.id);
@@ -94,6 +118,16 @@ const BookmarkedEntitiesGrid = () => {
             <Icons.refresh className="size-4" />
           </Button>
           {"Bookmarks"}
+        </div>
+        <div>
+          <PaginationDDLB
+            totalCount={data.total}
+            limit={limit}
+            offset={offset}
+            onFwdClick={onFwdAction}
+            onBackClick={onBackAction}
+            onOffsetChange={paginateOffsetAction}
+          />
         </div>
       </div>
       <div className="flex flex-col gap-4">

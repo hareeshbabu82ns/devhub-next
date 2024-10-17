@@ -113,6 +113,9 @@ model Entity {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([order, type, text])
+  @@index([type, bookmarked, updatedAt(sort: Desc)])
+  @@fulltext([order, type, text, meaning])
   @@map("Entities")
 }
 
