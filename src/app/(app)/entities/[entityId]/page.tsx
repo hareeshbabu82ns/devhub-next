@@ -1,8 +1,7 @@
 "use client";
 
-import { TileModel } from "@/components/blocks/image-tiles";
 import EntitySearchTiles from "../_components/EntitySearchTiles";
-import { readEntity } from "../actions";
+import { bookmarkEntity, readEntity } from "../actions";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import { useReadLocalStorage } from "usehooks-ts";
 import { useParams, useRouter } from "next/navigation";
@@ -13,7 +12,10 @@ import { Entity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import EntityBulkCreatorTrigger from "../_components/EntityBulkCreatorTrigger";
-import { upgradeChildEntities } from "../../settings/advanced/actions";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { TileModel } from "@/types/entities";
+import { mapEntityToTileModel } from "../utils";
 
 const Page = () => {
   const params = useParams();
@@ -31,17 +33,25 @@ const Page = () => {
     enabled: !!entityId,
   });
 
+  const { mutateAsync: onBookmarkClicked } = useMutation({
+    mutationKey: ["entityBookmark"],
+    mutationFn: async (entity: Entity) => {
+      return await bookmarkEntity(
+        entity.id,
+        entity.bookmarked === undefined ? true : !entity.bookmarked,
+      );
+    },
+    onSuccess: (res) => {
+      if (res?.bookmarked) toast.success("Bookmark added");
+      else toast.success("Bookmark removed");
+    },
+  });
+
   if (isLoading || isFetching)
     return <Loader className="min-h-[calc(100vh_-_theme(spacing.20))]" />;
   if (!entity) return null;
 
-  const tile: TileModel = {
-    id: entity.id,
-    type: entity.type as any,
-    title: entity.text,
-    subTitle: entity.type,
-    src: entity.imageThumbnail || "",
-  };
+  const tile: TileModel = mapEntityToTileModel(entity);
 
   const onTileClicked = (tile: Entity) =>
     ENTITY_TYPES_CHILDREN[tile.type]?.length > 0 &&
@@ -97,6 +107,7 @@ const Page = () => {
       mode="browse"
       onTileClicked={onTileClickedAction}
       onEditClicked={onEditClicked}
+      onBookmarkClicked={onBookmarkClicked}
       actionButtons={actionButtons}
       actionPreButtons={actionPreButtons}
     />

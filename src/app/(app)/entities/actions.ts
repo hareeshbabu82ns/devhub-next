@@ -12,10 +12,64 @@ import {
   convertSortingToPrisma,
 } from "@/components/data-table/utils";
 import { columns } from "./columns";
-import { Prisma, Entity as DBEntity, Entity } from "@prisma/client";
-import { EntityWithRelations } from "@/lib/types";
+import { Prisma, Entity } from "@prisma/client";
+import { EntityTypeEnum, EntityWithRelations } from "@/lib/types";
 import { LANGUAGE_SELECT_DEFAULT } from "@/components/blocks/language-selector";
 import { transliteratedText } from "../sanscript/_components/utils";
+import { mapDbToEntity } from "./utils";
+
+export const entityHierarchy = async ( { id, language }: { id: Entity[ "id" ], language: string } ): Promise<Pick<EntityWithRelations, "id" | "type" | "text">[] | undefined> => {
+  const session = await auth();
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
+  }
+
+  // read entity with parents in a loop until no more parents
+  const parents = [];
+  let parentId = id;
+
+  let entity = await db.entity.findFirst( {
+    where: { id: parentId },
+    select: { id: true, type: true, text: true, parents: true },
+  } );
+  if ( !entity ) return undefined;
+  parents.push( entity );
+
+  while ( entity ) {
+    parentId = entity.parents[ 0 ];
+    if ( !parentId ) break;
+    entity = await db.entity.findFirst( {
+      where: { id: parentId },
+      select: { id: true, type: true, text: true, parents: true },
+    } );
+    if ( !entity ) break;
+    if ( [ "GOD", "ARTIST" ].includes( entity.type ) ) break;
+    parents.push( entity );
+  }
+
+  return parents.map( ( p ) => ( {
+    id: p.id,
+    type: p.type as EntityTypeEnum,
+    text: ( p.text.find( ( w: any ) => w.language === language ) || p.text[ 0 ] ).value,
+  } ) ).reverse();
+};
+
+export const bookmarkEntity = async ( id: Entity[ "id" ], bookmarked?: boolean ): Promise<Pick<Entity, "id" | "bookmarked"> | undefined> => {
+  const session = await auth();
+  if ( !session ) {
+    throw new Error( "Unauthorized" );
+  }
+
+  const res = await db.entity.update( {
+    where: { id },
+    data: {
+      bookmarked,
+    },
+    select: { id: true, bookmarked: true },
+  } );
+
+  return res;
+};
 
 export const deleteEntity = async ( id: Entity[ "id" ], cascadingChildren: boolean = false ): Promise<EntityWithRelations | null> => {
   const session = await auth();
@@ -264,32 +318,4 @@ export const fetchEntities = async ( {
 
   const results = entities.map( ( e ) => mapDbToEntity( e, language ) );
   return { results, total: entitiesCount };
-};
-
-const mapDbToEntity = ( e: any, language: string, meaning?: string ) => {
-  const item: EntityWithRelations = {
-    id: e.id,
-    type: e.type as any,
-    imageThumbnail: e.imageThumbnail || "",
-    audio: e.audio || "",
-    text: "",
-    meaning: "",
-    attributes: e.attributes,
-    textData: e.text,
-    meaningData: e.meaning,
-    childrenCount: e.children?.length,
-    parentsCount: e.parents?.length,
-    order: e.order,
-    notes: e.notes,
-  };
-  item.text = ( e.text.find( ( w: any ) => w.language === language ) || e.text[ 0 ] ).value;
-  const meaningLang = meaning || language;
-  item.meaning =
-    e.meaning ? e.meaning.length === 0
-      ? ""
-      : ( e.meaning.find( ( w: any ) => w.language === meaningLang ) || e.meaning[ 0 ] )
-        .value : "";
-  item.children = e.childrenRel?.map( ( p: any ) => mapDbToEntity( p, language, meaning ) );
-  item.parents = e.parentsRel?.map( ( p: any ) => mapDbToEntity( p, language, meaning ) );
-  return item;
 };

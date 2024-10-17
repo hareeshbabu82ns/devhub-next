@@ -11,7 +11,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { toastVariants } from "./custom-toast";
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   return (

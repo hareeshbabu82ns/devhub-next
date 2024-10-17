@@ -27,7 +27,7 @@ const PaginationDDLB = ({
   onOffsetChange,
 }: PaginationDDLBProps) => {
   return (
-    <div className="flex justify-center items-center gap-4">
+    <div className="flex justify-end items-center gap-4">
       <Button
         type="button"
         variant={"outline"}

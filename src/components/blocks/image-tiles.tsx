@@ -1,19 +1,9 @@
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Edit2Icon as EditIcon, Trash2Icon as DeleteIcon } from "lucide-react";
-import { EntityTypeEnum } from "@/lib/types";
 import { Badge } from "../ui/badge";
 import Image from "next/image";
-
-export interface TileModel {
-  id: string;
-  title: string;
-  type: EntityTypeEnum;
-  subTitle?: string;
-  src: string;
-  childrenCount?: number;
-  order?: number;
-}
+import { TileModel } from "@/types/entities";
 
 interface ArtTileProps extends React.HTMLAttributes<HTMLDivElement> {
   model: TileModel;

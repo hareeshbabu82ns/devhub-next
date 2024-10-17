@@ -9,7 +9,7 @@ import {
   useReadLocalStorage,
 } from "usehooks-ts";
 import { cn } from "@/lib/utils";
-import { ArtTile, TileModel } from "@/components/blocks/image-tiles";
+import { ArtTile } from "@/components/blocks/image-tiles";
 import {
   LANGUAGE_SELECT_DEFAULT,
   LANGUAGE_SELECT_KEY,
@@ -26,6 +26,9 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchEntities } from "../actions";
 import { ColumnFiltersState } from "@tanstack/react-table";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import EntityNavigationView from "./EntityBreadcrumbView";
+import { TileModel } from "@/types/entities";
+import { mapEntityToTileModel, mapTileModelToEntity } from "../utils";
 
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
@@ -33,6 +36,7 @@ interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   onTileClicked?: (entity: Entity) => void;
   onDeleteClicked?: (entity: Entity) => void;
   onEditClicked?: (model: Entity) => void;
+  onBookmarkClicked?: (model: Entity) => void;
   mode?: "search" | "browse";
   actionButtons?: React.ReactNode;
   actionPreButtons?: React.ReactNode;
@@ -44,6 +48,7 @@ const EntitySearchTiles = ({
   onTileClicked,
   onEditClicked,
   onDeleteClicked,
+  onBookmarkClicked,
   className,
   mode = "search",
   actionButtons,
@@ -92,6 +97,7 @@ const EntitySearchTiles = ({
         onClick={onTileClicked}
         onDeleteClicked={onDeleteClicked}
         onEditClicked={onEditClicked}
+        onBookmarkClicked={onBookmarkClicked}
         forTypes={forTypes}
         forEntity={forEntity}
       />
@@ -108,6 +114,7 @@ function EntitySearchGrid({
   onClick,
   onDeleteClicked,
   onEditClicked,
+  onBookmarkClicked,
 }: {
   query: string;
   forEntity?: TileModel;
@@ -115,6 +122,7 @@ function EntitySearchGrid({
   onClick?: (entity: Entity) => void;
   onDeleteClicked?: (entity: Entity) => void;
   onEditClicked?: (model: Entity) => void;
+  onBookmarkClicked?: (model: Entity) => void;
 }) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
@@ -160,48 +168,24 @@ function EntitySearchGrid({
   if (!data || !data.results) return <SimpleAlert title={"no data found"} />;
 
   const children = data.results || [];
-  const entities: TileModel[] =
-    children.map((g) => ({
-      id: g.id,
-      title: g.text,
-      type: g.type,
-      subTitle: g.type,
-      src: g.imageThumbnail || "",
-      childrenCount: g.childrenCount || 0,
-      audio: g.audio,
-      order: g.order,
-    })) || [];
+  const entities: TileModel[] = children.map(mapEntityToTileModel) || [];
 
   const entitiesCount = data.total;
 
   const onTileClicked = onClick
-    ? (tile: TileModel) =>
-        onClick({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? (tile: TileModel) => onClick(mapTileModelToEntity(tile))
     : undefined;
 
   const onEditClickedAction = onEditClicked
-    ? (tile: TileModel) =>
-        onEditClicked({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? (tile: TileModel) => onEditClicked(mapTileModelToEntity(tile))
     : undefined;
 
   const onDeleteClickedAction = onDeleteClicked
-    ? (tile: TileModel) =>
-        onDeleteClicked({
-          id: tile.id,
-          imageThumbnail: tile.src,
-          text: tile.title,
-          type: (tile.subTitle as EntityTypeEnum) || "",
-        })
+    ? (tile: TileModel) => onDeleteClicked(mapTileModelToEntity(tile))
+    : undefined;
+
+  const onBookmarkClickedAction = onBookmarkClicked
+    ? (tile: TileModel) => onBookmarkClicked(mapTileModelToEntity(tile))
     : undefined;
 
   const paginateOffsetAction = (offset: number) => {
@@ -218,7 +202,7 @@ function EntitySearchGrid({
 
   return (
     <div className="flex flex-1 flex-col mt-4 gap-4">
-      <div className="flex flex-row items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
         <div className="flex items-center gap-2">
           <Button
             onClick={() => refetch()}
@@ -228,10 +212,9 @@ function EntitySearchGrid({
           >
             <RefreshIcon className="size-4" />
           </Button>
-          {forEntity?.title && <h3 className="text-md">{forEntity?.title}</h3>}
-          {/* {forEntity?.subTitle && (
-            <h3 className="text-xs">{forEntity?.subTitle}</h3>
-          )} */}
+          {forEntity?.title && (
+            <EntityNavigationView entityId={forEntity?.id} />
+          )}
         </div>
         <PaginationDDLB
           totalCount={entitiesCount}
@@ -254,6 +237,7 @@ function EntitySearchGrid({
                 onTileClicked={onTileClicked}
                 onEditClicked={onEditClickedAction}
                 onDeleteClicked={onDeleteClickedAction}
+                onBookmarkClicked={onBookmarkClickedAction}
               />
             );
           else
@@ -270,6 +254,14 @@ function EntitySearchGrid({
       </div>
       <div className="flex flex-1 justify-end">
         <ScrollToTopButton />
+        <PaginationDDLB
+          totalCount={entitiesCount}
+          limit={limit}
+          offset={offset}
+          onFwdClick={paginateFwdAction}
+          onBackClick={paginateBackAction}
+          onOffsetChange={paginateOffsetAction}
+        />
       </div>
     </div>
   );

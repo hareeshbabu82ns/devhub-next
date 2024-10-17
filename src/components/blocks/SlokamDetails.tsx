@@ -13,9 +13,11 @@ import SimpleAlert from "../utils/SimpleAlert";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Icons } from "../utils/icons";
-import { ArtSlokamTile, TileModel } from "./image-tiles-slokam";
+import { ArtSlokamTile } from "./image-tiles-slokam";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { TileModel } from "@/types/entities";
+import { mapEntityToTileModel } from "@/app/(app)/entities/utils";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
@@ -49,12 +51,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
   if (!slokam)
     return <SimpleAlert title={`No Slokam Found with id: ${slokamId}`} />;
 
-  const slokamTile: TileModel = {
-    id: slokam.id,
-    type: slokam.type,
-    title: slokam.text,
-    src: slokam.imageThumbnail || "",
-  };
+  const slokamTile: TileModel = mapEntityToTileModel(slokam);
 
   return (
     <div className={cn("flex flex-1 flex-col gap-4", className)}>

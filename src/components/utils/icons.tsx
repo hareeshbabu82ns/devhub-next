@@ -51,6 +51,8 @@ import {
   User,
   Users2 as Users,
   X,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 
 // https://react-icons.github.io/react-icons/
@@ -83,6 +85,8 @@ export const Icons = {
   home: HomeIcon,
   pooja: FlameIcon,
   clipboard: ClipboardIcon,
+  bookmark: Bookmark,
+  bookmarkCheck: BookmarkCheck,
   god: FaAtom,
   artist: FaPersonRays,
   dictionary: MdBatchPrediction,

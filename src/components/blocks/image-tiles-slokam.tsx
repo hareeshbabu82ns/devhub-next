@@ -1,10 +1,5 @@
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import {
-  Edit2Icon as EditIcon,
-  Trash2Icon as DeleteIcon,
-  ClipboardIcon,
-} from "lucide-react";
 import { EntityTypeEnum } from "@/lib/types";
 import { ENTITY_DEFAULT_IMAGE_THUMBNAIL } from "@/lib/constants";
 import Markdown from "react-markdown";
@@ -17,18 +12,10 @@ import {
 import AudioPlayPauseButton from "./AudioPlayPauseButton";
 import Image from "next/image";
 import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
+import { Icons } from "../utils/icons";
+import { TileModel } from "@/types/entities";
 // import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 // import AudioPlayPauseButton from "./AudioPlayPauseButton";
-
-export interface TileModel {
-  id: string;
-  title: string;
-  type: EntityTypeEnum;
-  subTitle?: string;
-  src: string;
-  audio?: string;
-  order?: number;
-}
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -36,6 +23,7 @@ interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   onTileClicked?: (entity: TileModel) => void;
   onDeleteClicked?: (entity: TileModel) => void;
   onEditClicked?: (model: TileModel) => void;
+  onBookmarkClicked?: (model: TileModel) => void;
 }
 
 export const ArtSlokamTile = ({
@@ -45,6 +33,7 @@ export const ArtSlokamTile = ({
   onEditClicked,
   onDeleteClicked,
   onTileClicked,
+  onBookmarkClicked,
 }: ArtSlokamTileProps) => {
   const [textSize] = useLocalStorage(
     TEXT_SIZE_SELECT_KEY,
@@ -57,6 +46,7 @@ export const ArtSlokamTile = ({
       className={cn(
         "group rounded-xl p-4 border dark:highlight-white/5 hover:bg-secondary/10 space-y-2 flex flex-row space-x-4",
         onTileClicked ? "cursor-pointer" : "",
+        model.bookmarked ? "border-success/50" : "",
         className,
       )}
       onClick={(e) => {
@@ -86,7 +76,7 @@ export const ArtSlokamTile = ({
           <Markdown remarkPlugins={[remarkGfm]}>{model.title}</Markdown>
         </div>
         <div className="flex items-center justify-between h-8">
-          <div>
+          <div className="flex items-center gap-4">
             {index > 0 && (
               <SlokamDisplayDlgTrigger
                 key={model.id}
@@ -95,6 +85,11 @@ export const ArtSlokamTile = ({
                   .padStart(3, "0")}
                 forSlokamId={model.id}
               />
+            )}
+            {model.subTitle && (
+              <div className="text-sm text-muted-foreground">
+                {model.subTitle}
+              </div>
             )}
           </div>
           <div className="hidden group-hover:flex flex-row">
@@ -108,8 +103,25 @@ export const ArtSlokamTile = ({
                 e.stopPropagation();
               }}
             >
-              <ClipboardIcon size={14} />
+              <Icons.clipboard size={14} />
             </Button>
+            {onBookmarkClicked && (
+              <Button
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={(e) => {
+                  onBookmarkClicked(model);
+                  e.stopPropagation();
+                }}
+              >
+                {model.bookmarked ? (
+                  <Icons.bookmarkCheck size={14} />
+                ) : (
+                  <Icons.bookmark size={14} />
+                )}
+              </Button>
+            )}
             {onEditClicked && (
               <Button
                 size="icon"
@@ -120,7 +132,7 @@ export const ArtSlokamTile = ({
                   e.stopPropagation();
                 }}
               >
-                <EditIcon size={14} />
+                <Icons.edit size={14} />
               </Button>
             )}
             {onDeleteClicked && (
@@ -134,7 +146,7 @@ export const ArtSlokamTile = ({
                   e.stopPropagation();
                 }}
               >
-                <DeleteIcon size={14} />
+                <Icons.trash size={14} />
               </Button>
             )}
           </div>

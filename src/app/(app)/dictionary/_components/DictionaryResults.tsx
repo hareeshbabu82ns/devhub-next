@@ -23,6 +23,7 @@ import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import { useQuery } from "@tanstack/react-query";
 import { searchDictionary } from "../actions";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -100,7 +101,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   return (
     <Card className="w-full bg-transparent @container">
       <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-2">
-        <CardDescription>Dictionary Results</CardDescription>
+        <CardDescription>Results</CardDescription>
         <div className="flex flex-row items-center gap-2 ">
           <Button
             onClick={() => refetch()}
@@ -145,6 +146,18 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="flex flex-1 justify-end">
+          <ScrollToTopButton />
+          <PaginationDDLB
+            totalCount={data.total}
+            limit={limit}
+            offset={offset}
+            onFwdClick={paginateFwdAction}
+            onBackClick={paginateBackAction}
+            onOffsetChange={paginateOffsetAction}
+          />
         </div>
       </CardContent>
     </Card>

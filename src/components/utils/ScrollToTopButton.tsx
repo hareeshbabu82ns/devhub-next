@@ -41,7 +41,7 @@ const ScrollToTopButton = () => {
             type="button"
             variant="outline"
             onClick={scrollToTop}
-            className="fixed right-0 bottom-0 m-4"
+            className="fixed right-0 bottom-0 mx-4 my-8"
           >
             <ToTopIcon size={24} />
           </Button>

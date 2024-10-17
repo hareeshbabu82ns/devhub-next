@@ -1,4 +1,4 @@
-import { ArtTile, TileModel } from "@/components/blocks/image-tiles";
+import { ArtTile } from "@/components/blocks/image-tiles";
 import { FormField } from "@/components/ui/form";
 import { Entity, EntityTypeEnum } from "@/lib/types";
 import { useState } from "react";
@@ -17,6 +17,8 @@ import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { findEntities } from "../actions";
+import { mapEntityToTileModel } from "../utils";
+import { TileModel } from "@/types/entities";
 
 interface FormEntityRelationsProps {
   name: string;
@@ -97,15 +99,8 @@ const FormEntityRelations = ({
       control={control}
       name={name}
       render={({ field }) => {
-        const tiles: TileModel[] = data!.entities.results.map(
-          (rel: Entity) => ({
-            id: rel.id,
-            type: rel.type,
-            title: rel.text,
-            subTitle: rel.type,
-            src: rel.imageThumbnail || "",
-          }),
-        );
+        const tiles: TileModel[] =
+          data!.entities.results.map(mapEntityToTileModel);
 
         const onEditClicked = (tile: TileModel) =>
           router.push(`/entities/${tile.id}/edit`);
