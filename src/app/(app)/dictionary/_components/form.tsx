@@ -77,7 +77,6 @@ const DictionaryItemForm = ({
   }, [errors]);
 
   function onSubmit(data: z.infer<typeof DictItemFormSchema>) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const changeData: Partial<z.infer<typeof DictItemFormSchema>> = {};
 
     changeData.origin = data.origin;
