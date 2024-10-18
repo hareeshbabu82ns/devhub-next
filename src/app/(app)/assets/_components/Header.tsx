@@ -19,7 +19,19 @@ import { createFolder, deleteFolder } from "../actions";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/utils/icons";
 
-const Header = ({ path }: { path: string }) => {
+const Header = ({
+  path,
+  asSelector = false,
+  onDeleted,
+  refresh,
+  onPathChange,
+}: {
+  path: string;
+  asSelector?: boolean;
+  onDeleted?: (path: string) => void;
+  refresh?: () => void;
+  onPathChange?: (path: string) => void;
+}) => {
   const router = useRouter();
   const paths = path.split("/").filter(Boolean);
 
@@ -49,7 +61,7 @@ const Header = ({ path }: { path: string }) => {
       {
         onSuccess: () => {
           setOpenCreateDlg(false);
-          router.refresh();
+          asSelector ? refresh && refresh() : router.refresh();
         },
       },
     );
@@ -60,9 +72,16 @@ const Header = ({ path }: { path: string }) => {
       { name: path },
       {
         onSuccess: () => {
-          router.replace(
-            `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
-          );
+          if (asSelector) {
+            onDeleted &&
+              onDeleted(
+                `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
+              );
+          } else {
+            router.replace(
+              `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
+            );
+          }
         },
       },
     );
@@ -72,7 +91,7 @@ const Header = ({ path }: { path: string }) => {
     <header className="flex items-center justify-between">
       <div className="flex flex-col gap-2">
         <h1 className="font-bold text-xl">Assets Explorer</h1>
-        <PathNavigator path={path} />
+        <PathNavigator path={path} onLinkClicked={onPathChange} />
       </div>
 
       <div className="px-5 flex space-x-2 items-center">
@@ -104,7 +123,7 @@ const Header = ({ path }: { path: string }) => {
           variant="ghost"
           type="button"
           size="icon"
-          onClick={() => router.refresh()}
+          onClick={() => (asSelector ? refresh && refresh() : router.refresh())}
         >
           <Icons.refresh className="size-5" />
         </Button>
@@ -113,7 +132,13 @@ const Header = ({ path }: { path: string }) => {
   );
 };
 
-const PathNavigator = ({ path }: { path: string }) => {
+const PathNavigator = ({
+  path,
+  onLinkClicked,
+}: {
+  path: string;
+  onLinkClicked?: (path: string) => void;
+}) => {
   const paths = path.split("/").filter(Boolean);
 
   return (
@@ -124,7 +149,12 @@ const PathNavigator = ({ path }: { path: string }) => {
             {paths.length === 0 ? (
               <p className="font-bold text-secondary">Root</p>
             ) : (
-              <BreadcrumbLink href={`/assets`}>Root</BreadcrumbLink>
+              <BreadcrumbLink
+                onClick={onLinkClicked ? () => onLinkClicked(`/`) : undefined}
+                href={onLinkClicked ? undefined : `/assets`}
+              >
+                Root
+              </BreadcrumbLink>
             )}
           </BreadcrumbItem>
           {paths.map((path, index) => (
@@ -137,7 +167,19 @@ const PathNavigator = ({ path }: { path: string }) => {
                   <p className="font-bold text-secondary">{path}</p>
                 ) : (
                   <BreadcrumbLink
-                    href={`/assets/${paths.slice(0, index + 1).join("/")}`}
+                    onClick={
+                      onLinkClicked
+                        ? () =>
+                            onLinkClicked(
+                              `/${paths.slice(0, index + 1).join("/")}`,
+                            )
+                        : undefined
+                    }
+                    href={
+                      onLinkClicked
+                        ? undefined
+                        : `/assets/${paths.slice(0, index + 1).join("/")}`
+                    }
                   >
                     {path}
                   </BreadcrumbLink>

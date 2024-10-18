@@ -1,7 +1,6 @@
 "use client";
 
 import NavbarLinks from "@/components/layout/NavbarLinks";
-import NavLink from "@/components/layout/NavLink";
 import { useState, useEffect } from "react";
 import { isWindowAvailable } from "@/components/utils/navigation";
 
@@ -31,7 +30,7 @@ export default function Navbar(props: {
 
   return (
     <nav
-      className={`bg-muted flex flex-row items-center justify-between px-4 py-2 h-[theme(spacing.14)]`}
+      className={`bg-card border-b flex flex-row items-center justify-between px-4 py-2 h-[theme(spacing.14)]`}
     >
       <div className="ml-1">
         {/* <p className="text-md shrink capitalize md:text-3xl">

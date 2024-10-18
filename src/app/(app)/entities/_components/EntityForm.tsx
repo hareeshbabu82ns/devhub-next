@@ -5,13 +5,14 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { toast } from "@/components/ui/use-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ArtTile } from "@/components/blocks/image-tiles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormInputText from "@/components/inputs/FormInputText";
 import FormCheckbox from "@/components/inputs/FormCheckbox";
 import FormSelect from "@/components/inputs/FormSelect";
 import {
+  ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   ENTITY_TYPES_CHILDREN,
   ENTITY_TYPES_DDLB,
   ENTITY_TYPES_PARENTS,
@@ -28,13 +29,13 @@ import {
 import { EntityTypeEnum } from "@/lib/types";
 import FormInputMDXTextArea from "@/components/inputs/FormInputMDXTextArea";
 import { DeleteConfirmDlgTrigger } from "@/components/blocks/DeleteConfirmDlgTrigger";
-import ImageUploadDlgTrigger from "@/components/blocks/FileUploadDlgTrigger";
 import { EntityFormSchema } from "@/lib/validations/entities";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import FormEntityAttributes from "@/components/inputs/FormEntityAttributes";
 import { useReadLocalStorage } from "usehooks-ts";
 import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
+import AssetSelectDlgTrigger from "../../assets/_components/AssetUploadDlgTrigger";
 
 export interface EntityExtraProps {
   childrenCount: number;
@@ -60,6 +61,7 @@ export default function EntityForm({
 }: EntityFormProps) {
   const router = useRouter();
   const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [imgSlectDlgOpen, setImgSelectDlgOpen] = useState(false);
 
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
@@ -103,9 +105,10 @@ export default function EntityForm({
     const changeData: Partial<z.infer<typeof EntityFormSchema>> = {};
 
     changeData.type = data.type;
-    if (!entityId || dirtyFields.imageThumbnail)
-      changeData.imageThumbnail = data.imageThumbnail;
-    if (!entityId || dirtyFields.audio) changeData.audio = data.audio;
+    // if (!entityId || dirtyFields.imageThumbnail)
+    changeData.imageThumbnail = data.imageThumbnail;
+    // if (!entityId || dirtyFields.audio)
+    changeData.audio = data.audio;
     if (!entityId || dirtyFields.order) changeData.order = data.order;
     if (!entityId || dirtyFields.bookmarked)
       changeData.bookmarked = data.bookmarked;
@@ -148,19 +151,56 @@ export default function EntityForm({
           className="flex-1"
           type="search"
         />
+        {/* Asset Select Dlg */}
+        <AssetSelectDlgTrigger
+          currentPath={
+            imageThumbnailValue === ENTITY_DEFAULT_IMAGE_THUMBNAIL
+              ? ""
+              : imageThumbnailValue
+          }
+          onSelected={(urls) => {
+            form.setValue(
+              "imageThumbnail",
+              urls[0] || ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+            );
+            setImgSelectDlgOpen(false);
+          }}
+          open={imgSlectDlgOpen}
+          onOpenChange={setImgSelectDlgOpen}
+        />
         {/* Upload Image */}
-        <ImageUploadDlgTrigger
+        {/* <ImageUploadDlgTrigger
           currentPath={imageThumbnailValue}
           multiple={false}
           onUploaded={(urls) => {
             form.setValue("imageThumbnail", urls[0] || "");
           }}
-        />
+        /> */}
       </div>
 
       {/* Audio */}
-      <FormInputText control={form.control} name="audio" label="Audio" />
-
+      <div className="flex flex-row gap-2 items-end">
+        <FormInputText
+          control={form.control}
+          name="audio"
+          label="Audio"
+          className="flex-1"
+          type="search"
+        />
+        <AssetSelectDlgTrigger
+          currentPath={
+            imageThumbnailValue === ENTITY_DEFAULT_IMAGE_THUMBNAIL
+              ? ""
+              : imageThumbnailValue
+          }
+          onSelected={(urls) => {
+            form.setValue("audio", urls[0] || ENTITY_DEFAULT_IMAGE_THUMBNAIL);
+            setImgSelectDlgOpen(false);
+          }}
+          open={imgSlectDlgOpen}
+          onOpenChange={setImgSelectDlgOpen}
+        />
+      </div>
       {/* Bookmarked */}
       <FormCheckbox
         control={form.control}
