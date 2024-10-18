@@ -148,7 +148,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
           ))}
         </div>
 
-        <div className="flex flex-1 justify-end">
+        <div className="flex flex-1 justify-end mt-4">
           <ScrollToTopButton />
           <PaginationDDLB
             totalCount={data.total}
@@ -189,7 +189,7 @@ const MoreActions = ({
           size="icon"
           type="button"
           className="p-0"
-          onClick={() => router.push(`${item.id}/edit`)}
+          onClick={() => router.push(`/dictionary/${item.id}/edit`)}
         >
           <Icons.edit className="size-4" />
         </Button>

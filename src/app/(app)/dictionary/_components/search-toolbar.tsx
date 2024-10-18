@@ -62,7 +62,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => router.push("new")}
+              onClick={() => router.push("/dictionary/new")}
             >
               <AddIcon className="size-4" />
             </Button>

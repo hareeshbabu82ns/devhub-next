@@ -252,7 +252,7 @@ function EntitySearchGrid({
             );
         })}
       </div>
-      <div className="flex flex-1 justify-end">
+      <div className="flex flex-1 justify-end mt-4">
         <ScrollToTopButton />
         <PaginationDDLB
           totalCount={entitiesCount}

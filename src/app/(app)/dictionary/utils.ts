@@ -1,4 +1,5 @@
 import { Option } from "@/components/ui/multi-select";
+import { DictionaryItem } from "./types";
 
 export const DICTIONARY_ORIGINS_DDLB = [
   { label: "Dhatu Pata", value: "DHATU_PATA" },
@@ -45,8 +46,8 @@ export const DICTIONARY_ORIGINS_DDLB = [
 
 export const MAP_DICTIONARY_ORIGINS: Record<string, string> =
   DICTIONARY_ORIGINS_DDLB.reduce(
-    (acc, { value, label }) => {
-      acc[value] = label;
+    ( acc, { value, label } ) => {
+      acc[ value ] = label;
       return acc;
     },
     {} as Record<string, string>,
@@ -86,3 +87,25 @@ export const DICTIONARY_ORIGINS = [
   "YAT",
 ] as const;
 // export const DICTIONARY_ORIGINS:string[] = Object.keys(MAP_DICTIONARY_ORIGINS);
+
+export const mapDbToDictionary = ( e: any, language: string, meaning?: string ) => {
+  const item: DictionaryItem = {
+    id: e.id || e._id[ '$oid' ],
+    origin: e.origin,
+    wordIndex: e.wordIndex,
+    phonetic: e.phonetic,
+    attributes: e.attributes,
+    word: "",
+    description: "",
+    wordData: e.id ? e.word : e.word?.map( ( w: any ) => ( { language: w.lang || w.language, value: w.value } ) ),
+    descriptionData: e.id ? e.description : e.description?.map( ( w: any ) => ( { language: w.lang || w.language, value: w.value } ) ),
+  };
+  item.word = (
+    e.word.find( ( w: any ) => w.language === language || w.lang === language ) || e.word[ 0 ]
+  ).value;
+  item.description = (
+    e.description.find( ( w: any ) => w.language === language || w.lang === language ) || e.description[ 0 ]
+  ).value;
+  // console.log( "mapDbToDictionary", item );
+  return item;
+}

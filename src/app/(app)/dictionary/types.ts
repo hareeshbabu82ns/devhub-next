@@ -3,6 +3,7 @@ import { AttributeValueInput, LanguageValueInput } from "@/lib/types";
 export type DictionaryItem = {
   id: string;
   origin: string;
+  wordIndex: number;
   word: string;
   description: string;
   wordData: LanguageValueInput[];

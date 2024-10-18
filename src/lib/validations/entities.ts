@@ -65,36 +65,6 @@ export const EntityInputSchema: z.ZodType<EntityInputType> =
     parents: z.lazy( () => EntityInputSchema.array().optional() ),
   } );
 
-// based on DictItemInput
-export const DictItemFormSchema = z.object( {
-  origin: z.enum( DICTIONARY_ORIGINS ),
-  word: z
-    .array(
-      z.object( {
-        language: z.enum( LANGUAGES ),
-        value: z.string(),
-      } ),
-    )
-    .min( 1 ),
-  description: z
-    .array(
-      z.object( {
-        language: z.enum( LANGUAGES ),
-        value: z.string(),
-      } ),
-    )
-    .min( 1 ),
-  attributes: z
-    .array(
-      z.object( {
-        key: z.string(),
-        value: z.string(),
-      } ),
-    )
-    .optional(),
-  phonetic: z.string().optional().default( "" ),
-} );
-
 // Entity Upload Schema v1
 const EntityUploadV1ParentTextSchema = z.object( {
   id: z.string().optional(),
