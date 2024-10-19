@@ -18,15 +18,18 @@ import { useMutation } from "@tanstack/react-query";
 import { createFolder, deleteFolder } from "../actions";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/components/utils/icons";
+import { UploadFileType } from "@/types";
 
 const Header = ({
   path,
+  accept,
   asSelector = false,
   onDeleted,
   refresh,
   onPathChange,
 }: {
   path: string;
+  accept?: UploadFileType[];
   asSelector?: boolean;
   onDeleted?: (path: string) => void;
   refresh?: () => void;
@@ -95,7 +98,7 @@ const Header = ({
       </div>
 
       <div className="px-5 flex space-x-2 items-center">
-        <FileUploadDlgTrigger key={path} currentPath={path} />
+        <FileUploadDlgTrigger key={path} currentPath={path} accept={accept} />
 
         <FolderCreateDlgTrigger
           onCreate={onCreateFolder}

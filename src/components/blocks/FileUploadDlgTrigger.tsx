@@ -8,23 +8,21 @@ import {
 } from "@/components/ui/dialog";
 import { FileUp as AddIcon } from "lucide-react";
 import { DialogProps } from "@radix-ui/react-dialog";
-import FileUploader from "@/components/inputs/FileUploader";
-import { useState } from "react";
-import Image from "next/image";
 import MultipleFileUploadForm from "../utils/multi-file-upload-form";
 import { useRouter } from "next/navigation";
 import SingleFileUploadForm from "../utils/single-file-upload-form";
+import { UploadFileType } from "@/types";
 
 interface FileUploadDlgTriggerProps extends DialogProps {
   currentPath?: string;
-  accept?: string;
+  accept?: UploadFileType[];
   multiple?: boolean;
   onUploaded?: (path: string[]) => void | undefined;
 }
 export default function FileUploadDlgTrigger({
   // onUploaded,
   currentPath,
-  accept = "*.*",
+  accept = ["image/jpeg", "image/png", "image/jpeg"],
   multiple = true,
   onUploaded,
   ...rest
@@ -45,15 +43,16 @@ export default function FileUploadDlgTrigger({
         </DialogHeader>
         {multiple ? (
           <MultipleFileUploadForm
-            allowedTypes={["image/jpeg", "image/png", "image/jpeg"]}
+            allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
             onUploadSuccess={async (urls: string[]) => {
-              router.refresh();
+              onUploaded && onUploaded(urls);
+              // router.refresh();
             }}
           />
         ) : (
           <SingleFileUploadForm
-            allowedTypes={["image/jpeg", "image/png", "image/jpeg"]}
+            allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
             onUploadSuccess={async (urls: string[]) => {
               onUploaded && onUploaded(urls);

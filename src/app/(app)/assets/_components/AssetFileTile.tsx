@@ -11,6 +11,7 @@ import { FolderIcon, FileIcon } from "lucide-react";
 import { FileAttributes } from "../utils";
 import { useCopyToClipboard } from "usehooks-ts";
 import { cn } from "@/lib/utils";
+import AudioPlayPauseButton from "@/components/blocks/AudioPlayPauseButton";
 
 const AssetFileTile = ({
   file,
@@ -29,6 +30,13 @@ const AssetFileTile = ({
 
   const fileActions = (
     <div className="flex flex-col gap-2">
+      {["mp3", "wav"].includes(file.ext.toLowerCase()) && (
+        <AudioPlayPauseButton
+          url={file.downloadURL}
+          id={file.id}
+          title={`${file.name}`}
+        />
+      )}
       <Button
         type="button"
         size="icon"
@@ -108,7 +116,7 @@ const AssetFileTile = ({
       )}
       onClick={asFileSelector ? () => onClick && onClick(file) : undefined}
     >
-      <div className="text-center flex flex-1">
+      <div className="text-center flex flex-1 min-h-[250px]">
         <FileIcon className="w-16 h-16 flex-1 self-center" />
       </div>
       {fileDetails}

@@ -94,7 +94,13 @@ export const ArtSlokamTile = ({
             )}
           </div>
           <div className="hidden group-hover:flex flex-row">
-            {model.audio && <AudioPlayPauseButton url={model.audio} />}
+            {model.audio && (
+              <AudioPlayPauseButton
+                url={model.audio}
+                id={model.id}
+                title={`${index}-${model.subTitle}`}
+              />
+            )}
             <Button
               size="icon"
               type="button"

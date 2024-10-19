@@ -8,12 +8,15 @@ import SimpleAlert from "@/components/utils/SimpleAlert";
 import AssetFileTile from "./AssetFileTile";
 import { useState } from "react";
 import Header from "./Header";
+import { UploadFileType } from "@/types";
 
 const AssetFileSelector = ({
   path,
+  accept,
   onSelection,
 }: {
   path: string;
+  accept?: UploadFileType[];
   onSelection: (path: string) => void;
 }) => {
   const [currentPath, setPath] = useState(path);
@@ -54,6 +57,7 @@ const AssetFileSelector = ({
     <div className="flex flex-1 flex-col gap-4">
       <Header
         path={currentPath}
+        accept={accept}
         asSelector
         onPathChange={setPath}
         // onPathChange={(path) => {

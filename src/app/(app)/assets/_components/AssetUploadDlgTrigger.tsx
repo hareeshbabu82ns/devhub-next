@@ -8,15 +8,17 @@ import {
 } from "@/components/ui/dialog";
 import { FileUp as AddIcon } from "lucide-react";
 import { DialogProps } from "@radix-ui/react-dialog";
-import { useRouter } from "next/navigation";
 import AssetFileSelector from "./AssetFileSelector";
+import { UploadFileType } from "@/types";
 
 interface AssetSelectDlgTriggerProps extends DialogProps {
   currentPath?: string;
+  accept?: UploadFileType[];
   onSelected?: (path: string[]) => void | undefined;
 }
 export default function AssetSelectDlgTrigger({
   currentPath = "/",
+  accept,
   onSelected,
   ...rest
 }: AssetSelectDlgTriggerProps) {
@@ -48,6 +50,7 @@ export default function AssetSelectDlgTrigger({
 
         <AssetFileSelector
           path={path}
+          accept={accept}
           onSelection={(url) => {
             onSelected && onSelected([url]);
           }}

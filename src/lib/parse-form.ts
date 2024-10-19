@@ -44,13 +44,18 @@ export const parseForm = async (
     const mimetype = file.type;
     const datePrefix = `${dateFn.format( Date.now(), "y-MM-dd" )}`;
     const uniqueSuffix = `${Math.round( Math.random() * 1e9 )}`;
-    const filename = `${datePrefix}-${file.name?.replace( /\s+/g, "-" ) || "unknown"}-${uniqueSuffix}.${mime.getExtension( mimetype || "" ) || "unknown"
-      }`;
+
+    const fileExt = ( file.name.split( "." ).pop() || "" ).toLowerCase();
+    const mimeExts = mime.getAllExtensions( mimetype || "" ) || new Set();
+    const ext = mimeExts.has( fileExt ) ? fileExt : mimeExts.values().next().value || "unknown";
+    // console.log( { mimetype, ext, file: file.name } );
+
+    const filename = `${datePrefix}-${file.name?.replace( /\s+/g, "-" ) || "unknown"}-${uniqueSuffix}.${ext}`;
     const filepath = join( uploadDir, filename );
-    // const url = `/uploads/${dateFn.format(Date.now(), "y-MM-dd")}/${filename}`;
     const url = `/uploads/${dateFn.format( Date.now(), "y-MM-dd" )}/${filename}`;
+
     fileRes.push( { filename, mimetype, filepath, url } );
-    // console.log({ filename, mimetype, filepath, url });
+    // console.log( { filename, mimetype, filepath, url } );
 
     const data = await file.arrayBuffer();
     await writeFile( filepath, Buffer.from( data ) );

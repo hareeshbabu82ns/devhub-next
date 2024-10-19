@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { Icons } from "../utils/icons";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
+import PlayListTrigger from "../audio-player/PlayListTrigger";
 
 export default function HeaderLinks(props: { [x: string]: any }) {
   const { onOpen } = props;
@@ -23,6 +24,7 @@ export default function HeaderLinks(props: { [x: string]: any }) {
 
   return (
     <div className="flex flex-row gap-2">
+      <PlayListTrigger className="md:hidden" />
       <QuickAccessMenuTrigger />
       <QuickSettingsTrigger />
       <Button

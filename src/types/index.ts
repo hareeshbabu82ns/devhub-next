@@ -34,46 +34,46 @@ declare global {
 }
 
 declare module "@tanstack/react-table" {
-  interface TableState extends RowEditTableState {}
+  interface TableState extends RowEditTableState { }
 
   interface TableOptionsResolved<TData extends RowData>
-    extends RowEditOptions<TData> {}
+    extends RowEditOptions<TData> { }
 
-  interface Table<TData extends RowData> extends RowEditInstance<TData> {}
+  interface Table<TData extends RowData> extends RowEditInstance<TData> { }
 
-  interface Row<TData extends RowData> extends RowEditRow {}
+  interface Row<TData extends RowData> extends RowEditRow { }
 
   interface TableMeta<TData extends RowData> {
-    deleteData?: (data: { rowId: string; rowData?: TData }) => void;
-    updateData?: (data: { rowId: string; rowData: TData }) => void;
-    updateCellData?: (data: {
+    deleteData?: ( data: { rowId: string; rowData?: TData } ) => void;
+    updateData?: ( data: { rowId: string; rowData: TData } ) => void;
+    updateCellData?: ( data: {
       rowId: string;
       rowData: TData;
       columnId: string;
       value: unknown;
-    }) => void;
+    } ) => void;
   }
 
   //allows us to define custom properties for our columns
   interface ColumnMeta<TData extends RowData, TValue> {
     cellInputVariant?:
-      | "text"
-      | "textArea"
-      | "number"
-      | "switch"
-      | "checkbox"
-      | "select"
-      | "multiSelect"
-      | "date"
-      | "dateRange"
-      | "skeleton";
+    | "text"
+    | "textArea"
+    | "number"
+    | "switch"
+    | "checkbox"
+    | "select"
+    | "multiSelect"
+    | "date"
+    | "dateRange"
+    | "skeleton";
     filterVariant?:
-      | "text"
-      | "range"
-      | "select"
-      | "multiSelect"
-      | "date"
-      | "dateRange";
+    | "text"
+    | "range"
+    | "select"
+    | "multiSelect"
+    | "date"
+    | "dateRange";
     filterOptions?: Option[];
     filterOptionsFn?: () => Promise<Option[] | undefined>;
     dbMapId?: string;
@@ -90,6 +90,9 @@ export type UploadFileType =
   | "image/png"
   | "image/jpeg"
   | "image/jpg"
+  | "audio/mpeg"
+  | "audio/mp3"
+  | "audio/wav"
   | "video"
   | "audio"
   | "all";
@@ -101,6 +104,6 @@ export interface FileUploadProps {
   label?: string;
   loading?: boolean;
   basePath?: string;
-  onChangeFiles?: (files: File[]) => void;
-  onUploadSuccess?: (urls: string[]) => Promise<void>;
+  onChangeFiles?: ( files: File[] ) => void;
+  onUploadSuccess?: ( urls: string[] ) => Promise<void>;
 }

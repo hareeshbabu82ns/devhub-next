@@ -13,6 +13,7 @@ import { signOut } from "@/lib/auth/actions";
 import { Icons } from "@/components/utils/icons";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "../ui/sheet";
+import AudioPlayer from "../audio-player/player";
 
 export interface SidebarProps extends PropsWithChildren {
   routes: IRoute[];
@@ -82,6 +83,7 @@ function SidebarContent(props: SidebarProps) {
           {/* <div className="flex justify-center">
               <SidebarCard />
             </div> */}
+          <AudioPlayer className="hidden xl:flex" />
           {/* Sidebar profile info */}
           <div className="flex items-center rounded-none border-t px-4 h-[theme(spacing.14)]">
             <a href="/settings">

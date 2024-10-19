@@ -62,6 +62,7 @@ export default function EntityForm({
   const router = useRouter();
   const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
   const [imgSlectDlgOpen, setImgSelectDlgOpen] = useState(false);
+  const [audioSlectDlgOpen, setAudioSelectDlgOpen] = useState(false);
 
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
@@ -78,10 +79,11 @@ export default function EntityForm({
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [imageThumbnailValue, typeValue, text] = getValues([
+  const [imageThumbnailValue, typeValue, text, audio] = getValues([
     "imageThumbnail",
     "type",
     "text",
+    "audio",
   ]);
 
   useEffect(() => {
@@ -188,17 +190,14 @@ export default function EntityForm({
           type="search"
         />
         <AssetSelectDlgTrigger
-          currentPath={
-            imageThumbnailValue === ENTITY_DEFAULT_IMAGE_THUMBNAIL
-              ? ""
-              : imageThumbnailValue
-          }
+          currentPath={audio || ""}
+          accept={["audio/mp3", "audio/mpeg", "audio/wav"]}
           onSelected={(urls) => {
-            form.setValue("audio", urls[0] || ENTITY_DEFAULT_IMAGE_THUMBNAIL);
-            setImgSelectDlgOpen(false);
+            form.setValue("audio", urls[0] || "");
+            setAudioSelectDlgOpen(false);
           }}
-          open={imgSlectDlgOpen}
-          onOpenChange={setImgSelectDlgOpen}
+          open={audioSlectDlgOpen}
+          onOpenChange={setAudioSelectDlgOpen}
         />
       </div>
       {/* Bookmarked */}

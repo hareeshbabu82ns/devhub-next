@@ -3,6 +3,7 @@
 import NavbarLinks from "@/components/layout/NavbarLinks";
 import { useState, useEffect } from "react";
 import { isWindowAvailable } from "@/components/utils/navigation";
+import AudioPlayer from "../audio-player/player";
 
 export default function Navbar(props: {
   brandText: string;
@@ -33,6 +34,7 @@ export default function Navbar(props: {
       className={`bg-card border-b flex flex-row items-center justify-between px-4 py-2 h-[theme(spacing.14)]`}
     >
       <div className="ml-1">
+        <AudioPlayer className="hidden md:flex xl:hidden" />
         {/* <p className="text-md shrink capitalize md:text-3xl">
           <NavLink href="#" className="font-bold capitalize">
             {brandText}
