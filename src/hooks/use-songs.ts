@@ -5,12 +5,14 @@ type Playlist = {
   songs: Song[];
   currentSongIndex: number;
   repeat: boolean;
+  stream: boolean;
 };
 
 const defaultPlaylist: Playlist = {
   songs: [],
   currentSongIndex: -1,
   repeat: false,
+  stream: false,
 };
 
 const playlistReducer = ( state: Playlist, action: { type: "ADD_SONG" | "REMOVE_SONG" | "TOGGLE_REPEAT" | "NEXT_SONG" | "PREV_SONG" | "PLAY" | "PAUSE" | "SET_CURRENT_INDEX" | "CLEAR_PLAYLIST", payload?: any } ) => {

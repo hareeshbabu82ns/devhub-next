@@ -15,9 +15,15 @@ import {
 import { Separator } from "../ui/separator";
 import PlayListTrigger from "./PlayListTrigger";
 import { cn } from "@/lib/utils";
+import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
 
-const AudioPlayer = ({ className }: { className?: string }) => {
-  const { load, playing, stop, play, src } = useGlobalAudioPlayer();
+interface AudioPlayerProps {
+  className?: string;
+  isMini?: boolean;
+}
+
+const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
+  const { load, playing, stop, play, src, isReady } = useGlobalAudioPlayer();
   const [playlist, dispatch] = usePlaylistAtom();
 
   useEffect(() => {
@@ -36,7 +42,8 @@ const AudioPlayer = ({ className }: { className?: string }) => {
         load(playlist.songs[playlist.currentSongIndex].src, {
           autoplay: true,
           loop: playlist.repeat,
-          html5: true,
+          html5: playlist.stream,
+          format: "mp3",
           onend: () => dispatch({ type: "NEXT_SONG" }),
         });
       } else if (!playing) {
@@ -52,7 +59,7 @@ const AudioPlayer = ({ className }: { className?: string }) => {
   return (
     <div
       className={cn(
-        "flex flex-col gap-2 border bg-muted rounded-sm p-1",
+        "@container/main-player flex flex-col gap-2 border bg-muted rounded-sm p-1",
         className,
       )}
     >
@@ -76,6 +83,7 @@ const AudioPlayer = ({ className }: { className?: string }) => {
           size="icon"
           variant="ghost"
           aria-label={playing ? "Pause" : "Play"}
+          disabled={!isReady}
           onClick={
             playing
               ? () => dispatch({ type: "PAUSE" })
@@ -125,38 +133,15 @@ const AudioPlayer = ({ className }: { className?: string }) => {
         >
           <ClearIcon className="size-5" />
         </Button>
-
         <Separator orientation="vertical" className="h-8" />
-
         <PlayListTrigger />
+      </div>
+      <div className={cn(isMini ? "hidden" : "flex flex-col flex-1 gap-2")}>
+        <Separator />
+        <AudioPlayExtrasBar />
       </div>
     </div>
   );
 };
-
-// const SeekBar = () => {
-//   const { seek, getPosition, duration } = useGlobalAudioPlayer();
-//   const [playlist, dispatch] = usePlaylistAtom();
-//   const [seeking, setSeeking] = useState(0);
-
-//   useEffect(() => {
-//     setSeeking(getPosition());
-//   }, []);
-
-//   return (
-//     <div className="flex flex-row gap-1 border bg-muted rounded-sm p-1 items-center justify-between">
-//       <input
-//         type="range"
-//         min={0}
-//         max={duration}
-//         value={seeking}
-//         onChange={(e) => seek(Number(e.target.value))}
-//       />
-//       {/* currentPos : elapsedTime : totalTime */}
-//       <span>{getPosition()}</span>
-//       <span>{duration}</span>
-//     </div>
-//   );
-// };
 
 export default AudioPlayer;
