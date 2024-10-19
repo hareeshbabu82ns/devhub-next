@@ -1,7 +1,4 @@
-import LanguageSelector, {
-  LANGUAGE_MEANING_SELECT_KEY,
-  LANGUAGE_SELECT_KEY,
-} from "@/components/blocks/language-selector";
+import LanguageSelector from "@/components/blocks/language-selector";
 import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
 import TextSizeSelector from "@/components/blocks/text-size-selector";
 import ThemeModeToggle from "@/components/blocks/theme-mode-toggle";
@@ -13,6 +10,10 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  LANGUAGE_MEANING_SELECT_KEY,
+  LANGUAGE_SELECT_KEY,
+} from "@/lib/constants";
 import { CogIcon as SettingsIcon } from "lucide-react";
 
 export default function QuickSettingsTrigger() {

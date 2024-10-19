@@ -13,9 +13,9 @@ import { Prisma } from "@prisma/client";
 import { createEntity, findEntities } from "../actions";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import { useReadLocalStorage } from "usehooks-ts";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import { entityLanguageValueTransliterateHelper } from "../utils";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 const defaultValues: z.infer<typeof EntityFormSchema> = {
   type: "SLOKAM",
@@ -35,7 +35,7 @@ const EntityNewPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
 
   const entityType = searchParams.get("type") as EntityTypeEnum;
   const parentId = searchParams.get("parent");

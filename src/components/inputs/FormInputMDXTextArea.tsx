@@ -15,8 +15,8 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "../ui/resizable";
-import { useReadLocalStorage } from "usehooks-ts";
-import { TEXT_SIZE_SELECT_KEY } from "../blocks/text-size-selector";
+import { textSizeAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface FormInputMDXTextAreaProps {
   name: string;
@@ -33,7 +33,7 @@ const FormInputMDXTextArea = ({
   description,
   className,
 }: FormInputMDXTextAreaProps) => {
-  const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
+  const [textSize] = useAtom(textSizeAtom);
   return (
     <FormField
       control={control}

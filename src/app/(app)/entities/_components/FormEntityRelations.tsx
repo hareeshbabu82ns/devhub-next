@@ -6,11 +6,8 @@ import { Control, useController } from "react-hook-form";
 import { PlusIcon as AddIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
-import { useReadLocalStorage } from "usehooks-ts";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
-import { QUERY_RESULT_LIMIT_KEY } from "@/components/blocks/result-limit-selector";
 import Loader from "@/components/utils/loader";
 import EntitySearchDlgTrigger from "./EntitySearchDlgTrigger";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
@@ -19,6 +16,8 @@ import { useQuery } from "@tanstack/react-query";
 import { findEntities } from "../actions";
 import { mapEntityToTileModel } from "../utils";
 import { TileModel } from "@/types/entities";
+import { languageAtom, queryLimitAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface FormEntityRelationsProps {
   name: string;
@@ -38,11 +37,8 @@ const FormEntityRelations = ({
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY);
-  const limit = parseInt(
-    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
-    10,
-  );
+  const [language] = useAtom(languageAtom);
+  const limit = parseInt(useAtom(queryLimitAtom)[0]);
   const offset = parseInt(searchParams.offset || "0", 10);
 
   const [dlgOpen, setDlgOpen] = useState(false);

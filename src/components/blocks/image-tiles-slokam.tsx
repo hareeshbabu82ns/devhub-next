@@ -1,20 +1,17 @@
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { EntityTypeEnum } from "@/lib/types";
 import { ENTITY_DEFAULT_IMAGE_THUMBNAIL } from "@/lib/constants";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useCopyToClipboard, useLocalStorage } from "usehooks-ts";
-import {
-  TEXT_SIZE_SELECT_DEFAULT,
-  TEXT_SIZE_SELECT_KEY,
-} from "./text-size-selector";
+import { useCopyToClipboard } from "usehooks-ts";
 import AudioPlayPauseButton from "./AudioPlayPauseButton";
 import Image from "next/image";
 import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
 import { toast } from "sonner";
+import { useAtom } from "jotai";
+import { textSizeAtom } from "@/hooks/use-config";
 // import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 // import AudioPlayPauseButton from "./AudioPlayPauseButton";
 
@@ -36,10 +33,7 @@ export const ArtSlokamTile = ({
   onTileClicked,
   onBookmarkClicked,
 }: ArtSlokamTileProps) => {
-  const [textSize] = useLocalStorage(
-    TEXT_SIZE_SELECT_KEY,
-    TEXT_SIZE_SELECT_DEFAULT,
-  );
+  const [textSize] = useAtom(textSizeAtom);
   const [, copyToClipboard] = useCopyToClipboard();
 
   return (

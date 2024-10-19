@@ -1,7 +1,5 @@
 "use client";
 
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
-import { useReadLocalStorage } from "usehooks-ts";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
@@ -19,11 +17,13 @@ import { toast } from "sonner";
 import { useMemo } from "react";
 import { Prisma } from "@prisma/client";
 import { entityLanguageValueTransliterateHelper } from "../../utils";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 const Page = () => {
   const params = useParams();
   const router = useRouter();
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
   const entityId = params.entityId as string;
 
   const {

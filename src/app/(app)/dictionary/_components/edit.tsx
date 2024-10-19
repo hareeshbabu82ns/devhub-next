@@ -9,8 +9,6 @@ import SimpleAlert from "@/components/utils/SimpleAlert";
 import Loader from "@/components/utils/loader";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
-import { useReadLocalStorage } from "usehooks-ts";
 import {
   createDictItem,
   deleteDictItem,
@@ -18,6 +16,8 @@ import {
   updateDictItem,
 } from "../actions";
 import { Prisma } from "@prisma/client";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 const defaultValues: z.infer<typeof DictItemFormSchema> = {
   origin: "OTHERS",
@@ -48,7 +48,7 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [refreshCount, setRefreshCount] = useState(0);
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
 
   const dictionaryId = params.dictionaryId as string;
 

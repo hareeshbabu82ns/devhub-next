@@ -1,6 +1,5 @@
 "use client";
 
-import { useLocalStorage } from "usehooks-ts";
 import {
   Select,
   SelectContent,
@@ -9,16 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
-export const QUERY_RESULT_LIMIT_DEFAULT = "10";
-export const QUERY_RESULT_LIMITS = ["10", "25", "50", "100", "150", "200"];
+import { useAtom } from "jotai";
+import { queryLimitAtom } from "@/hooks/use-config";
+import { QUERY_RESULT_LIMITS } from "@/lib/constants";
 
 export default function QueryResultsLimitSelector() {
-  const [resultLimits, setResultLimits] = useLocalStorage(
-    QUERY_RESULT_LIMIT_KEY,
-    QUERY_RESULT_LIMIT_DEFAULT,
-  );
+  const [resultLimits, setResultLimits] = useAtom(queryLimitAtom);
 
   return (
     <Select value={resultLimits} onValueChange={setResultLimits}>

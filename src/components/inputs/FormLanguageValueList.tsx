@@ -8,13 +8,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LANGUAGES_DDLB } from "@/lib/constants";
-import { useLocalStorage, useReadLocalStorage } from "usehooks-ts";
 import { useState } from "react";
 import { LanguageValueInput } from "@/lib/types";
-import {
-  LANGUAGE_SELECT_DEFAULT,
-  LANGUAGE_SELECT_KEY,
-} from "../blocks/language-selector";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -22,10 +17,11 @@ import {
 } from "../ui/resizable";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { TEXT_SIZE_SELECT_KEY } from "../blocks/text-size-selector";
 import { LANGUAGE_TO_TRANSLITERATION_DDLB } from "@/lib/constants";
 import { Textarea } from "../ui/textarea";
 import WebIMEIde from "@/app/(app)/sanscript/_components/WebIMEIde";
+import { useAtom } from "jotai";
+import { languageAtom, textSizeAtom } from "@/hooks/use-config";
 
 interface FormLanguageValueListProps {
   name: string;
@@ -38,11 +34,8 @@ const FormLanguageValueList = ({
   control,
   placeholder,
 }: FormLanguageValueListProps) => {
-  const [language] = useLocalStorage(
-    LANGUAGE_SELECT_KEY,
-    LANGUAGE_SELECT_DEFAULT,
-  );
-  const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
+  const [language] = useAtom(languageAtom);
+  const [textSize] = useAtom(textSizeAtom);
 
   const [selectedLanguage, setSelectedLanguage] = useState<string>(language);
 

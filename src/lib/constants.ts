@@ -1,6 +1,17 @@
 import { Option } from "@/components/ui/multi-select";
 import { EntityTypeEnum } from "./types";
 
+export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
+export const QUERY_RESULT_LIMIT_DEFAULT = "10";
+export const QUERY_RESULT_LIMITS = [ "10", "25", "50", "100", "150", "200" ];
+
+export const LANGUAGE_MEANING_SELECT_KEY = "languageMeaning";
+export const LANGUAGE_SELECT_KEY = "language";
+export const LANGUAGE_SELECT_DEFAULT = "ENG";
+
+export const TEXT_SIZE_SELECT_KEY = "textSize";
+export const TEXT_SIZE_SELECT_DEFAULT = "md";
+
 export const ENTITY_DEFAULT_IMAGE_THUMBNAIL = "/default-om_256.png";
 
 export const ENTITY_TYPES = [

@@ -1,11 +1,5 @@
 "use client";
 import React from "react";
-import { useReadLocalStorage } from "usehooks-ts";
-import {
-  LANGUAGE_MEANING_SELECT_KEY,
-  LANGUAGE_SELECT_KEY,
-} from "./language-selector";
-import { TEXT_SIZE_SELECT_KEY } from "./text-size-selector";
 import { useQuery } from "@tanstack/react-query";
 import { readEntity } from "@/app/(app)/entities/actions";
 import Loader from "../utils/loader";
@@ -18,19 +12,20 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { TileModel } from "@/types/entities";
 import { mapEntityToTileModel } from "@/app/(app)/entities/utils";
+import {
+  languageAtom,
+  languageMeaningAtom,
+  textSizeAtom,
+} from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
 }
 const SlokamDetails = ({ slokamId, className }: CompParams) => {
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY);
-  const meaningLanguage = useReadLocalStorage(LANGUAGE_MEANING_SELECT_KEY);
-  const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
-
-  // const { data, loading, error, refetch } = useQuery<{ entities: Entity[] }>(
-  //   QUERY_ENTITY_DETAILS_BY_ID_SLOKAM_DISPLAY,
-  //   { variables: { id: slokamId, language, meaningLanguage } }
-  // );
+  const [language] = useAtom(languageAtom);
+  const [meaningLanguage] = useAtom(languageMeaningAtom);
+  const [textSize] = useAtom(textSizeAtom);
 
   const {
     data: slokam,

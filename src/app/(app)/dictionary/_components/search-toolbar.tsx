@@ -6,15 +6,16 @@ import {
   SearchIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useDebounceCallback, useReadLocalStorage } from "usehooks-ts";
+import { useDebounceCallback } from "usehooks-ts";
 import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CollapsibleContent } from "@radix-ui/react-collapsible";
 import { Label } from "@/components/ui/label";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -24,7 +25,8 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
+
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
 

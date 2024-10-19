@@ -2,11 +2,16 @@
 
 import TextSizeSelector from "@/components/blocks/text-size-selector";
 import AppearanceSettings from "./AppearanceSettings";
-import LanguageSelector, {
+// import LanguageSelector, {
+//   LANGUAGE_MEANING_SELECT_KEY,
+//   LANGUAGE_SELECT_KEY,
+// } from "@/components/blocks/language-selector";
+import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
+import {
   LANGUAGE_MEANING_SELECT_KEY,
   LANGUAGE_SELECT_KEY,
-} from "@/components/blocks/language-selector";
-import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
+} from "@/lib/constants";
+import LanguageSelector from "@/components/blocks/language-selector";
 
 const GeneralSettings = () => {
   return (

@@ -3,9 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useReadLocalStorage } from "usehooks-ts";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
-import { TEXT_SIZE_SELECT_KEY } from "@/components/blocks/text-size-selector";
-import { QUERY_RESULT_LIMIT_KEY } from "@/components/blocks/result-limit-selector";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import {
@@ -24,6 +21,8 @@ import { useQuery } from "@tanstack/react-query";
 import { searchDictionary } from "../actions";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
+import { languageAtom, queryLimitAtom, textSizeAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -43,13 +42,10 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
 
-  const language = useReadLocalStorage(LANGUAGE_SELECT_KEY) as string;
-  const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
+  const [language] = useAtom(languageAtom);
+  const [textSize] = useAtom(textSizeAtom);
 
-  const limit = parseInt(
-    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
-    10,
-  );
+  const limit = parseInt(useAtom(queryLimitAtom)[0]);
   const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   const paginateOffsetAction = (offset: number) => {

@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  LANGUAGE_SELECT_DEFAULT,
-  LANGUAGE_SELECT_KEY,
-} from "@/components/blocks/language-selector";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import React from "react";
-import { useLocalStorage, useReadLocalStorage } from "usehooks-ts";
 import { fetchBookmarkedEntities } from "../actions";
 import { Loader } from "lucide-react";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -25,23 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
-import { QUERY_RESULT_LIMIT_KEY } from "@/components/blocks/result-limit-selector";
+import { useAtom } from "jotai";
+import { languageAtom, queryLimitAtom } from "@/hooks/use-config";
 
 const BookmarkedEntitiesGrid = () => {
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
 
-  const limit = parseInt(
-    useReadLocalStorage(QUERY_RESULT_LIMIT_KEY) || "10",
-    10,
-  );
-  const offset = parseInt(searchParams.offset || "0", 10);
+  const [language] = useAtom(languageAtom);
+  const limit = parseInt(useAtom(queryLimitAtom)[0]);
 
-  const [language] = useLocalStorage(
-    LANGUAGE_SELECT_KEY,
-    LANGUAGE_SELECT_DEFAULT,
-  );
+  const offset = parseInt(searchParams.offset || "0", 10);
 
   const { mutateAsync: onBookmarkClicked } = useMutation({
     mutationKey: ["entityBookmark"],

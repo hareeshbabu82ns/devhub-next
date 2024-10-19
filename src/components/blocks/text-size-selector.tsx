@@ -1,6 +1,5 @@
 "use client";
 
-import { useLocalStorage } from "usehooks-ts";
 import { TEXT_SIZE_DDLB } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,15 +11,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-export const TEXT_SIZE_SELECT_KEY = "textSize";
-export const TEXT_SIZE_SELECT_DEFAULT = "md";
+import { textSizeAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 export default function TextSizeSelector() {
-  const [textSize, setTextSize] = useLocalStorage(
-    TEXT_SIZE_SELECT_KEY,
-    TEXT_SIZE_SELECT_DEFAULT,
-  );
+  const [textSize, setTextSize] = useAtom(textSizeAtom);
+
   const selectedTextSize = TEXT_SIZE_DDLB.find(
     (lang) => lang.value === textSize,
   );

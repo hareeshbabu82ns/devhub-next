@@ -4,8 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { entityHierarchy } from "../actions";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import { useReadLocalStorage } from "usehooks-ts";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,13 +13,15 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 interface CompProps {
   entityId: string;
 }
 
 const EntityBreadcrumbView = ({ entityId }: CompProps) => {
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
 
   const { data, error, isFetching, isLoading } = useQuery({
     queryKey: ["entityHierarchy", entityId, "en"],

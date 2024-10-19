@@ -2,8 +2,6 @@
 
 import EntitySearchTiles from "../_components/EntitySearchTiles";
 import { bookmarkEntity, readEntity } from "../actions";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
-import { useReadLocalStorage } from "usehooks-ts";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
@@ -16,11 +14,14 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TileModel } from "@/types/entities";
 import { mapEntityToTileModel } from "../utils";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 const Page = () => {
   const params = useParams();
   const router = useRouter();
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+
+  const [language] = useAtom(languageAtom);
   const entityId = params.entityId as string;
 
   const {

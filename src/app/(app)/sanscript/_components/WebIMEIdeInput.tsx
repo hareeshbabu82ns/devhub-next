@@ -1,6 +1,4 @@
-import { TEXT_SIZE_SELECT_KEY } from "@/components/blocks/text-size-selector";
 import React, { useEffect, useRef, useState } from "react";
-import { useReadLocalStorage } from "usehooks-ts";
 import WebIME from "webime";
 
 import {
@@ -17,6 +15,8 @@ import { Input, InputProps } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import Sanscript from "@indic-transliteration/sanscript";
 import SanscriptHelpTrigger from "./SanscriptHelpTrigger";
+import { textSizeAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 export interface WebIMEIdeProps extends InputProps {
   containerClassName?: string;
@@ -44,7 +44,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     },
     _fwdRef,
   ) => {
-    const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
+    const [textSize] = useAtom(textSizeAtom);
     const [lang, setLang] = useState<string>(language || "SAN");
 
     const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {

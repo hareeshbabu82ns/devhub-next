@@ -33,9 +33,9 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import FormEntityAttributes from "@/components/inputs/FormEntityAttributes";
-import { useReadLocalStorage } from "usehooks-ts";
-import { LANGUAGE_SELECT_KEY } from "@/components/blocks/language-selector";
 import AssetSelectDlgTrigger from "../../assets/_components/AssetUploadDlgTrigger";
+import { languageAtom } from "@/hooks/use-config";
+import { useAtom } from "jotai";
 
 export interface EntityExtraProps {
   childrenCount: number;
@@ -60,7 +60,7 @@ export default function EntityForm({
   onDelete,
 }: EntityFormProps) {
   const router = useRouter();
-  const language = useReadLocalStorage<string>(LANGUAGE_SELECT_KEY) || "";
+  const [language] = useAtom(languageAtom);
   const [imgSlectDlgOpen, setImgSelectDlgOpen] = useState(false);
   const [audioSlectDlgOpen, setAudioSelectDlgOpen] = useState(false);
 

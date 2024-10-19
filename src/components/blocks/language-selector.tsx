@@ -1,7 +1,11 @@
 "use client";
 
 import { useLocalStorage } from "usehooks-ts";
-import { LANGUAGES_DDLB } from "@/lib/constants";
+import {
+  LANGUAGE_SELECT_DEFAULT,
+  LANGUAGE_SELECT_KEY,
+  LANGUAGES_DDLB,
+} from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -12,20 +16,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-export const LANGUAGE_MEANING_SELECT_KEY = "languageMeaning";
-export const LANGUAGE_SELECT_KEY = "language";
-export const LANGUAGE_SELECT_DEFAULT = "ENG";
+import { useAtom } from "jotai";
+import { languageAtom, languageMeaningAtom } from "@/hooks/use-config";
 
 export default function LanguageSelector({
   storageKey = LANGUAGE_SELECT_KEY,
 }: {
   storageKey: string;
 }) {
-  const [language, setLanguage] = useLocalStorage(
-    storageKey,
-    LANGUAGE_SELECT_DEFAULT,
+  const [language, setLanguage] = useAtom(
+    storageKey === LANGUAGE_SELECT_KEY ? languageAtom : languageMeaningAtom,
   );
+
   const selectedLanguage = LANGUAGES_DDLB.find(
     (lang) => lang.value === language,
   );
