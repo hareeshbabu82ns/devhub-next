@@ -54,16 +54,12 @@ const AssetFileSelector = ({
     );
 
   return (
-    <div className="flex flex-1 flex-col gap-4">
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
       <Header
         path={currentPath}
         accept={accept}
         asSelector
         onPathChange={setPath}
-        // onPathChange={(path) => {
-        //   console.log("path", path);
-        //   setPath(path);
-        // }}
         refresh={refetch}
       />
       <div className="grid grid-cols-2 md:grid-cols-4 2xl:grid-cols-6 gap-4">

@@ -26,19 +26,19 @@ interface FormInputMDXTextAreaProps {
   control: Control<any>;
 }
 
-const FormInputMDXTextArea = ( {
+const FormInputMDXTextArea = ({
   name,
   control,
   label,
   description,
   className,
-}: FormInputMDXTextAreaProps ) => {
-  const textSize = useReadLocalStorage( TEXT_SIZE_SELECT_KEY );
+}: FormInputMDXTextAreaProps) => {
+  const textSize = useReadLocalStorage(TEXT_SIZE_SELECT_KEY);
   return (
     <FormField
       control={control}
       name={name}
-      render={( { field } ) => {
+      render={({ field }) => {
         return (
           <FormItem className="flex flex-1 flex-col">
             {label && <FormLabel>{label}</FormLabel>}
@@ -55,9 +55,9 @@ const FormInputMDXTextArea = ( {
                 <ResizablePanel minSize={5}>
                   <div className="flex h-full overflow-y-auto border rounded-md">
                     <div
-                      className={`flex-1 px-3 py-2 h-1 text-${textSize} antialiased leading-8 tracking-wider`}
+                      className={`flex-1 px-3 py-2 h-1 text-${textSize} subpixel-antialiased leading-loose tracking-widest`}
                     >
-                      <Markdown remarkPlugins={[ remarkGfm ]}>
+                      <Markdown remarkPlugins={[remarkGfm]}>
                         {field.value}
                       </Markdown>
                     </div>

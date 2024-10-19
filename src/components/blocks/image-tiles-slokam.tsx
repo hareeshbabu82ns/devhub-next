@@ -72,7 +72,7 @@ export const ArtSlokamTile = ({
       )}
       <div className="flex flex-col space-y-2 flex-1">
         <div
-          className={`flex-1 antialiased text-${textSize} leading-8 tracking-wider`}
+          className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
         >
           <Markdown remarkPlugins={[remarkGfm]}>{model.title}</Markdown>
         </div>

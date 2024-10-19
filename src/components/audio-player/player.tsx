@@ -21,18 +21,18 @@ const AudioPlayer = ({ className }: { className?: string }) => {
   const [playlist, dispatch] = usePlaylistAtom();
 
   useEffect(() => {
-    console.log({ src, currentSongIndex: playlist.currentSongIndex });
+    // console.log({ src, currentSongIndex: playlist.currentSongIndex });
     if (playlist.currentSongIndex === -1) {
       // dispatch({ type: "NEXT_SONG" });
       stop();
     } else if (playlist.currentSongIndex !== -1) {
       if (src !== playlist.songs[playlist.currentSongIndex].src) {
-        console.log(
-          "loading song",
-          playlist.currentSongIndex,
-          src,
-          playlist.songs[playlist.currentSongIndex].src,
-        );
+        // console.log(
+        //   "loading song",
+        //   playlist.currentSongIndex,
+        //   src,
+        //   playlist.songs[playlist.currentSongIndex].src,
+        // );
         load(playlist.songs[playlist.currentSongIndex].src, {
           autoplay: true,
           loop: playlist.repeat,

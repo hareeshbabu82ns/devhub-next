@@ -125,7 +125,7 @@ const FormLanguageValueList = ({
               <ResizablePanel minSize={5}>
                 <div className="flex h-full overflow-y-auto border rounded-md">
                   <div
-                    className={`flex-1 px-3 py-2 h-1 text-${textSize} antialiased leading-8 tracking-wider`}
+                    className={`flex-1 px-3 py-2 h-1 text-${textSize} subpixel-antialiased leading-loose tracking-widest`}
                   >
                     <Markdown remarkPlugins={[remarkGfm]}>
                       {selectedVal.value}

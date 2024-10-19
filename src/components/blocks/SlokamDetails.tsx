@@ -79,7 +79,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
         <div className="flex flex-1 flex-col p-4 rounded-md border">
           <p className="text-secondary pb-2">Meaning:</p>
           <div
-            className={`flex-1 antialiased text-${textSize} leading-8 tracking-wider`}
+            className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
           >
             <Markdown remarkPlugins={[remarkGfm]}>{slokam.meaning}</Markdown>
           </div>
@@ -91,7 +91,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
         <div className="flex flex-1 flex-col p-4 rounded-md border">
           <p className="text-secondary pb-2">Notes:</p>
           <div
-            className={`flex-1 antialiased text-${textSize} leading-8 tracking-wider`}
+            className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
           >
             <Markdown remarkPlugins={[remarkGfm]}>{slokam.notes}</Markdown>
           </div>
@@ -105,7 +105,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
                   <span className="text-secondary text-xl">{attr.key}</span>
                 </div>
                 <div
-                  className={`flex-1 antialiased text-${textSize} leading-8 tracking-wider`}
+                  className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
                 >
                   <Markdown remarkPlugins={[remarkGfm]}>{attr.value}</Markdown>
                 </div>

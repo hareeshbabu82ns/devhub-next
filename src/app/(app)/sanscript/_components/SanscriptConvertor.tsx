@@ -114,7 +114,7 @@ const SanscriptConvertor = () => {
             </Select>
 
             <div
-              className={`flex flex-1 overflow-y-auto antialiased text-${textSize} leading-8 tracking-wider`}
+              className={`flex flex-1 overflow-y-auto subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
             >
               {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
                 state.fromScheme,
@@ -155,7 +155,7 @@ const SanscriptConvertor = () => {
               </SelectContent>
             </Select>
             <div
-              className={`flex flex-1 overflow-y-auto antialiased text-${textSize} leading-8 tracking-wider`}
+              className={`flex flex-1 overflow-y-auto subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
             >
               {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
                 state.toScheme,

@@ -129,7 +129,9 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
               className="border rounded-sm p-4 flex flex-col transition-colors hover:bg-muted/50"
             >
               <div className={`pb-4 h-12 flex justify-between items-center`}>
-                <div className={`font-medium text-${textSize} tracking-wider`}>
+                <div
+                  className={`font-medium subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
+                >
                   <h3>{item.word}</h3>
                   <h4 className="text-muted-foreground text-sm">
                     {item.origin}
@@ -138,7 +140,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
                 <MoreActions item={item} asBrowse={asBrowse} />
               </div>
               <div
-                className={`flex-1 antialiased text-${textSize} leading-8 tracking-wider max-h-48 overflow-y-auto no-scrollbar`}
+                className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar`}
               >
                 <Markdown remarkPlugins={[remarkGfm]}>
                   {item.description}

@@ -46,7 +46,7 @@ export const ArtTile = ({
       </div>
       <div className="flex flex-col flex-grow space-y-1 justify-between gap-2">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold group-hover:font-bold text-md line-clamp-2 min-h-8">
+          <h3 className="font-semibold group-hover:font-bold text-md line-clamp-2 min-h-8 subpixel-antialiased leading-loose tracking-widest">
             {model.title}
           </h3>
           {model.childrenCount !== undefined && model.childrenCount > 0 && (

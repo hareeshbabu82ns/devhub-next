@@ -123,7 +123,7 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",
         containerClass: "bg-popover rounded-sm shadow-lg p-2 mt-4 z-50",
-        itemClass: `text-${textSize} flex flex-row gap-2 p-2 px-4 cursor-default`,
+        itemClass: `text-${textSize} tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
         menuItemTemplate: (item) => (item.original as { value: string }).value,
       });
       ime.attach(textRef.current as never);
@@ -173,7 +173,7 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
         <Textarea
           ref={textRef}
           className={cn(
-            `text-${textSize} resize-none`,
+            `subpixel-antialiased text-${textSize} leading-loose tracking-widest resize-none`,
             showToolbar && "pt-14",
             className,
           )}
