@@ -6,15 +6,14 @@ import AudioVolumeControl from "./AudioVolumeControl";
 import { FaRunning } from "react-icons/fa";
 
 const AudioPlayExtrasBar = () => {
-  const { togglePlayPause, playing, isReady, setRate, rate, src } =
-    useGlobalAudioPlayer();
+  const { duration, setRate, rate, src } = useGlobalAudioPlayer();
 
   return (
     <div className="h-[100px] flex flex-col flex-1 items-start gap-2">
       <div className="group w-full truncate">
         <div className="relative  group-hover:animate-slide">Track: {src}</div>
       </div>
-      <AudioSeekBar />
+      {duration !== Infinity && <AudioSeekBar />}
       <div className="grid grid-cols-4 @md/main-player:grid-cols-6 gap-2">
         <AudioTimeLabel className="col-span-2" />
         <div className="flex flex-row gap-2 items-center col-span-2 @md/main-player:col-span-1">

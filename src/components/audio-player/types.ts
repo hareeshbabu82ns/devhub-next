@@ -5,4 +5,5 @@ interface Song {
   album: string;
   cover: string;
   src: string;
+  position: number;
 }

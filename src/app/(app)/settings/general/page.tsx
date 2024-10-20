@@ -1,10 +1,11 @@
 import TextSizeSelector from "@/components/blocks/text-size-selector";
-import LanguageSelector, {
-  LANGUAGE_MEANING_SELECT_KEY,
-  LANGUAGE_SELECT_KEY,
-} from "@/components/blocks/language-selector";
+import LanguageSelector from "@/components/blocks/language-selector";
 import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
 import AppearanceSettings from "../_components/AppearanceSettings";
+import {
+  LANGUAGE_MEANING_SELECT_KEY,
+  LANGUAGE_SELECT_KEY,
+} from "@/lib/constants";
 
 const GeneralSettings = () => {
   return (

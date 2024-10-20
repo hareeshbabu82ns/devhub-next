@@ -89,7 +89,7 @@ export const ArtSlokamTile = ({
               <AudioPlayPauseButton
                 url={model.audio}
                 id={model.id}
-                title={`${index}-${model.subTitle}`}
+                title={`${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
               />
             )}
             <Button

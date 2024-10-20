@@ -24,7 +24,8 @@ const AudioTimeLabel = ({ className }: { className?: string }) => {
 
   useEffect(() => {
     const i = setInterval(() => {
-      setPos(getPosition());
+      const pos = getPosition();
+      setPos(pos);
     }, 500);
 
     return () => clearInterval(i);

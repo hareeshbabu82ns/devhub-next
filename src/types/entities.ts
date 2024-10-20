@@ -10,4 +10,6 @@ export interface TileModel {
   order?: number;
   bookmarked?: boolean;
   childrenCount?: number;
+  parentId?: string;
+  parentTitle?: string;
 }

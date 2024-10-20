@@ -2,6 +2,7 @@ import { PlayCircle as PlayIcon, StopCircle as PauseIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { useGlobalAudioPlayer } from "react-use-audio-player";
 import { usePlaylistAtom } from "@/hooks/use-songs";
+import { toast } from "sonner";
 
 export default function AudioPlayPauseButton({
   url,
@@ -13,7 +14,12 @@ export default function AudioPlayPauseButton({
   title: string;
 }) {
   const [playlist, dispatch] = usePlaylistAtom();
-  const { playing } = useGlobalAudioPlayer();
+  const {
+    playing,
+    play: playerPlay,
+    pause: playerPause,
+    getPosition,
+  } = useGlobalAudioPlayer();
 
   const isPlaying =
     playing &&
@@ -23,46 +29,36 @@ export default function AudioPlayPauseButton({
   // console.log("playlist", playlist);
 
   const play = () => {
-    dispatch({
-      type: "ADD_SONG",
-      payload: {
-        id,
-        title,
-        album: "",
-        artist: "",
-        src: url,
-      } as Song,
-    });
+    if (playlist.songs[playlist.currentSongIndex]?.src === url) {
+      playerPlay();
+      return;
+    }
+    const index = playlist.songs.findIndex((song) => song.src === url);
+    if (index !== -1) {
+      dispatch({ type: "PAUSE", payload: getPosition() });
+      dispatch({
+        type: "SET_CURRENT_INDEX",
+        payload: index,
+      });
+    } else {
+      dispatch({
+        type: "ADD_SONG",
+        payload: {
+          id,
+          title,
+          album: "",
+          artist: "",
+          src: url,
+          position: 0,
+        } as Song,
+      });
+      toast.info("Song added to playlist");
+    }
   };
   const pause = () => {
-    dispatch({ type: "PAUSE" });
+    playerPause();
+    dispatch({ type: "PAUSE", payload: getPosition() });
   };
-  // const play = () => {
-  //   setPlaylist((prev) => {
-  //     // find if the song is already in the playlist
-  //     const index = prev.songs.findIndex((song) => song.src === url);
-  //     if (index === -1) {
-  //       // not available, add the song to the playlist
-  //       const songs = [
-  //         ...prev.songs,
-  //         {
-  //           id: url,
-  //           title: "",
-  //           album: "",
-  //           artist: "",
-  //           src: url,
-  //         } as Song,
-  //       ];
-  //       // set the current song to the new song
-  //       const currentSongIndex = songs.length - 1;
-  //       return { ...prev, songs, currentSongIndex };
-  //     } else {
-  //       // set the current song to the existing song
-  //       const currentSongIndex = index;
-  //       return { ...prev, currentSongIndex };
-  //     }
-  //   });
-  // };
 
   return (
     <Button
@@ -76,33 +72,3 @@ export default function AudioPlayPauseButton({
     </Button>
   );
 }
-
-// export default function AudioPlayPauseButton({ url }: { url: string }) {
-//   const [playing, setPlaying] = useState(false);
-//   const [player, setPlayer] = useState<HTMLAudioElement>(new Audio());
-
-//   useEffect(() => {
-//     setPlayer(new Audio(url));
-//   }, [url]);
-
-//   const play = () => {
-//     setPlaying(true);
-//     player.play();
-//   };
-//   const pause = () => {
-//     setPlaying(false);
-//     player.pause();
-//   };
-
-//   return (
-//     <Button
-//       type="button"
-//       size="icon"
-//       variant="ghost"
-//       aria-label={playing ? "Pause" : "Play"}
-//       onClick={() => (playing ? pause() : play())}
-//     >
-//       {playing ? <PauseIcon /> : <PlayIcon />}
-//     </Button>
-//   );
-// }

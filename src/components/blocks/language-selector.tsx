@@ -1,11 +1,6 @@
 "use client";
 
-import { useLocalStorage } from "usehooks-ts";
-import {
-  LANGUAGE_SELECT_DEFAULT,
-  LANGUAGE_SELECT_KEY,
-  LANGUAGES_DDLB,
-} from "@/lib/constants";
+import { LANGUAGE_SELECT_KEY, LANGUAGES_DDLB } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
