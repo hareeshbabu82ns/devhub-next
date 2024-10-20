@@ -20,8 +20,7 @@ import remarkGfm from "remark-gfm";
 import { LANGUAGE_TO_TRANSLITERATION_DDLB } from "@/lib/constants";
 import { Textarea } from "../ui/textarea";
 import WebIMEIde from "@/app/(app)/sanscript/_components/WebIMEIde";
-import { useAtom } from "jotai";
-import { languageAtom, textSizeAtom } from "@/hooks/use-config";
+import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
 
 interface FormLanguageValueListProps {
   name: string;
@@ -34,8 +33,8 @@ const FormLanguageValueList = ({
   control,
   placeholder,
 }: FormLanguageValueListProps) => {
-  const [language] = useAtom(languageAtom);
-  const [textSize] = useAtom(textSizeAtom);
+  const language = useLanguageAtomValue();
+  const textSize = useTextSizeAtomValue();
 
   const [selectedLanguage, setSelectedLanguage] = useState<string>(language);
 

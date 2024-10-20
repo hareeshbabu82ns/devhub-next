@@ -14,8 +14,7 @@ import { createEntity, findEntities } from "../actions";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { entityLanguageValueTransliterateHelper } from "../utils";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 const defaultValues: z.infer<typeof EntityFormSchema> = {
   type: "SLOKAM",
@@ -35,7 +34,7 @@ const EntityNewPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const entityType = searchParams.get("type") as EntityTypeEnum;
   const parentId = searchParams.get("parent");

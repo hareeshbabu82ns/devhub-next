@@ -13,15 +13,14 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 interface CompProps {
   entityId: string;
 }
 
 const EntityBreadcrumbView = ({ entityId }: CompProps) => {
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const { data, error, isFetching, isLoading } = useQuery({
     queryKey: ["entityHierarchy", entityId, "en"],

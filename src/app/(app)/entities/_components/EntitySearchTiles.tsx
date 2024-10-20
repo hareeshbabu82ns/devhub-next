@@ -20,8 +20,10 @@ import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import EntityNavigationView from "./EntityBreadcrumbView";
 import { TileModel } from "@/types/entities";
 import { mapEntityToTileModel, mapTileModelToEntity } from "../utils";
-import { languageAtom, queryLimitAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import {
+  useLanguageAtomValue,
+  useQueryLimitAtomValue,
+} from "@/hooks/use-config";
 
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
@@ -48,7 +50,7 @@ const EntitySearchTiles = ({
   actionPreButtons,
 }: EntitySearchTilesProps) => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const searchParam = searchParams.get("search") ?? "";
 
@@ -119,10 +121,10 @@ function EntitySearchGrid({
 }) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
-  const limit = parseInt(useAtom(queryLimitAtom)[0]);
+  const limit = parseInt(useQueryLimitAtomValue());
   const offset = parseInt(searchParams.get("offset") || "0", 10);
 
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const { data, isFetching, isLoading, error, refetch } = useQuery({
     queryKey: [

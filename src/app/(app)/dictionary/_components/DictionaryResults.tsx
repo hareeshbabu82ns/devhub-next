@@ -21,8 +21,11 @@ import { useQuery } from "@tanstack/react-query";
 import { searchDictionary } from "../actions";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
-import { languageAtom, queryLimitAtom, textSizeAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import {
+  useLanguageAtomValue,
+  useQueryLimitAtomValue,
+  useTextSizeAtomValue,
+} from "@/hooks/use-config";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -42,10 +45,10 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
 
-  const [language] = useAtom(languageAtom);
-  const [textSize] = useAtom(textSizeAtom);
+  const language = useLanguageAtomValue();
+  const textSize = useTextSizeAtomValue();
 
-  const limit = parseInt(useAtom(queryLimitAtom)[0]);
+  const limit = parseInt(useQueryLimitAtomValue());
   const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   const paginateOffsetAction = (offset: number) => {

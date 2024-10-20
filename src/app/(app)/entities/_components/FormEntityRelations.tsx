@@ -16,8 +16,10 @@ import { useQuery } from "@tanstack/react-query";
 import { findEntities } from "../actions";
 import { mapEntityToTileModel } from "../utils";
 import { TileModel } from "@/types/entities";
-import { languageAtom, queryLimitAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import {
+  useLanguageAtomValue,
+  useQueryLimitAtomValue,
+} from "@/hooks/use-config";
 
 interface FormEntityRelationsProps {
   name: string;
@@ -37,8 +39,8 @@ const FormEntityRelations = ({
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
-  const [language] = useAtom(languageAtom);
-  const limit = parseInt(useAtom(queryLimitAtom)[0]);
+  const language = useLanguageAtomValue();
+  const limit = parseInt(useQueryLimitAtomValue());
   const offset = parseInt(searchParams.offset || "0", 10);
 
   const [dlgOpen, setDlgOpen] = useState(false);

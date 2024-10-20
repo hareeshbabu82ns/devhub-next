@@ -20,16 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
-import { useAtom } from "jotai";
-import { languageAtom, queryLimitAtom } from "@/hooks/use-config";
+import {
+  useLanguageAtomValue,
+  useQueryLimitAtomValue,
+} from "@/hooks/use-config";
 
 const BookmarkedEntitiesGrid = () => {
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
 
-  const [language] = useAtom(languageAtom);
-  const limit = parseInt(useAtom(queryLimitAtom)[0]);
+  const language = useLanguageAtomValue();
+  const limit = parseInt(useQueryLimitAtomValue());
 
   const offset = parseInt(searchParams.offset || "0", 10);
 

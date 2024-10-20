@@ -17,13 +17,12 @@ import { toast } from "sonner";
 import { useMemo } from "react";
 import { Prisma } from "@prisma/client";
 import { entityLanguageValueTransliterateHelper } from "../../utils";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 const Page = () => {
   const params = useParams();
   const router = useRouter();
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
   const entityId = params.entityId as string;
 
   const {

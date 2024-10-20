@@ -15,8 +15,7 @@ import { Input, InputProps } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import Sanscript from "@indic-transliteration/sanscript";
 import SanscriptHelpTrigger from "./SanscriptHelpTrigger";
-import { textSizeAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useTextSizeAtomValue } from "@/hooks/use-config";
 
 export interface WebIMEIdeProps extends InputProps {
   containerClassName?: string;
@@ -44,7 +43,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     },
     _fwdRef,
   ) => {
-    const [textSize] = useAtom(textSizeAtom);
+    const textSize = useTextSizeAtomValue();
     const [lang, setLang] = useState<string>(language || "SAN");
 
     const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {

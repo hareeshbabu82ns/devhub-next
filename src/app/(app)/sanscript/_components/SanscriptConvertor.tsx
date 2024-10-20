@@ -19,8 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import WebIMEIde from "./WebIMEIde";
 import { useState } from "react";
 import Sanscript from "@indic-transliteration/sanscript";
-import { textSizeAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useTextSizeAtomValue } from "@/hooks/use-config";
 
 type SanscriptConvertorState = {
   fromScheme: string;
@@ -30,7 +29,7 @@ type SanscriptConvertorState = {
 };
 
 const SanscriptConvertor = () => {
-  const [textSize] = useAtom(textSizeAtom);
+  const textSize = useTextSizeAtomValue();
 
   const [state, setState] = useState<SanscriptConvertorState>({
     fromScheme: "ITRANS",

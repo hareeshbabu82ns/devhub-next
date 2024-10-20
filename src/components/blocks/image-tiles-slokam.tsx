@@ -10,10 +10,7 @@ import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
 import { toast } from "sonner";
-import { useAtom } from "jotai";
-import { textSizeAtom } from "@/hooks/use-config";
-// import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
-// import AudioPlayPauseButton from "./AudioPlayPauseButton";
+import { useTextSizeAtomValue } from "@/hooks/use-config";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -33,7 +30,7 @@ export const ArtSlokamTile = ({
   onTileClicked,
   onBookmarkClicked,
 }: ArtSlokamTileProps) => {
-  const [textSize] = useAtom(textSizeAtom);
+  const textSize = useTextSizeAtomValue();
   const [, copyToClipboard] = useCopyToClipboard();
 
   return (

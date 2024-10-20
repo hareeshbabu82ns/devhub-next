@@ -14,8 +14,7 @@ import { Label } from "@/components/ui/label";
 import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -25,7 +24,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";

@@ -13,19 +13,18 @@ import remarkGfm from "remark-gfm";
 import { TileModel } from "@/types/entities";
 import { mapEntityToTileModel } from "@/app/(app)/entities/utils";
 import {
-  languageAtom,
-  languageMeaningAtom,
-  textSizeAtom,
+  useLanguageAtomValue,
+  useMeaningLanguageAtomValue,
+  useTextSizeAtomValue,
 } from "@/hooks/use-config";
-import { useAtom } from "jotai";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
 }
 const SlokamDetails = ({ slokamId, className }: CompParams) => {
-  const [language] = useAtom(languageAtom);
-  const [meaningLanguage] = useAtom(languageMeaningAtom);
-  const [textSize] = useAtom(textSizeAtom);
+  const language = useLanguageAtomValue();
+  const meaningLanguage = useMeaningLanguageAtomValue();
+  const textSize = useTextSizeAtomValue();
 
   const {
     data: slokam,

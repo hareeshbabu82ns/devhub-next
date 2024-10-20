@@ -14,14 +14,13 @@ import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TileModel } from "@/types/entities";
 import { mapEntityToTileModel } from "../utils";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 const Page = () => {
   const params = useParams();
   const router = useRouter();
 
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
   const entityId = params.entityId as string;
 
   const {

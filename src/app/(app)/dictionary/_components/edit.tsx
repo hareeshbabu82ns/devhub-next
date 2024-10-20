@@ -16,8 +16,7 @@ import {
   updateDictItem,
 } from "../actions";
 import { Prisma } from "@prisma/client";
-import { languageAtom } from "@/hooks/use-config";
-import { useAtom } from "jotai";
+import { useLanguageAtomValue } from "@/hooks/use-config";
 
 const defaultValues: z.infer<typeof DictItemFormSchema> = {
   origin: "OTHERS",
@@ -48,7 +47,7 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [refreshCount, setRefreshCount] = useState(0);
-  const [language] = useAtom(languageAtom);
+  const language = useLanguageAtomValue();
 
   const dictionaryId = params.dictionaryId as string;
 
