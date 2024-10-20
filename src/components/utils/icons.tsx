@@ -63,7 +63,20 @@ import {
   FaPersonRays,
 } from "react-icons/fa6";
 
-import { MdArchive, MdBatchPrediction, MdCode } from "react-icons/md";
+import {
+  MdArchive,
+  MdBatchPrediction,
+  MdCode,
+  MdSkipPrevious as PrevIcon,
+  MdSkipNext as NextIcon,
+  MdOutlineFastForward as ForwardIcon,
+  MdOutlineFastRewind as RewindIcon,
+  MdOutlinePlayCircle as PlayIcon,
+  MdOutlinePauseCircle as PauseIcon,
+  MdOutlineRepeat as RepeatIcon,
+  MdOutlineRepeatOn as RepeatOnIcon,
+  MdOutlinePlaylistRemove as ClearIcon,
+} from "react-icons/md";
 import { PiArrowsSplitFill, PiFiles } from "react-icons/pi";
 
 export type Icon = typeof LucideIcon;
@@ -137,6 +150,16 @@ export const Icons = {
   login: LockKeyholeIcon,
   upload: Upload,
   download: Download,
+
+  play: PlayIcon,
+  pause: PauseIcon,
+  next: NextIcon,
+  prev: PrevIcon,
+  forward: ForwardIcon,
+  rewind: RewindIcon,
+  repeat: RepeatIcon,
+  repeatOn: RepeatOnIcon,
+  clear: ClearIcon,
 
   split: PiArrowsSplitFill,
   archive: MdArchive,

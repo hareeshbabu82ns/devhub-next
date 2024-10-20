@@ -18,6 +18,42 @@ import { transliteratedText } from "../sanscript/_components/utils";
 import { mapDbToEntity } from "./utils";
 import { LANGUAGE_SELECT_DEFAULT } from "@/lib/constants";
 
+export const fetchAudioLinksIncludingChildren = async ({
+  id,
+  language,
+}: {
+  id: Entity["id"];
+  language: string;
+}) => {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const entities = await db.entity.findMany({
+    where: {
+      parents: {
+        has: id,
+      },
+      audio: { not: "" },
+    },
+    select: {
+      id: true,
+      audio: true,
+      text: true,
+      order: true,
+    },
+  });
+
+  return entities.map((e) => ({
+    id: e.id,
+    audio: e.audio,
+    text: (e.text.find((w: any) => w.language === language) || e.text[0])
+      .value as string,
+    order: e.order,
+  }));
+};
+
 export const entityHierarchy = async ({
   id,
   language,

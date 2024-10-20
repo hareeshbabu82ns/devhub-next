@@ -1,4 +1,4 @@
-import { atom, useAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import { atomWithReducer } from "jotai/utils";
 
 type Playlist = {
@@ -128,4 +128,7 @@ const playlistAtom = atomWithReducer<Playlist, any>(
 
 export function usePlaylistAtom() {
   return useAtom(playlistAtom);
+}
+export function usePlaylistDispatchAtom() {
+  return useSetAtom(playlistAtom);
 }

@@ -34,7 +34,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
       playlist.currentSongIndex < playlist.songs.length &&
       src !== playlist.songs[playlist.currentSongIndex].src
     ) {
-      console.log("loading song", playlist.currentSongIndex, src);
+      // console.log("loading song", playlist.currentSongIndex, src);
       load(playlist.songs[playlist.currentSongIndex].src, {
         autoplay: true,
         loop: playlist.repeat,

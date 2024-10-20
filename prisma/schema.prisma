@@ -110,6 +110,10 @@ model Entity {
   childrenRel Entity[] @relation("EntityRels", fields: [children], references: [id])
   children    String[] @db.ObjectId
 
+  // rootEntity   Entity   @relation("RootEntityRels", fields: [rootEntityId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  // rootEntityId String   @db.ObjectId
+  // allChildren  Entity[] @relation("RootEntityRels")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -13,8 +13,8 @@ import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
-import { useQuery } from "@tanstack/react-query";
-import { fetchEntities } from "../actions";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { fetchAudioLinksIncludingChildren, fetchEntities } from "../actions";
 import { ColumnFiltersState } from "@tanstack/react-table";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import EntityNavigationView from "./EntityBreadcrumbView";
@@ -24,6 +24,9 @@ import {
   useLanguageAtomValue,
   useQueryLimitAtomValue,
 } from "@/hooks/use-config";
+import { Icons } from "@/components/utils/icons";
+import { toast } from "sonner";
+import { usePlaylistDispatchAtom } from "@/hooks/use-songs";
 
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
@@ -120,11 +123,57 @@ function EntitySearchGrid({
   onBookmarkClicked?: (model: Entity) => void;
 }) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
+  const dispatch = usePlaylistDispatchAtom();
 
   const limit = parseInt(useQueryLimitAtomValue());
   const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   const language = useLanguageAtomValue();
+
+  const { mutate: addAudioToPlaylist } = useMutation({
+    mutationKey: ["entityAudio", language, forEntity],
+    mutationFn: async () => {
+      if (forEntity?.audio) {
+        dispatch({
+          type: "ADD_SONG",
+          payload: {
+            id: forEntity.id,
+            title: forEntity.title,
+            album: "",
+            artist: "",
+            src: forEntity.audio,
+            position: 0,
+          } as Song,
+        });
+      }
+      const entities = await fetchAudioLinksIncludingChildren({
+        id: forEntity?.id!,
+        language,
+      });
+      return entities.map(
+        (e) =>
+          ({
+            id: e.id,
+            title: e.text,
+            album: "",
+            artist: "",
+            src: e.audio,
+            position: 0,
+          }) as Song,
+      );
+    },
+    onSuccess: (res) => {
+      if (res) {
+        // console.log(res);
+        res.forEach((song) => {
+          dispatch({
+            type: "ADD_SONG",
+            payload: song,
+          });
+        });
+      }
+    },
+  });
 
   const { data, isFetching, isLoading, error, refetch } = useQuery({
     queryKey: [
@@ -205,14 +254,32 @@ function EntitySearchGrid({
             <EntityNavigationView entityId={forEntity?.id} />
           )}
         </div>
-        <PaginationDDLB
-          totalCount={entitiesCount}
-          limit={limit}
-          offset={offset}
-          onFwdClick={paginateFwdAction}
-          onBackClick={paginateBackAction}
-          onOffsetChange={paginateOffsetAction}
-        />
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() =>
+              addAudioToPlaylist(undefined, {
+                onSuccess: (res) => {
+                  if (res.length > 0 || forEntity?.audio)
+                    toast.success("Audio added to playlist");
+                  else toast.error("No audio found");
+                },
+              })
+            }
+            type="button"
+            variant="outline"
+            size="icon"
+          >
+            <Icons.play className="size-5" />
+          </Button>
+          <PaginationDDLB
+            totalCount={entitiesCount}
+            limit={limit}
+            offset={offset}
+            onFwdClick={paginateFwdAction}
+            onBackClick={paginateBackAction}
+            onOffsetChange={paginateOffsetAction}
+          />
+        </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
         {entities.map((entity, i) => {
