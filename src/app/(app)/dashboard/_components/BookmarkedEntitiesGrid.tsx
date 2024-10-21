@@ -98,20 +98,10 @@ const BookmarkedEntitiesGrid = () => {
   };
 
   return (
-    <div className="flex flex-1 flex-col mt-4 gap-4 border rounded-sm p-2">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between">
+    <div className="flex flex-1 flex-col mt-4 gap-4 border rounded-sm">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between border-b p-2">
+        <div className="flex items-center gap-2">{"Bookmarks"}</div>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => refetch()}
-            type="button"
-            variant="outline"
-            size="icon"
-          >
-            <Icons.refresh className="size-4" />
-          </Button>
-          {"Bookmarks"}
-        </div>
-        <div>
           <PaginationDDLB
             totalCount={data.total}
             limit={limit}
@@ -120,9 +110,17 @@ const BookmarkedEntitiesGrid = () => {
             onBackClick={onBackAction}
             onOffsetChange={paginateOffsetAction}
           />
+          <Button
+            onClick={() => refetch()}
+            type="button"
+            variant="outline"
+            size="icon"
+          >
+            <Icons.refresh className="size-4" />
+          </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 p-2">
         {tiles.map((tile) => (
           <ArtSlokamTile
             key={tile.id}

@@ -3,7 +3,7 @@ import { EntityTypeEnum } from "./types";
 
 export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
 export const QUERY_RESULT_LIMIT_DEFAULT = "10";
-export const QUERY_RESULT_LIMITS = [ "10", "25", "50", "100", "150", "200" ];
+export const QUERY_RESULT_LIMITS = ["10", "25", "50", "100", "150", "200"];
 
 export const LANGUAGE_MEANING_SELECT_KEY = "languageMeaning";
 export const LANGUAGE_SELECT_KEY = "language";
@@ -34,16 +34,16 @@ export const ENTITY_TYPES = [
 export const ENTITY_TYPES_PARENTS = {
   GOD: [],
   AUTHOR: [],
-  ITIHASAM: [ "GOD", "AUTHOR" ],
-  PURANAM: [ "GOD", "AUTHOR" ],
-  STHOTRAM: [ "GOD", "AUTHOR" ],
-  DANDAKAM: [ "GOD", "AUTHOR" ],
-  KAANDAM: [ "ITIHASAM" ],
-  SARGA: [ "KAANDAM" ],
-  PARVAM: [ "PURANAM" ],
-  ADHYAAYAM: [ "PURANAM" ],
-  SKANDAM: [ "PURANAM" ],
-  GHATTAM: [ "SKANDAM" ],
+  ITIHASAM: ["GOD", "AUTHOR"],
+  PURANAM: ["GOD", "AUTHOR"],
+  STHOTRAM: ["GOD", "AUTHOR"],
+  DANDAKAM: ["GOD", "AUTHOR"],
+  KAANDAM: ["ITIHASAM"],
+  SARGA: ["KAANDAM"],
+  PARVAM: ["PURANAM"],
+  ADHYAAYAM: ["PURANAM"],
+  SKANDAM: ["PURANAM"],
+  GHATTAM: ["SKANDAM"],
   SLOKAM: [
     "KAANDAM",
     "SARGA",
@@ -54,27 +54,27 @@ export const ENTITY_TYPES_PARENTS = {
     "GHATTAM",
     "OTHERS",
   ],
-  OTHERS: [ "GOD", "AUTHOR", "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM" ],
+  OTHERS: ["GOD", "AUTHOR", "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM"],
 } as Record<string, EntityTypeEnum[]>;
 
 // leaf node is SLOKAM
 export const ENTITY_TYPES_CHILDREN = {
-  GOD: [ "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS" ],
-  AUTHOR: [ "ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS" ],
+  GOD: ["ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS"],
+  AUTHOR: ["ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "OTHERS"],
 
-  ITIHASAM: [ "KAANDAM" ],
-  KAANDAM: [ "SARGA" ],
-  SARGA: [ "SLOKAM" ],
+  ITIHASAM: ["KAANDAM"],
+  KAANDAM: ["SARGA"],
+  SARGA: ["SLOKAM"],
 
-  PURANAM: [ "PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM" ],
-  PARVAM: [ "ADHYAAYAM" ],
-  ADHYAAYAM: [ "SLOKAM" ],
+  PURANAM: ["PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM"],
+  PARVAM: ["ADHYAAYAM"],
+  ADHYAAYAM: ["SLOKAM"],
 
-  SKANDAM: [ "GHATTAM" ],
-  GHATTAM: [ "SLOKAM" ],
-  STHOTRAM: [ "SLOKAM" ],
-  DANDAKAM: [ "SLOKAM" ],
-  OTHERS: [ "SLOKAM" ],
+  SKANDAM: ["GHATTAM"],
+  GHATTAM: ["SLOKAM"],
+  STHOTRAM: ["SLOKAM"],
+  DANDAKAM: ["SLOKAM"],
+  OTHERS: ["SLOKAM"],
   SLOKAM: [],
 } as Record<string, EntityTypeEnum[]>;
 
@@ -95,8 +95,23 @@ export const ENTITY_TYPES_DDLB = [
   { label: "Ghattam", value: "GHATTAM" },
 ] as Option[];
 
-export type LANGUAGES_TYPE = "SAN" | "TEL" | "ITRANS" | "IAST" | "SLP1" | "ENG" | "TAM";
-export const LANGUAGES = [ "SAN", "TEL", "TAM", "ITRANS", "IAST", "SLP1", "ENG" ] as const;
+export type LANGUAGES_TYPE =
+  | "SAN"
+  | "TEL"
+  | "ITRANS"
+  | "IAST"
+  | "SLP1"
+  | "ENG"
+  | "TAM";
+export const LANGUAGES = [
+  "SAN",
+  "TEL",
+  "TAM",
+  "ITRANS",
+  "IAST",
+  "SLP1",
+  "ENG",
+] as const;
 
 export const LANGUAGES_DDLB = [
   { label: "Sanskrit", value: "SAN" },
@@ -114,6 +129,8 @@ export const TEXT_SIZE_DDLB = [
   { label: "Large", value: "lg" },
   { label: "X Large", value: "xl" },
   { label: "2X Large", value: "2xl" },
+  { label: "4X Large", value: "4xl" },
+  { label: "6X Large", value: "6xl" },
 ] as Option[];
 
 export const LANGUAGE_SCHEME_MAP: Record<string, string> = {
@@ -130,3 +147,11 @@ export const LANGUAGE_TO_TRANSLITERATION_DDLB = {
   SAN: { label: "Sanskrit", scheme: "devanagari" },
   TEL: { label: "Telugu", scheme: "telugu" },
 } as Record<string, { label: string; scheme: string }>;
+
+export const PANCHANGAM_PLACE_IDS = ["calgary", "tirupati"] as const;
+export const PANCHANGAM_PLACE_SELECT_KEY = "panchangamPlace";
+export const PANCHANGAM_PLACE_SELECT_DEFAULT = "calgary";
+export const PANCHANGAM_PLACE_IDS_MAP = {
+  tirupati: 1254360,
+  calgary: 5913490,
+} as Record<string, number>;

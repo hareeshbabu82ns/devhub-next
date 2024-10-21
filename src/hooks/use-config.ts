@@ -2,6 +2,8 @@ import {
   LANGUAGE_MEANING_SELECT_KEY,
   LANGUAGE_SELECT_DEFAULT,
   LANGUAGE_SELECT_KEY,
+  PANCHANGAM_PLACE_SELECT_DEFAULT,
+  PANCHANGAM_PLACE_SELECT_KEY,
   QUERY_RESULT_LIMIT_DEFAULT,
   QUERY_RESULT_LIMIT_KEY,
   TEXT_SIZE_SELECT_DEFAULT,
@@ -63,4 +65,15 @@ export function useMeaningLanguageAtom() {
 }
 export function useMeaningLanguageAtomValue() {
   return useAtomValue(languageMeaningAtom);
+}
+
+export const panchangamPlaceAtom = atomWithStorage<string>(
+  PANCHANGAM_PLACE_SELECT_KEY,
+  PANCHANGAM_PLACE_SELECT_DEFAULT,
+);
+export function usePanchangamPlaceAtom() {
+  return useAtom(panchangamPlaceAtom);
+}
+export function usePanchangamPlaceAtomValue() {
+  return useAtomValue(panchangamPlaceAtom);
 }

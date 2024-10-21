@@ -29,13 +29,13 @@ export async function sendMail({
   const finalCC = includeAdmins ? adminEmails.splice(0, 3) : []; // send to first 3 admins
   // console.log({ finalCC, env: env.NODE_ENV })
 
-  if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development" && !adminEmails.includes(to[0])) {
     return;
   }
-  
+
   const resend = new Resend(process.env.AUTH_RESEND_KEY);
   const data = await resend.emails.send({
-    from: `Calgary Srithevi Karumariamman Temple <${process.env.SMTP_FROM}>`,
+    from: `DevHub <${process.env.SMTP_FROM}>`,
     to: [...to],
     cc: finalCC,
     subject: subject,
