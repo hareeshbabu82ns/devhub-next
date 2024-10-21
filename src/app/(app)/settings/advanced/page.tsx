@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { updateEntitiesScript } from "./actions";
-import { getTodayPanchangam } from "@/lib/panchangam/actions";
 
 const AdvancedSettings = () => {
   return (
@@ -17,7 +16,7 @@ const AdvancedSettings = () => {
         <div className="grid grid-cols-2 gap-4 pt-4">
           <div>
             <p>Run Script to adjust Entities: </p>
-            <Button onClick={() => getTodayPanchangam()}>Run Script</Button>
+            <Button onClick={() => updateEntitiesScript()}>Run Script</Button>
           </div>
         </div>
       </div>
