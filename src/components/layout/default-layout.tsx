@@ -1,11 +1,18 @@
 "use client";
 
-import Sidebar from "@/components/sidebar/Sidebar";
 import { usePathname } from "next/navigation";
 import React from "react";
-import Navbar from "@/components/layout/Navbar";
-import { routes } from "@/components/utils/routes";
-import { getActiveRoute } from "@/components/utils/navigation";
+import { AppSidebar } from "../sidebar/app-sidebar";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import AudioPlayer from "../audio-player/player";
+import PlayListTrigger from "../audio-player/PlayListTrigger";
+import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
+import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 
 const WithDefaultLayout = ({
   children,
@@ -13,23 +20,51 @@ const WithDefaultLayout = ({
   children: React.ReactNode;
 }>) => {
   const pathname = usePathname();
-  const [open, setOpen] = React.useState(false);
 
   return (
-    <div className="flex size-full">
-      <Sidebar routes={routes} open={open} setOpen={() => setOpen(!open)} />
-      <div className="flex size-full flex-col xl:ml-72">
-        <Navbar
-          onOpen={() => setOpen(!open)}
-          brandText={getActiveRoute(routes, pathname)}
-        />
-        <main className="mx-2.5 flex-1">
-          <div className="@container/main-content overflow-y-auto p-2">
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <TopNavBar />
+        <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min">
             {children}
           </div>
         </main>
+      </SidebarInset>
+    </SidebarProvider>
+  );
+};
+
+const TopNavBar = () => {
+  return (
+    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+      <div className="flex flex-1 items-center gap-2 px-4 justify-between">
+        <div className="flex items-center gap-2">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
+          <AudioPlayer className="hidden md:flex xl:hidden" isMini />
+          {/* <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem className="hidden md:block">
+                <BreadcrumbLink href="#">
+                  Building Your Application
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb> */}
+        </div>
+        <div className="flex flex-row gap-2">
+          <PlayListTrigger className="md:hidden" />
+          <QuickAccessMenuTrigger />
+          <QuickSettingsTrigger />
+        </div>
       </div>
-    </div>
+    </header>
   );
 };
 

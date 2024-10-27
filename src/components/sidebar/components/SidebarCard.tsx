@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import SidebarImage from "@/public/next.svg";
+import SidebarImage from "/public/logo.svg";
 import Image from "next/image";
 
 interface SidebarCard {

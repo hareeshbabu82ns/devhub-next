@@ -19,19 +19,33 @@ const config = {
       padding: "2rem",
       screens: {
         sm: "576px",
-        "sm-max": { max: "576px" },
+        "sm-max": {
+          max: "576px",
+        },
         md: "768px",
-        "md-max": { max: "768px" },
+        "md-max": {
+          max: "768px",
+        },
         lg: "992px",
-        "lg-max": { max: "992px" },
+        "lg-max": {
+          max: "992px",
+        },
         xl: "1200px",
-        "xl-max": { max: "1200px" },
+        "xl-max": {
+          max: "1200px",
+        },
         "2xl": "1320px",
-        "2xl-max": { max: "1320px" },
+        "2xl-max": {
+          max: "1320px",
+        },
         "3xl": "1600px",
-        "3xl-max": { max: "1600px" },
+        "3xl-max": {
+          max: "1600px",
+        },
         "4xl": "1850px",
-        "4xl-max": { max: "1850px" },
+        "4xl-max": {
+          max: "1850px",
+        },
       },
     },
     extend: {
@@ -91,6 +105,16 @@ const config = {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar-background))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          primary: "hsl(var(--sidebar-primary))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
+          accent: "hsl(var(--sidebar-accent))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
+          border: "hsl(var(--sidebar-border))",
+          ring: "hsl(var(--sidebar-ring))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -99,16 +123,28 @@ const config = {
       },
       keyframes: {
         "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
+          from: {
+            height: "0",
+          },
+          to: {
+            height: "var(--radix-accordion-content-height)",
+          },
         },
         "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
+          from: {
+            height: "var(--radix-accordion-content-height)",
+          },
+          to: {
+            height: "0",
+          },
         },
         slide: {
-          "0%": { transform: "translateX(0%)" },
-          "100%": { transform: "translateX(-100%)" },
+          "0%": {
+            transform: "translateX(0%)",
+          },
+          "100%": {
+            transform: "translateX(-100%)",
+          },
         },
       },
       animation: {
