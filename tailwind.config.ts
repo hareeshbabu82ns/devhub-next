@@ -38,6 +38,12 @@ const config = {
       fontFamily: {
         sans: ["var(--font-sans)", ...fontFamily.sans],
       },
+      fontSize: {
+        "3xl": "1.953rem",
+        "4xl": "2.441rem",
+        "5xl": "3.052rem",
+        "6xl": "3.5rem",
+      },
       height: {
         "300px": "300px",
         "500px": "500px",
@@ -113,6 +119,7 @@ const config = {
     },
   },
   plugins: [animatePlugin, containerQueryPlugin],
+  safelist: ["text-3xl", "text-4xl", "text-5xl", "text-6xl"],
 } satisfies Config;
 
 export default config;

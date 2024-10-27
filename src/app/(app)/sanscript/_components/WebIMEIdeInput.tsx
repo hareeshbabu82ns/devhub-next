@@ -89,7 +89,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",
         containerClass: "bg-popover rounded-sm shadow-lg p-2 mt-4 z-50",
-        itemClass: `text-${textSize} tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
+        itemClass: `text-${textSize} leading-loose tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
         menuItemTemplate: (item) => (item.original as { value: string }).value,
       });
       ime.attach(textRef.current as never);
@@ -125,7 +125,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         <Input
           ref={textRef}
           className={cn(
-            `text-${textSize} tracking-widest`,
+            `leading-loose tracking-widest`,
             showSearchIcon && "pl-8",
             withLanguageSelector && "pr-[110px]",
             className,
