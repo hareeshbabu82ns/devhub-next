@@ -92,7 +92,10 @@ export async function getTodayPanchangam({
   const consizeInfo: any = {
     date: dateStr,
     day: {},
+    schedules: [],
   };
+
+  // console.dir(info, { depth: 5 });
 
   info.forEach((element: any) => {
     switch (element.title) {
@@ -150,12 +153,39 @@ export async function getTodayPanchangam({
         ).value;
         break;
 
-      // case "Panchang":
-      //   consizeInfo.rahuKalam = element.cellInfos[0].value;
-      //   break;
+      case "Auspicious Timings":
+        element.cellInfos.forEach((item: any) => {
+          // skip if info.value is not in format 11:45 to 12:33 exactly with regex
+          if (!/^\d{2}:\d{2} to \d{2}:\d{2}$/.test(item.value)) {
+            return;
+          }
+          const sc = getFormattedSchedule(item);
+          consizeInfo.schedules.push({ ...sc, negative: false });
+        });
+        break;
+
+      case "Inauspicious Timings":
+        element.cellInfos.forEach((item: any) => {
+          // skip if info.value is not in format 11:45 to 12:33 exactly with regex
+          if (!/^\d{2}:\d{2} to \d{2}:\d{2}$/.test(item.value)) {
+            return;
+          }
+          const sc = getFormattedSchedule(item);
+          consizeInfo.schedules.push({ ...sc, negative: true });
+        });
+        break;
     }
   });
 
   // console.dir(info, { depth: 3 });
   return { info, consizeInfo };
+}
+
+function getFormattedSchedule(info: { key: string; value: string }) {
+  const [startTime, endTime] = info.value.split(" to ");
+  return {
+    title: info.key,
+    startTime,
+    endTime,
+  };
 }

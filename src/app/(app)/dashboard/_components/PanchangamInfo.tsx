@@ -8,6 +8,14 @@ import { useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { usePanchangamPlaceAtomValue } from "@/hooks/use-config";
+import DayOverview from "@/components/panchangam/DayOverview";
+
+const schedules = [
+  { title: "Team Meeting", startTime: "09:00", endTime: "10:30" },
+  { title: "Client Call", startTime: "11:15", endTime: "12:00" },
+  { title: "Lunch Break", startTime: "13:00", endTime: "14:00" },
+  { title: "Project Discussion", startTime: "15:45", endTime: "16:30" },
+];
 
 const PanchangamInfo = () => {
   const cityId = usePanchangamPlaceAtomValue();
@@ -16,6 +24,7 @@ const PanchangamInfo = () => {
     queryKey: ["panchangam", cityId],
     queryFn: async ({ queryKey: [, cityId] }) => {
       const response = await getTodayPanchangam({ place: cityId });
+      console.log(response);
       return response;
     },
   });
@@ -38,40 +47,46 @@ const PanchangamInfo = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-4 p-2">
-        {/* <pre>{JSON.stringify(data.consizeInfo, null, 2)}</pre> */}
-        <div className="flex flex-col gap-4">
-          <div className="font-semibold">Date: {data.consizeInfo.date}</div>
-          <div className="font-semibold">
-            {data.consizeInfo.day.panchang.weekday}
-            {" , "}
-            {data.consizeInfo.day.panchang.paksha}
-            {" , "}
-            {data.consizeInfo.month} Masam
-            {" , "}
-            {data.consizeInfo.ayana}
-            {" , "}
-            {data.consizeInfo.year} Samvatsaram
-          </div>
-          <div className="font-semibold">
-            {data.consizeInfo.day.panchang.tithiToday.name} -{" "}
-            {data.consizeInfo.day.panchang.tithiToday.end} (_
-            {data.consizeInfo.day.panchang.tithiNext.name}_)
-          </div>
-          <div className="font-semibold">
-            {data.consizeInfo.day.panchang.nakshatraToday.name} -{" "}
-            {data.consizeInfo.day.panchang.nakshatraToday.end} (_
-            {data.consizeInfo.day.panchang.nakshatraNext.name}_)
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div className="flex flex-col gap-4 p-2">
+          {/* <pre>{JSON.stringify(data.consizeInfo, null, 2)}</pre> */}
+          <div className="flex flex-col gap-4">
+            <div className="font-semibold">Date: {data.consizeInfo.date}</div>
+            <div className="font-semibold">
+              {data.consizeInfo.day.panchang.weekday}
+              {" , "}
+              {data.consizeInfo.day.panchang.paksha}
+              {" , "}
+              {data.consizeInfo.month} Masam
+              {" , "}
+              {data.consizeInfo.ayana}
+              {" , "}
+              {data.consizeInfo.year} Samvatsaram
+            </div>
+            <div className="font-semibold">
+              {data.consizeInfo.day.panchang.tithiToday.name} -{" "}
+              {data.consizeInfo.day.panchang.tithiToday.end} (_
+              {data.consizeInfo.day.panchang.tithiNext.name}_)
+            </div>
+            <div className="font-semibold">
+              {data.consizeInfo.day.panchang.nakshatraToday.name} -{" "}
+              {data.consizeInfo.day.panchang.nakshatraToday.end} (_
+              {data.consizeInfo.day.panchang.nakshatraNext.name}_)
+            </div>
 
-          <div>
-            Surya - {data.consizeInfo.day.sun.start} -{" "}
-            {data.consizeInfo.day.sun.end}
+            <div>
+              Surya - {data.consizeInfo.day.sun.start} -{" "}
+              {data.consizeInfo.day.sun.end}
+            </div>
+            <div>
+              Chandra - {data.consizeInfo.day.moon.start} -{" "}
+              {data.consizeInfo.day.moon.end}
+            </div>
           </div>
-          <div>
-            Chandra - {data.consizeInfo.day.moon.start} -{" "}
-            {data.consizeInfo.day.moon.end}
-          </div>
+        </div>
+
+        <div className="flex overflow-y-auto">
+          <DayOverview schedules={data.consizeInfo.schedules} />
         </div>
       </div>
     </div>

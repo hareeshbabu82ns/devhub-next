@@ -36,7 +36,6 @@ export function NavMain({
   }[];
 }) {
   const pathname = usePathname();
-  console.log(pathname);
 
   return (
     <SidebarGroup>
@@ -51,7 +50,7 @@ export function NavMain({
             >
               <SidebarMenuItem>
                 <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip={item.title}>
+                  <SidebarMenuButton tooltip={item.title} className="text-md">
                     {item.icon}
                     <span>{item.title}</span>
                     <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
@@ -81,6 +80,7 @@ export function NavMain({
                 asChild
                 tooltip={item.title}
                 isActive={pathname.startsWith(item.path)}
+                className="text-md"
               >
                 <Link href={item.path}>
                   {item.icon}
