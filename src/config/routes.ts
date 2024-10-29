@@ -1,4 +1,4 @@
-export const publicRoutes = ["/", "/sign-in", "/sign-up"];
+export const publicRoutes = ["/", "/sign-in", "/sign-up", "/api/panchangam"];
 
 export const privateRoutes = ["/dashboard", "/users", "/settings"];
 

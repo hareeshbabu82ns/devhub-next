@@ -82,7 +82,7 @@ const getCurrentMuhurthams = (
       return "";
     }
     const content: string[] = [];
-    content.push(`\n  \n# Nearby Muhurthams\n  `);
+    content.push(`\n  \n# Nearby Muhurthams - ${info.place.toUpperCase()}\n  `);
     nearestMuhurthams.forEach((item: any) => {
       content.push(
         `| ${item.title}:\t | ${item.startTime} | ${item.endTime} |`,
