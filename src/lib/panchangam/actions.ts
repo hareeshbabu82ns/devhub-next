@@ -15,16 +15,17 @@ import { format, previousDay, subDays } from "date-fns";
 const dateFormat = "dd/MM/yyyy";
 const baseUrl = "https://www.drikpanchang.com/panchang/day-panchang.html";
 
-export async function getTodayPanchangam({
+export async function getDayPanchangam({
   place = "calgary",
+  date = new Date(),
 }: {
   place?: string;
+  date?: Date;
 }) {
   const placeId = PANCHANGAM_PLACE_IDS_MAP[place];
   if (!placeId) {
     throw new Error(`Invalid place: ${place}`);
   }
-  const date = new Date();
 
   // check and delete previous day file
   const dateYesterdayStr = format(subDays(date, 1), dateFormat);
@@ -91,6 +92,7 @@ export async function getTodayPanchangam({
 
   const consizeInfo: any = {
     date: dateStr,
+    place,
     day: {},
     schedules: [],
   };
@@ -177,6 +179,9 @@ export async function getTodayPanchangam({
     }
   });
 
+  consizeInfo.schedules.sort((a: any, b: any) => {
+    return a.startTime.localeCompare(b.startTime);
+  });
   // console.dir(info, { depth: 3 });
   return { info, consizeInfo };
 }
