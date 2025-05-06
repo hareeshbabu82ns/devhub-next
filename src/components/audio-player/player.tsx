@@ -1,4 +1,4 @@
-import { useGlobalAudioPlayer } from "react-use-audio-player";
+import { useAudioPlayerContext } from "react-use-audio-player";
 import { useEffect } from "react";
 import { usePlaylistAtom } from "@/hooks/use-songs";
 import { Button } from "../ui/button";
@@ -23,32 +23,32 @@ interface AudioPlayerProps {
   isMini?: boolean;
 }
 
-const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
-  const { load, playing, stop, play, pause, seek, src, getPosition } =
-    useGlobalAudioPlayer();
-  const [playlist, dispatch] = usePlaylistAtom();
+const AudioPlayer = ( { className, isMini }: AudioPlayerProps ) => {
+  const { load, isPlaying: playing, stop, play, pause, seek, src, getPosition } =
+    useAudioPlayerContext();
+  const [ playlist, dispatch ] = usePlaylistAtom();
 
-  useEffect(() => {
+  useEffect( () => {
     if (
       playlist.currentSongIndex >= 0 &&
       playlist.currentSongIndex < playlist.songs.length &&
-      src !== playlist.songs[playlist.currentSongIndex].src
+      src !== playlist.songs[ playlist.currentSongIndex ].src
     ) {
       // console.log("loading song", playlist.currentSongIndex, src);
-      load(playlist.songs[playlist.currentSongIndex].src, {
+      load( playlist.songs[ playlist.currentSongIndex ].src, {
         autoplay: true,
         loop: playlist.repeat,
         html5: playlist.stream,
         format: "mp3",
         onload: () => {
-          seek(playlist.songs[playlist.currentSongIndex].position);
+          seek( playlist.songs[ playlist.currentSongIndex ].position );
         },
-        onend: () => dispatch({ type: "NEXT_SONG" }),
-      });
+        onend: () => dispatch( { type: "NEXT_SONG" } ),
+      } );
     }
-  }, [playlist.currentSongIndex, load, playlist.repeat, src]);
+  }, [ playlist.currentSongIndex, load, playlist.repeat, src ] );
 
-  if (playlist.songs.length === 0) {
+  if ( playlist.songs.length === 0 ) {
     return null;
   }
 
@@ -65,7 +65,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           size="icon"
           variant="ghost"
           aria-label="Previous song"
-          onClick={() => dispatch({ type: "PREV_SONG" })}
+          onClick={() => dispatch( { type: "PREV_SONG" } )}
           disabled={
             playlist.songs.length === 0 ||
             playlist.currentSongIndex === -1 ||
@@ -79,7 +79,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           size="icon"
           variant="ghost"
           aria-label="Previous song"
-          onClick={() => seek(getPosition() - playlist.seekInterval)}
+          onClick={() => seek( getPosition() - playlist.seekInterval )}
           disabled={!playing}
         >
           <RewindIcon className="size-5" />
@@ -93,9 +93,9 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           onClick={
             playing
               ? () => {
-                  pause();
-                  dispatch({ type: "PAUSE", payload: getPosition() });
-                }
+                pause();
+                dispatch( { type: "PAUSE", payload: getPosition() } );
+              }
               : () => play()
           }
         >
@@ -110,7 +110,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           size="icon"
           variant="ghost"
           aria-label="Previous song"
-          onClick={() => seek(getPosition() + playlist.seekInterval)}
+          onClick={() => seek( getPosition() + playlist.seekInterval )}
           disabled={!playing}
         >
           <ForwardIcon className="size-5" />
@@ -120,7 +120,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           size="icon"
           variant="ghost"
           aria-label="Next song"
-          onClick={() => dispatch({ type: "NEXT_SONG" })}
+          onClick={() => dispatch( { type: "NEXT_SONG" } )}
           disabled={
             playlist.songs.length === 0 ||
             playlist.currentSongIndex === -1 ||
@@ -135,7 +135,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           size="icon"
           variant="ghost"
           aria-label={playlist.repeat ? "Repeat off" : "Repeate on"}
-          onClick={() => dispatch({ type: "TOGGLE_REPEAT" })}
+          onClick={() => dispatch( { type: "TOGGLE_REPEAT" } )}
         >
           {playlist.repeat ? (
             <RepeatOnIcon className="size-5" />
@@ -150,7 +150,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
           aria-label="Clear playlist"
           onClick={() => {
             pause();
-            dispatch({ type: "CLEAR_PLAYLIST" });
+            dispatch( { type: "CLEAR_PLAYLIST" } );
           }}
         >
           <ClearIcon className="size-5" />
@@ -158,7 +158,7 @@ const AudioPlayer = ({ className, isMini }: AudioPlayerProps) => {
         <Separator orientation="vertical" className="h-8" />
         <PlayListTrigger />
       </div>
-      <div className={cn(isMini ? "hidden" : "flex flex-col flex-1 gap-2")}>
+      <div className={cn( isMini ? "hidden" : "flex flex-col flex-1 gap-2" )}>
         <Separator />
         <AudioPlayExtrasBar />
       </div>

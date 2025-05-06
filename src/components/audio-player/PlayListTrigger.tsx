@@ -14,11 +14,11 @@ import {
 import AudioPlayer from "./player";
 import { usePlaylistAtom } from "@/hooks/use-songs";
 import { Icons } from "../utils/icons";
-import { useGlobalAudioPlayer } from "react-use-audio-player";
+import { useAudioPlayerContext } from "react-use-audio-player";
 import { Separator } from "../ui/separator";
 
-export default function PlayListTrigger({ className }: { className?: string }) {
-  const [playlist, dispatch] = usePlaylistAtom();
+export default function PlayListTrigger( { className }: { className?: string } ) {
+  const [ playlist, dispatch ] = usePlaylistAtom();
   return (
     <Sheet>
       <SheetTrigger asChild className={className}>
@@ -34,9 +34,9 @@ export default function PlayListTrigger({ className }: { className?: string }) {
           <AudioPlayer />
           <Separator />
           <div className="flex flex-col gap-4">
-            {playlist.songs.map((song, index) => (
+            {playlist.songs.map( ( song, index ) => (
               <SongTile key={song.id} song={song} index={index} />
-            ))}
+            ) )}
           </div>
         </div>
       </SheetContent>
@@ -44,18 +44,18 @@ export default function PlayListTrigger({ className }: { className?: string }) {
   );
 }
 
-const SongTile = ({ song, index }: { song: Song; index: number }) => {
-  const [playlist, dispatch] = usePlaylistAtom();
-  const { playing } = useGlobalAudioPlayer();
+const SongTile = ( { song, index }: { song: Song; index: number } ) => {
+  const [ playlist, dispatch ] = usePlaylistAtom();
+  const { isPlaying: playing } = useAudioPlayerContext();
   const isPlaying = playing && playlist.currentSongIndex === index;
   const pause = () => {
-    dispatch({ type: "PAUSE" });
+    dispatch( { type: "PAUSE" } );
   };
   const play = () => {
-    dispatch({ type: "ADD_SONG", payload: song });
+    dispatch( { type: "ADD_SONG", payload: song } );
   };
   const remove = () => {
-    dispatch({ type: "REMOVE_SONG", payload: index });
+    dispatch( { type: "REMOVE_SONG", payload: index } );
   };
   return (
     <div className="flex flex-row gap-3 items-center p-2 border rounded-sm">

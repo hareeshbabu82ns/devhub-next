@@ -7,49 +7,49 @@ import React, {
   FunctionComponent,
   MouseEvent,
 } from "react";
-import { useGlobalAudioPlayer } from "react-use-audio-player";
+import { useAudioPlayerContext } from "react-use-audio-player";
 
 interface AudioSeekBarProps {
   className?: string;
 }
 
-const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ({ className }) => {
-  const { playing, getPosition, duration, seek } = useGlobalAudioPlayer();
-  const [pos, setPos] = useState(0);
+const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => {
+  const { isPlaying: playing, getPosition, duration, seek } = useAudioPlayerContext();
+  const [ pos, setPos ] = useState( 0 );
   const frameRef = useRef<number>();
 
-  const seekBarElem = useRef<HTMLDivElement>(null);
+  const seekBarElem = useRef<HTMLDivElement>( null );
 
-  useEffect(() => {
+  useEffect( () => {
     const animate = () => {
-      setPos(getPosition());
-      frameRef.current = requestAnimationFrame(animate);
+      setPos( getPosition() );
+      frameRef.current = requestAnimationFrame( animate );
     };
 
-    frameRef.current = window.requestAnimationFrame(animate);
+    frameRef.current = window.requestAnimationFrame( animate );
 
     return () => {
-      if (frameRef.current) {
-        cancelAnimationFrame(frameRef.current);
+      if ( frameRef.current ) {
+        cancelAnimationFrame( frameRef.current );
       }
     };
-  }, []);
+  }, [] );
 
   const goTo = useCallback(
-    (event: MouseEvent) => {
+    ( event: MouseEvent ) => {
       const { pageX: eventOffsetX } = event;
 
-      if (seekBarElem.current) {
+      if ( seekBarElem.current ) {
         const elementOffsetX = seekBarElem.current.offsetLeft;
         const elementWidth = seekBarElem.current.clientWidth;
-        const percent = (eventOffsetX - elementOffsetX) / elementWidth;
-        seek(percent * duration);
+        const percent = ( eventOffsetX - elementOffsetX ) / elementWidth;
+        seek( percent * duration );
       }
     },
-    [duration, playing, seek],
+    [ duration, playing, seek ],
   );
 
-  if (duration === Infinity) return null;
+  if ( duration === Infinity ) return null;
 
   return (
     <div
@@ -61,7 +61,7 @@ const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ({ className }) => {
       onClick={goTo}
     >
       <div
-        style={{ width: `${(pos / duration) * 100}%` }}
+        style={{ width: `${( pos / duration ) * 100}%` }}
         className="bg-secondary h-3"
       />
     </div>

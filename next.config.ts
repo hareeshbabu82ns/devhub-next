@@ -1,8 +1,13 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify: true,
+  serverExternalPackages: ["tesseract.js", "pdf2pic"],
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       {

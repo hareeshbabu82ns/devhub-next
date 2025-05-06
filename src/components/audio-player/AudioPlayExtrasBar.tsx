@@ -1,12 +1,12 @@
 import React from "react";
-import { useGlobalAudioPlayer } from "react-use-audio-player";
+import { useAudioPlayerContext } from "react-use-audio-player";
 import AudioSeekBar from "./AudioSeekBar";
 import AudioTimeLabel from "./AudioTimeLabel";
 import AudioVolumeControl from "./AudioVolumeControl";
 import { FaRunning } from "react-icons/fa";
 
 const AudioPlayExtrasBar = () => {
-  const { duration, setRate, rate, src } = useGlobalAudioPlayer();
+  const { duration, setRate, rate, src } = useAudioPlayerContext();
 
   return (
     <div className="h-[100px] flex flex-col flex-1 items-start gap-2">
@@ -23,7 +23,7 @@ const AudioPlayExtrasBar = () => {
             name="rateSelect"
             id="rate"
             value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
+            onChange={( e ) => setRate( Number( e.target.value ) )}
           >
             <option value="0.5">1/2x</option>
             <option value="0.75">1/3x</option>
