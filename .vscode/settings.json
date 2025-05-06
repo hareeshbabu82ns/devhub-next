@@ -1,0 +1,21 @@
+{
+  "github.copilot.chat.codeGeneration.instructions": [
+    {
+      "file": "prisma/schema.prisma"
+    },
+    {
+      "file": "code-style.md"
+    }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    {
+      "text": "Always use vitest for testing React components."
+    },
+    {
+      "text": "Use Jest for testing JavaScript code."
+    },
+    {
+      "file": "prisma/schema.prisma"
+    }
+  ]
+}
