@@ -41,7 +41,7 @@ const AssetFileSelector = ({
       setPath(newPath);
       // router.push(`${newPath}`);
     } else {
-      onSelection && onSelection(file.downloadURL);
+      if (onSelection) onSelection(file.downloadURL);
     }
   };
 

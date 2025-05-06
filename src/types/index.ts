@@ -6,7 +6,7 @@ import {
 } from "@/components/data-table/datatable-feature-row-editing";
 import { Option } from "@/components/ui/multi-select";
 import { RowData } from "@tanstack/react-table";
-import { ComponentType } from "react";
+import { ComponentType, JSX } from "react";
 
 export interface PageMeta {
   title: string;
@@ -30,17 +30,21 @@ export interface IRoute {
 }
 
 declare global {
-  var Paddle: any;
+  let Paddle: any;
 }
 
 declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface TableState extends RowEditTableState { }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface TableOptionsResolved<TData extends RowData>
     extends RowEditOptions<TData> { }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface Table<TData extends RowData> extends RowEditInstance<TData> { }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
   interface Row<TData extends RowData> extends RowEditRow { }
 
   interface TableMeta<TData extends RowData> {

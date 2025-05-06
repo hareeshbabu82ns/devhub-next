@@ -49,7 +49,7 @@ const AssetFileTile = ({
       </Button>
       <DeleteConfirmDlgTrigger
         onConfirm={() => {
-          onDeleteFile && onDeleteFile(file.name);
+          if (onDeleteFile) onDeleteFile(file.name);
         }}
         title={`Delete Asset: ${path}`}
       >

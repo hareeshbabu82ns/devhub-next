@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { JSX } from "react";
 
 export function NavMain({
   items,

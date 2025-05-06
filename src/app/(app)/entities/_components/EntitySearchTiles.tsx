@@ -147,7 +147,7 @@ function EntitySearchGrid({
         });
       }
       const entities = await fetchAudioLinksIncludingChildren({
-        id: forEntity?.id!,
+        id: forEntity?.id|| "",
         language,
       });
       return entities.map(

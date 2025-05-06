@@ -46,7 +46,7 @@ export default function FileUploadDlgTrigger({
             allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
             onUploadSuccess={async (urls: string[]) => {
-              onUploaded && onUploaded(urls);
+              onUploaded?.(urls);
               // router.refresh();
             }}
           />
@@ -55,7 +55,7 @@ export default function FileUploadDlgTrigger({
             allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
             onUploadSuccess={async (urls: string[]) => {
-              onUploaded && onUploaded(urls);
+              onUploaded?.(urls);
             }}
           />
         )}

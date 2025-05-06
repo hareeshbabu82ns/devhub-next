@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Input, InputProps } from "../ui/input";
+import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -12,7 +12,7 @@ import { useCopyToClipboard } from "usehooks-ts";
 import { toast } from "sonner";
 import { deleteAsset } from "@/app/(app)/assets/actions";
 
-interface FileUploaderProps extends InputProps {
+interface FileUploaderProps extends React.ComponentProps<"input"> {
   path: string;
   containerClassName?: string;
   label?: string;

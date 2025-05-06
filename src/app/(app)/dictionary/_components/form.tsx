@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Resolver } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
 import { useEffect } from "react";
 import { Form } from "@/components/ui/form";
@@ -31,64 +31,70 @@ interface DictionaryItemFormProps {
   data: z.infer<typeof DictItemFormSchema>;
   updating?: boolean;
   onRefresh?: () => void;
-  onSubmit?: (data: Partial<z.infer<typeof DictItemFormSchema>>) => void;
+  onSubmit?: ( data: Partial<z.infer<typeof DictItemFormSchema>> ) => void;
   onDelete?: () => void;
 }
 
-const DictionaryItemForm = ({
+const DictionaryItemForm = ( {
   itemId,
   data,
   updating = false,
   onSubmit: onFormSubmit,
   onRefresh,
   onDelete,
-}: DictionaryItemFormProps) => {
+}: DictionaryItemFormProps ) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  const currentTab = searchParams.get("tab") || "details";
+  const currentTab = searchParams.get( "tab" ) || "details";
 
-  const form = useForm<z.infer<typeof DictItemFormSchema>>({
-    resolver: zodResolver(DictItemFormSchema),
-    defaultValues: { ...data },
-  });
+  // Create a type-safe version of the form values
+  type DictionaryFormValues = z.infer<typeof DictItemFormSchema>;
+
+  const form = useForm<DictionaryFormValues>( {
+    resolver: zodResolver( DictItemFormSchema ) as unknown as Resolver<DictionaryFormValues>,
+    defaultValues: {
+      ...data,
+      phonetic: data.phonetic || '' // Ensure phonetic is never undefined
+    },
+  } );
 
   const {
     reset,
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  useEffect(() => {
-    const keys = Object.keys(errors) as Array<keyof typeof errors>;
-    if (keys.length === 0) return;
-    console.error("Form errors:", errors);
-    toast({
+  useEffect( () => {
+    const keys = Object.keys( errors ) as Array<keyof typeof errors>;
+    if ( keys.length === 0 ) return;
+    console.error( "Form errors:", errors );
+    toast( {
       title: "Form errors:",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">
             {keys
-              .map((key) => `${key as string}: ${errors[key]?.message}`)
-              .join("\n")}
+              .map( ( key ) => `${key as string}: ${errors[ key ]?.message}` )
+              .join( "\n" )}
           </code>
         </pre>
       ),
       variant: "destructive",
-    });
-  }, [errors]);
+    } );
+  }, [ errors ] );
 
-  function onSubmit(data: z.infer<typeof DictItemFormSchema>) {
+  function onSubmit( data: z.infer<typeof DictItemFormSchema> ) {
     const changeData: Partial<z.infer<typeof DictItemFormSchema>> = {};
 
     changeData.origin = data.origin;
-    if (!itemId || dirtyFields.word) changeData.word = data.word;
-    if (!itemId || dirtyFields.wordIndex) changeData.wordIndex = data.wordIndex;
-    if (!itemId || dirtyFields.description)
+    if ( !itemId || dirtyFields.word ) changeData.word = data.word;
+    if ( !itemId || dirtyFields.wordIndex ) changeData.wordIndex = data.wordIndex;
+    if ( !itemId || dirtyFields.description )
       changeData.description = data.description;
-    if (!itemId || dirtyFields.attributes)
+    if ( !itemId || dirtyFields.attributes )
       changeData.attributes = data.attributes;
-    if (!itemId || dirtyFields.phonetic) changeData.phonetic = data.phonetic;
+    if ( !itemId || dirtyFields.phonetic ) changeData.phonetic = data.phonetic;
 
-    onFormSubmit && onFormSubmit(changeData);
+    onFormSubmit?.( changeData );
   }
 
   const detailElements = (
@@ -164,13 +170,13 @@ const DictionaryItemForm = ({
     </div>
   );
 
-  const onTabValueChanged = (value: string) =>
-    updateSearchParams({ tab: value });
+  const onTabValueChanged = ( value: string ) =>
+    updateSearchParams( { tab: value } );
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit( onSubmit )}
         className="flex flex-col space-y-4 flex-1"
       >
         <Tabs

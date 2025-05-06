@@ -90,7 +90,7 @@ const MultipleFileUploadForm = ({
               : "/assets/file-generic.svg",
           ),
       );
-      onChangeFiles && onChangeFiles(validFiles);
+      onChangeFiles?.(validFiles);
 
       /** Reset file input */
       fileInput.type = "text";
@@ -107,7 +107,7 @@ const MultipleFileUploadForm = ({
       }
       setFiles(null);
       setPreviewUrls([]);
-      onChangeFiles && onChangeFiles([]);
+      onChangeFiles?.([]);
     },
     [files, onChangeFiles, previewUrls],
   );
@@ -122,7 +122,7 @@ const MultipleFileUploadForm = ({
 
       /** Uploading files to the server */
       try {
-        var formData = new FormData();
+        const formData = new FormData();
         formData.append("basePath", basePath);
         files.forEach((file) => formData.append("media", file));
 
@@ -149,7 +149,7 @@ const MultipleFileUploadForm = ({
           return;
         }
 
-        onUploadSuccess && (await onUploadSuccess(data.url));
+        await onUploadSuccess?.(data.url);
         toast.success("Files were uploaded successfully!");
       } catch (error) {
         console.error(error);

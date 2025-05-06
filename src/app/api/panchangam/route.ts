@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 // http://localhost:3000/api/panchangam?date=202410271140&format=md&place=tirupati&type=overview
 // http://localhost:3000/api/panchangam?date=202410271140&format=md&place=tirupati&type=muhurtham
 
-export async function GET(request: NextRequest, response: NextResponse) {
+export async function GET(request: NextRequest) {
   const reqUrl = new URL(request.url);
   const dateStr = reqUrl.searchParams.get("date");
   // 2024-10-28T21:29:23.436-06:00
@@ -48,14 +48,14 @@ export async function GET(request: NextRequest, response: NextResponse) {
     responseFormat === "json" ? "application/json" : "text/plain";
 
   try {
-    return new Response(finalResult, {
+    return new NextResponse(finalResult, {
       headers: {
         "Content-Type": contentType,
       },
       status: 200,
     });
   } catch (e: any) {
-    return new Response(`Panchangam Failed: ${e.message}`, {
+    return new NextResponse(`Panchangam Failed: ${e.message}`, {
       status: 500,
     });
   }

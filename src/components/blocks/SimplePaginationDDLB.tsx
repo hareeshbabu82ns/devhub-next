@@ -75,8 +75,7 @@ const PaginationSelect = ({
   >((e) => {
     const num = Number(e.target.value);
     if (Number.isNaN(num)) return;
-    onOffsetChange &&
-      onOffsetChange(
+    onOffsetChange?.(
         Math.min(Math.floor((Math.abs(num) - 1) / limit), totalCount),
       );
   }, 500);

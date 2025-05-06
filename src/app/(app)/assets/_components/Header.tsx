@@ -64,7 +64,7 @@ const Header = ({
       {
         onSuccess: () => {
           setOpenCreateDlg(false);
-          asSelector ? refresh && refresh() : router.refresh();
+          if (asSelector) refresh?.(); else router.refresh();
         },
       },
     );
@@ -76,8 +76,7 @@ const Header = ({
       {
         onSuccess: () => {
           if (asSelector) {
-            onDeleted &&
-              onDeleted(
+            onDeleted?.(
                 `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
               );
           } else {

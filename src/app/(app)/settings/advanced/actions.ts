@@ -110,7 +110,7 @@ export const updateAudioUrlsRamayanam = async ( entityId: string ) => {
 // called from ui and from already upgraded entity
 export const upgradeChildEntities = async (
   entityId: string,
-  recursive: Boolean = false,
+  recursive: boolean = false,
 ) => {
   if ( !entityId ) return;
   const entity = await db.entity.findFirst( { where: { id: entityId } } );
@@ -135,7 +135,7 @@ export const upgradeChildEntities = async (
 
 const upgradeEntitiesByRootIDs = async (
   rootIds: string[],
-  recursive: Boolean = false,
+  recursive: boolean = false,
 ) => {
   const entities = ( await db.entity.findRaw( {
     filter: {
@@ -151,7 +151,7 @@ const upgradeEntitiesByRootIDs = async (
 
 const upgradeEntitiesByType = async (
   types: string[],
-  recursive: Boolean = false,
+  recursive: boolean = false,
 ) => {
   const entities = ( await db.entity.findRaw( {
     filter: {
@@ -167,7 +167,7 @@ const upgradeEntitiesByType = async (
 
 const upgradeEntitiesByIds = async (
   entityIds: string[],
-  recursive: Boolean = false,
+  recursive: boolean = false,
 ) => {
   const entities = ( await db.entity.findRaw( {
     filter: {
@@ -210,7 +210,7 @@ const upgradeAuthors = async () => {
 const upgradeEntity = async (
   oldEntity: any,
   newOrder: number = -1,
-  recursive: Boolean = false,
+  recursive: boolean = false,
 ) => {
   const isUpgraded = oldEntity.order !== undefined;
   // if ( oldEntity.type !== "SLOKAM" )

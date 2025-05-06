@@ -16,7 +16,7 @@ interface AudioSeekBarProps {
 const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => {
   const { isPlaying: playing, getPosition, duration, seek } = useAudioPlayerContext();
   const [ pos, setPos ] = useState( 0 );
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number>( null );
 
   const seekBarElem = useRef<HTMLDivElement>( null );
 

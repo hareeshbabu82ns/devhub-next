@@ -122,7 +122,7 @@ export default function EntityForm({
     changeData.parentIDs = data.parentIDs;
     if (!entityId || dirtyFields.notes) changeData.notes = data.notes;
 
-    onFormSubmit && onFormSubmit(changeData);
+    onFormSubmit?.(changeData);
   }
 
   const detailElements = (

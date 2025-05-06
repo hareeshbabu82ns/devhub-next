@@ -41,8 +41,11 @@ export function useSearchParamsUpdater() {
     const queryString = new URLSearchParams( cleanedParams ).toString();
 
     // Navigate to the updated URL
-    options.navigateReplace ? router.replace( `?${queryString}` ) :
+    if (options.navigateReplace) {
+      router.replace( `?${queryString}` );
+    } else {
       router.push( `?${queryString}` );
+    }
   };
 
   return {

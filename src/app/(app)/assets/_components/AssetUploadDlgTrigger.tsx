@@ -52,7 +52,7 @@ export default function AssetSelectDlgTrigger({
           path={path}
           accept={accept}
           onSelection={(url) => {
-            onSelected && onSelected([url]);
+            onSelected?.([url]);
           }}
         />
       </DialogContent>

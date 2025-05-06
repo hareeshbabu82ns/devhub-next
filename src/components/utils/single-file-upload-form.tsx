@@ -68,7 +68,7 @@ const SingleFileUploadForm = ({
         ? URL.createObjectURL(file)
         : "/assets/file-generic.svg",
     );
-    onChangeFiles && onChangeFiles([file]);
+    onChangeFiles?.([file]);
 
     /** Reset file input */
     e.currentTarget.type = "text";
@@ -82,7 +82,7 @@ const SingleFileUploadForm = ({
     }
     setFile(null);
     setPreviewUrl(null);
-    onChangeFiles && onChangeFiles([]);
+    onChangeFiles?.([]);
   };
 
   const onUploadFile = async (e: MouseEvent<HTMLButtonElement>) => {
@@ -93,7 +93,7 @@ const SingleFileUploadForm = ({
     }
 
     try {
-      var formData = new FormData();
+      const formData = new FormData();
       formData.append("media", file);
 
       const res = await fetch("/api/upload", {
@@ -117,7 +117,7 @@ const SingleFileUploadForm = ({
         return;
       }
 
-      onUploadSuccess && (await onUploadSuccess(data.url));
+      await onUploadSuccess?.(data.url);
       toast.success("File uploaded successfully!");
       // console.log("File was uploaded successfylly:", data);
     } catch (error) {
