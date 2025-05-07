@@ -130,7 +130,6 @@ export const TEXT_SIZE_DDLB = [
   { label: "X Large", value: "xl" },
   { label: "2X Large", value: "2xl" },
   { label: "3X Large", value: "3xl" },
-  { label: "4X Large", value: "4xl" },
 ] as Option[];
 
 export const LANGUAGE_SCHEME_MAP: Record<string, string> = {

@@ -18,8 +18,8 @@ import {
 } from "./utils";
 import { cn } from "@/lib/utils";
 // import Sanscript from "@indic-transliteration/sanscript";
-import SanscriptHelpTrigger from "./SanscriptHelpTrigger";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
+import SanscriptHelpTrigger from "@/components/sanscript/SanscriptHelpTrigger";
 
 export interface WebIMEIdeProps
   extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
@@ -44,30 +44,30 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
     _fwdRef,
   ) => {
     const textSize = useTextSizeAtomValue();
-    const [lang, setLang] = useState<string>(language || "SAN");
-    const [infoOpen, setInfoOpen] = useState(false);
+    const [ lang, setLang ] = useState<string>( language || "SAN" );
+    const [ infoOpen, setInfoOpen ] = useState( false );
 
     const valuesCallbackIME = (
       text: string,
-      cb: (result: Record<string, string>[]) => void,
+      cb: ( result: Record<string, string>[] ) => void,
     ) => {
-      const transOut = transliterateText({
+      const transOut = transliterateText( {
         text,
-        toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
-      });
-      const outputItrans = transOut.map((t) => ({
+        toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[ lang ].scheme,
+      } );
+      const outputItrans = transOut.map( ( t ) => ( {
         key: text,
         value: t,
-      }));
-      cb(outputItrans);
+      } ) );
+      cb( outputItrans );
     };
 
     // const debouncedValues = useDebounceCallback(valuesCallbackIME, 500);
     const updateTextAtCursor: React.KeyboardEventHandler<
       HTMLTextAreaElement
-    > = (e) => {
-      if (e.ctrlKey && e.key === "i") {
-        setInfoOpen(true);
+    > = ( e ) => {
+      if ( e.ctrlKey && e.key === "i" ) {
+        setInfoOpen( true );
       }
       // const target = e.target as HTMLTextAreaElement;
       // if (target.selectionStart !== target.selectionEnd) return;
@@ -110,26 +110,26 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
       // }
     };
 
-    const textRef = useRef<HTMLTextAreaElement>(null);
+    const textRef = useRef<HTMLTextAreaElement>( null );
 
-    useEffect(() => {
-      if (!textRef?.current) return;
+    useEffect( () => {
+      if ( !textRef?.current ) return;
       const currentRef = textRef.current;
 
-      const ime = new WebIME({
+      const ime = new WebIME( {
         // values: debouncedValues,
         values: valuesCallbackIME,
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",
         containerClass: "bg-popover rounded-sm shadow-lg p-2 mt-4 z-50",
         itemClass: `text-${textSize} leading-loose tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
-        menuItemTemplate: (item) => (item.original as { value: string }).value,
-      });
-      ime.attach(textRef.current as never);
+        menuItemTemplate: ( item ) => ( item.original as { value: string } ).value,
+      } );
+      ime.attach( textRef.current as never );
 
-      return () => ime.detach(currentRef as never);
+      return () => ime.detach( currentRef as never );
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lang, textSize]);
+    }, [ lang, textSize ] );
 
     const languageHelper = (
       <SanscriptHelpTrigger
@@ -146,11 +146,11 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).map((l: string) => (
+            {Object.keys( LANGUAGE_TO_TRANSLITERATION_DDLB ).map( ( l: string ) => (
               <SelectItem key={l} value={l}>
-                {LANGUAGE_TO_TRANSLITERATION_DDLB[l].label}
+                {LANGUAGE_TO_TRANSLITERATION_DDLB[ l ].label}
               </SelectItem>
-            ))}
+            ) )}
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -159,7 +159,7 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
       label !== undefined || withLanguageSelector || showHelpIcon;
 
     return (
-      <div className={cn("relative flex flex-1", containerClassName)}>
+      <div className={cn( "relative flex flex-1", containerClassName )}>
         {showToolbar && (
           <div className="absolute flex flex-1 flex-row w-full justify-between p-2 px-4 border-b h-12 items-center">
             <div>{label}</div>

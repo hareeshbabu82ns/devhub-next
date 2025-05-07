@@ -29,18 +29,18 @@ export default function QuickSettingsTrigger() {
         <SheetHeader>
           <SheetTitle>Quick Settings</SheetTitle>
         </SheetHeader>
-        <div className="grid grid-cols-2 gap-4 py-4">
-          <p>Results Page Size: </p>
+        <div className="grid grid-cols-2 gap-4 py-4 pl-4">
+          <p>Results Page Size:</p>
           <QueryResultsLimitSelector />
-          <p>Text Size: </p>
+          <p>Text Size:</p>
           <TextSizeSelector />
-          <p>Language: </p>
+          <p>Language:</p>
           <LanguageSelector storageKey={LANGUAGE_SELECT_KEY} />
-          <p>Meaning Language: </p>
+          <p>Meaning Language:</p>
           <LanguageSelector storageKey={LANGUAGE_SELECT_KEY} />
-          <p>Panchangam Place: </p>
+          <p>Panchangam Place:</p>
           <PanchangamPlaceSelector />
-          <p>App Theme: </p>
+          <p>App Theme:</p>
           <ThemeModeToggle />
         </div>
       </SheetContent>

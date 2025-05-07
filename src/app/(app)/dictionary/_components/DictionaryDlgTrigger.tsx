@@ -8,10 +8,10 @@ interface DictionaryTriggerProps extends DialogProps {
   showTrigger?: boolean;
 }
 
-export default function DictionaryTrigger({
+export default function DictionaryTrigger( {
   showTrigger = true,
   ...rest
-}: DictionaryTriggerProps) {
+}: DictionaryTriggerProps ) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
@@ -21,7 +21,7 @@ export default function DictionaryTrigger({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="w-full sm:w-5/6 h-full sm:h-[95%] max-w-none flex flex-col overflow-y-auto">
+      <DialogContent className="w-full sm:w-5/6 h-full sm:h-[95%] sm:max-w-none flex flex-col overflow-y-auto">
         <DictionaryView asBrowse />
       </DialogContent>
     </Dialog>

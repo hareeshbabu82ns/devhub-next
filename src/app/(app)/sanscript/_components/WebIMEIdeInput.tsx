@@ -14,8 +14,8 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SearchIcon } from "lucide-react";
 import Sanscript from "@indic-transliteration/sanscript";
-import SanscriptHelpTrigger from "./SanscriptHelpTrigger";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
+import SanscriptHelpTrigger from "@/components/sanscript/SanscriptHelpTrigger";
 
 export interface WebIMEIdeProps extends React.ComponentProps<"input"> {
   containerClassName?: string;
@@ -100,8 +100,8 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
 
     const languageSelector = (
       <Select value={lang} onValueChange={setLang}>
-        <SelectTrigger className="border-none absolute right-1 top-1 h-8 w-[100px]">
-          <SelectValue placeholder="Query Page Size..." />
+        <SelectTrigger className="border-0 border-l-2 absolute right-0 top-0 h-8 w-[100px]">
+          <SelectValue placeholder="Input Language..." />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
