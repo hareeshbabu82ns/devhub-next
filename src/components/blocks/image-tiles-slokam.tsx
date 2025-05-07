@@ -15,13 +15,13 @@ import { useTextSizeAtomValue } from "@/hooks/use-config";
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
   model: TileModel;
-  onTileClicked?: (entity: TileModel) => void;
-  onDeleteClicked?: (entity: TileModel) => void;
-  onEditClicked?: (model: TileModel) => void;
-  onBookmarkClicked?: (model: TileModel) => void;
+  onTileClicked?: ( entity: TileModel ) => void;
+  onDeleteClicked?: ( entity: TileModel ) => void;
+  onEditClicked?: ( model: TileModel ) => void;
+  onBookmarkClicked?: ( model: TileModel ) => void;
 }
 
-export const ArtSlokamTile = ({
+export const ArtSlokamTile = ( {
   index = 0,
   model,
   className,
@@ -29,9 +29,9 @@ export const ArtSlokamTile = ({
   onDeleteClicked,
   onTileClicked,
   onBookmarkClicked,
-}: ArtSlokamTileProps) => {
+}: ArtSlokamTileProps ) => {
   const textSize = useTextSizeAtomValue();
-  const [, copyToClipboard] = useCopyToClipboard();
+  const [ , copyToClipboard ] = useCopyToClipboard();
 
   return (
     <div
@@ -41,10 +41,10 @@ export const ArtSlokamTile = ({
         model.bookmarked ? "border-success/50" : "",
         className,
       )}
-      onClick={(e) => {
-        if (onTileClicked) {
-          onTileClicked(model);
+      onClick={( e ) => {
+        if ( onTileClicked ) {
           e.stopPropagation();
+          onTileClicked( model );
         }
       }}
     >
@@ -65,16 +65,16 @@ export const ArtSlokamTile = ({
         <div
           className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
         >
-          <Markdown remarkPlugins={[remarkGfm]}>{model.title}</Markdown>
+          <Markdown remarkPlugins={[ remarkGfm ]}>{model.title}</Markdown>
         </div>
         <div className="flex items-center justify-between h-8">
           <div className="flex items-center gap-4">
             {index > 0 && (
               <SlokamDisplayDlgTrigger
                 key={model.id}
-                triggerTitle={(model.order ? model.order + 1 : index)
+                triggerTitle={( model.order ? model.order + 1 : index )
                   .toString()
-                  .padStart(3, "0")}
+                  .padStart( 3, "0" )}
                 forSlokamId={model.id}
               />
             )}
@@ -89,16 +89,16 @@ export const ArtSlokamTile = ({
               <AudioPlayPauseButton
                 url={model.audio}
                 id={model.id}
-                title={`${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
+                title={`${String( index ).padStart( 3, "0" )}-${model.parentTitle || ""}-${model.subTitle}`}
               />
             )}
             <Button
               size="icon"
               type="button"
               variant="ghost"
-              onClick={(e) => {
-                copyToClipboard(model.title);
-                toast.info("Copied to clipboard");
+              onClick={( e ) => {
+                copyToClipboard( model.title );
+                toast.info( "Copied to clipboard" );
                 e.stopPropagation();
               }}
             >
@@ -109,8 +109,8 @@ export const ArtSlokamTile = ({
                 size="icon"
                 type="button"
                 variant="ghost"
-                onClick={(e) => {
-                  onBookmarkClicked(model);
+                onClick={( e ) => {
+                  onBookmarkClicked( model );
                   e.stopPropagation();
                 }}
               >
@@ -126,8 +126,8 @@ export const ArtSlokamTile = ({
                 size="icon"
                 type="button"
                 variant="ghost"
-                onClick={(e) => {
-                  onEditClicked(model);
+                onClick={( e ) => {
+                  onEditClicked( model );
                   e.stopPropagation();
                 }}
               >
@@ -140,8 +140,8 @@ export const ArtSlokamTile = ({
                 type="button"
                 variant="ghost"
                 color="danger"
-                onClick={(e) => {
-                  onDeleteClicked(model);
+                onClick={( e ) => {
+                  onDeleteClicked( model );
                   e.stopPropagation();
                 }}
               >

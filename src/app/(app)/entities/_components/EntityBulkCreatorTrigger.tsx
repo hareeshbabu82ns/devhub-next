@@ -10,11 +10,11 @@ interface EntityBulkCreatorTriggerProps extends DialogProps {
   parentType?: EntityTypeEnum;
 }
 
-export default function EntityBulkCreatorTrigger({
+export default function EntityBulkCreatorTrigger( {
   parentId,
   parentType,
   ...rest
-}: EntityBulkCreatorTriggerProps) {
+}: EntityBulkCreatorTriggerProps ) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
@@ -22,7 +22,7 @@ export default function EntityBulkCreatorTrigger({
           <BulkCreateIcon className="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="h-full md:h-[95%] w-full md:w-5/6 max-w-none overflow-y-auto">
+      <DialogContent className="sm:w-5/6 sm:h-5/6 h-full sm:max-w-none overflow-auto">
         {/* <DialogContent className="w-full sm:w-5/6 h-full sm:h-[95%] max-w-none flex flex-col overflow-y-auto"> */}
         <EntityBulkCreator parentId={parentId} parentType={parentType} />
       </DialogContent>

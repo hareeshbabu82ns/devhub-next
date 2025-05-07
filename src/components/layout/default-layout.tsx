@@ -14,20 +14,20 @@ import PlayListTrigger from "../audio-player/PlayListTrigger";
 import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 
-const WithDefaultLayout = ({
+const WithDefaultLayout = ( {
   children,
 }: Readonly<{
   children: React.ReactNode;
-}>) => {
+}> ) => {
   const pathname = usePathname();
 
   return (
     <SidebarProvider>
-      <AppSidebar />
+      <AppSidebar variant="inset" />
       <SidebarInset>
         <TopNavBar />
         <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min">
+          <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min flex">
             {children}
           </div>
         </main>

@@ -8,7 +8,7 @@
 
 :root {
   --radius: 0.5rem;
-  --background: hsl(166 25% 90%);
+  --background: hsl(166 25% 93%);
   --foreground: hsl(166 10% 10%);
   --card: hsl(166 30% 87%);
   --card-foreground: hsl(166 30% 10%);
@@ -32,20 +32,20 @@
   --success-foreground: hsl(120 95% 95%);
   --info: hsl(60 65% 40%);
   --info-foreground: hsl(60 95% 95%);
-  --border: hsl(166 15% 80%);
+  --border: hsl(166 15% 30%);
   --input: hsl(166 15% 80%);
   --ring: hsl(166 15% 55%);
 
   /* sidebar */
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-background: hsl(166 0% 90%);
-  --sidebar-foreground: hsl(0 5.3% 26.1%);
-  --sidebar-primary: hsl(166 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(166 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(166 5.9% 10%);
-  --sidebar-border: hsl(166 13% 91%);
-  --sidebar-ring: hsl(166 91.2% 59.8%);
+  --sidebar: hsl(166 20% 87%);
+  --sidebar-background: hsl(166 20% 87%);
+  --sidebar-foreground: hsl(166 5% 20%);
+  --sidebar-primary: hsl(166 20% 50%);
+  --sidebar-primary-foreground: hsl(166 5% 10%);
+  --sidebar-accent: hsl(166 35% 80%);
+  --sidebar-accent-foreground: hsl(166 20% 20%);
+  --sidebar-border: hsl(166 15% 80%);
+  --sidebar-ring: hsl(166 15% 65%);
 
   /* charts */
   --chart-1: hsl(12 76% 61%);
@@ -89,7 +89,7 @@
   --card-foreground: hsl(166 30% 90%);
   --popover: hsl(166 30% 15%);
   --popover-foreground: hsl(166 30% 90%);
-  --primary: hsl(166 30% 60);
+  --primary: hsl(166 30% 60%);
   --primary-foreground: hsl(166 5% 10%);
   --primary-hover: hsl(166 30% 70%);
   --primary-active: hsl(166 30% 50%);
@@ -107,20 +107,20 @@
   --success-foreground: hsl(120 5% 5%);
   --info: hsl(60 35% 45%);
   --info-foreground: hsl(60 5% 5%);
-  --border: hsl(166 15% 20%);
+  --border: hsl(166 15% 40%);
   --input: hsl(166 15% 20%);
   --ring: hsl(166 15% 65%);
 
   /* sidebar */
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-background: hsl(166 15% 10%);
-  --sidebar-foreground: hsl(166 4.8% 95.9%);
-  --sidebar-primary: hsl(166 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(166 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(166 4.8% 95.9%);
-  --sidebar-border: hsl(166 3.7% 15.9%);
-  --sidebar-ring: hsl(166 91.2% 59.8%);
+  --sidebar: hsl(166 25% 5%);
+  --sidebar-background: hsl(166 25% 5%);
+  --sidebar-foreground: hsl(166 5% 90%);
+  --sidebar-primary: hsl(166 20% 50%);
+  --sidebar-primary-foreground: hsl(166 5% 90%);
+  --sidebar-accent: hsl(166 35% 20%);
+  --sidebar-accent-foreground: hsl(166 0% 90%);
+  --sidebar-border: hsl(166 15% 30%);
+  --sidebar-ring: hsl(166 15% 35%);
 
   /* charts */
   --chart-1: hsl(220 70% 50%);

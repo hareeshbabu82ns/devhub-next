@@ -17,13 +17,14 @@ export function BaseHeader() {
         <SidebarMenuButton
           size="lg"
           className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-          onClick={() => router.push("/dashboard")}
+          onClick={() => router.push( "/dashboard" )}
         >
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary/50 text-sidebar-primary-foreground">
-            <Icons.logo className="size-5" />
+            <Icons.logo className="size-6" />
           </div>
-          <div className="grid flex-1 text-left text-lg leading-5">
-            <span className="truncate font-semibold">DevHub</span>
+          <div className="grid flex-1 text-left leading-tight">
+            <span className="truncate font-semibold text-lg leading-5">DevHub</span>
+            <span className="truncate text-xs">{process.env.npm_package_version || ''}</span>
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>

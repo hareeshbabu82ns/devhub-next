@@ -9,14 +9,14 @@ interface SlokamDisplayDlgTriggerProps extends DialogProps {
   triggerTitle?: string;
   dialogTitle?: string;
   forSlokamId: string;
-  onClick?: (entity: Entity) => void | undefined;
-  onDeleteClicked?: (entity: Entity) => void | undefined;
+  onClick?: ( entity: Entity ) => void | undefined;
+  onDeleteClicked?: ( entity: Entity ) => void | undefined;
 }
-export default function SlokamDisplayDlgTrigger({
+export default function SlokamDisplayDlgTrigger( {
   triggerTitle,
   forSlokamId,
   ...rest
-}: SlokamDisplayDlgTriggerProps) {
+}: SlokamDisplayDlgTriggerProps ) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
@@ -25,12 +25,12 @@ export default function SlokamDisplayDlgTrigger({
           type="button"
           size="icon"
           className="text-muted-foreground"
-          onClick={(e) => e.stopPropagation()}
+          onClick={( e ) => e.stopPropagation()}
         >
           {triggerTitle}
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full sm:w-5/6 h-full sm:h-[95%] max-w-none flex flex-col overflow-y-auto">
+      <DialogContent className="sm:w-5/6 sm:h-5/6 h-full sm:max-w-none flex flex-col overflow-auto">
         <SlokamDetails slokamId={forSlokamId} />
       </DialogContent>
     </Dialog>

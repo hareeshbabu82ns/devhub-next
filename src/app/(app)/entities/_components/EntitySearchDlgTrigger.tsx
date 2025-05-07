@@ -13,15 +13,15 @@ import { DialogProps } from "@radix-ui/react-dialog";
 
 interface EntitySearchDlgTriggerProps extends DialogProps {
   forTypes?: EntityTypeEnum[];
-  onClick?: (entity: Entity) => void | undefined;
-  onDeleteClicked?: (entity: Entity) => void | undefined;
+  onClick?: ( entity: Entity ) => void | undefined;
+  onDeleteClicked?: ( entity: Entity ) => void | undefined;
 }
-export default function EntitySearchDlgTrigger({
+export default function EntitySearchDlgTrigger( {
   forTypes,
   onClick,
   onDeleteClicked,
   ...rest
-}: EntitySearchDlgTriggerProps) {
+}: EntitySearchDlgTriggerProps ) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
@@ -29,7 +29,7 @@ export default function EntitySearchDlgTrigger({
           <AddIcon className="w-6 h-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:w-5/6 sm:h-5/6 h-full sm:max-w-none flex flex-col">
+      <DialogContent className="sm:w-5/6 sm:h-5/6 h-full sm:max-w-none flex flex-col overflow-auto">
         <DialogHeader>
           <DialogTitle>Search Entities</DialogTitle>
         </DialogHeader>
