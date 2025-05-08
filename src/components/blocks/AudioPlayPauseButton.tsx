@@ -3,16 +3,20 @@ import { Button } from "../ui/button";
 import { useAudioPlayerContext } from "react-use-audio-player";
 import { usePlaylistAtom } from "@/hooks/use-songs";
 import { toast } from "sonner";
+import { forwardRef } from "react";
 
-export default function AudioPlayPauseButton( {
+const AudioPlayPauseButton = forwardRef<
+  HTMLButtonElement,
+  {
+    url: string;
+    id: string;
+    title: string;
+  }
+>( ( {
   url,
   title,
   id,
-}: {
-  url: string;
-  id: string;
-  title: string;
-} ) {
+}, ref ) => {
   const [ playlist, dispatch ] = usePlaylistAtom();
   const {
     isPlaying: playing,
@@ -62,6 +66,7 @@ export default function AudioPlayPauseButton( {
 
   return (
     <Button
+      ref={ref}
       type="button"
       size="icon"
       variant="ghost"
@@ -72,4 +77,8 @@ export default function AudioPlayPauseButton( {
       {isPlaying ? <PauseIcon /> : <PlayIcon />}
     </Button>
   );
-}
+} );
+
+AudioPlayPauseButton.displayName = "AudioPlayPauseButton";
+
+export default AudioPlayPauseButton;

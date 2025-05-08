@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Icons } from "@/components/utils/icons";
 import Image from "next/image";
-import { FolderIcon, FileIcon, MoreVertical } from "lucide-react";
+import { FolderIcon, FileIcon, MoreVertical, Maximize2 } from "lucide-react";
 import { FileAttributes } from "../utils";
 import { useCopyToClipboard } from "usehooks-ts";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,8 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
 const AssetFileTile = ( {
   file,
@@ -37,13 +38,52 @@ const AssetFileTile = ( {
   const [ , copyToClipboard ] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
   const [ isFocused, setIsFocused ] = useState( false );
+  const [ isFullscreen, setIsFullscreen ] = useState( false );
+  const tileRef = useRef<HTMLDivElement>( null );
+  const audioRef = useRef<HTMLButtonElement>( null );
+
+  const isImage = [ "jpg", "jpeg", "png", "svg", "webp", "gif" ].includes( file.ext.toLowerCase() );
+  const isAudio = [ "mp3", "wav", "ogg" ].includes( file.ext.toLowerCase() );
+
+  // Handle keyboard events for the tile
+  useEffect( () => {
+    if ( !isFocused ) return;
+
+    const handleKeyDown = ( e: KeyboardEvent ) => {
+      switch ( e.key ) {
+        case " ":  // Space key
+          e.preventDefault(); // Prevent scrolling
+          if ( isImage ) {
+            setIsFullscreen( true );
+          } else if ( isAudio && audioRef.current ) {
+            audioRef.current.click();
+          }
+          break;
+
+        case "Enter":
+          if ( file.isDirectory || asFileSelector ) {
+            onClick && onClick( file );
+          } else if ( isImage ) {
+            setIsFullscreen( true );
+          }
+          break;
+      }
+    };
+
+    const element = tileRef.current;
+    if ( element ) {
+      element.addEventListener( "keydown", handleKeyDown );
+      return () => element.removeEventListener( "keydown", handleKeyDown );
+    }
+  }, [ isFocused, file, isImage, isAudio, asFileSelector, onClick ] );
 
   // Audio component for both inline and dropdown use
-  const audioComponent = [ "mp3", "wav" ].includes( file.ext.toLowerCase() ) && (
+  const audioComponent = isAudio && (
     <AudioPlayPauseButton
       url={file.downloadURL}
       id={file.id}
       title={`${file.name}`}
+      ref={audioRef}
     />
   );
 
@@ -71,6 +111,11 @@ const AssetFileTile = ( {
         >
           <Icons.clipboard className="size-4 mr-1" /> Copy URL
         </DropdownMenuItem>
+        {isImage && (
+          <DropdownMenuItem onClick={() => setIsFullscreen( true )}>
+            <Maximize2 className="size-4 mr-1" /> View Fullscreen
+          </DropdownMenuItem>
+        )}
         {onDeleteFile && (
           <DeleteConfirmDlgTrigger
             onConfirm={() => onDeleteFile( file.name )}
@@ -99,7 +144,21 @@ const AssetFileTile = ( {
   // Desktop action buttons
   const desktopActions = (
     <div className="flex flex-row gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity absolute right-2 top-2 bg-background/80 rounded p-1">
-      {/* {audioComponent} */}
+      {isImage && (
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
+          onClick={( e ) => {
+            e.stopPropagation();
+            setIsFullscreen( true );
+          }}
+          title="View fullscreen"
+        >
+          <Maximize2 className="size-4" />
+        </Button>
+      )}
       <Button
         type="button"
         size="icon"
@@ -160,12 +219,13 @@ const AssetFileTile = ( {
 
   // Common props for all tile types
   const tileProps = {
+    ref: tileRef,
     tabIndex: 0,
     onFocus: () => setIsFocused( true ),
     onBlur: () => setIsFocused( false ),
     className: cn(
       "border rounded-md overflow-hidden group relative flex flex-col h-full transition-all",
-      asFileSelector || file.isDirectory ? "cursor-pointer" : "",
+      ( asFileSelector || file.isDirectory ) ? "cursor-pointer" : "",
       isFocused ? "ring-2 ring-ring" : "hover:shadow-md",
     ),
     onClick: ( asFileSelector || file.isDirectory ) ?
@@ -183,21 +243,41 @@ const AssetFileTile = ( {
     );
   }
 
-  if ( [ "jpg", "jpeg", "png", "svg", "webp" ].includes( file.ext.toLowerCase() ) ) {
+  if ( isImage ) {
     return (
-      <div {...tileProps}>
-        <div className="relative flex-1 aspect-square">
-          <Image
-            src={file.downloadURL}
-            alt={file.name}
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            className="object-cover transition-all group-hover:scale-105"
-          />
-          {fileActions}
+      <>
+        <div
+          {...tileProps}
+          onClick={( e ) => {
+            e.stopPropagation();
+            if ( asFileSelector && onClick ) {
+              onClick( file );
+            } else {
+              setIsFullscreen( true );
+            }
+          }}
+        >
+          <div className="relative flex-1 aspect-square">
+            <Image
+              src={file.downloadURL}
+              alt={file.name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+              className="object-cover transition-all group-hover:scale-105"
+            />
+            {fileActions}
+          </div>
+          {fileName}
         </div>
-        {fileName}
-      </div>
+
+        {/* Fullscreen Image Viewer */}
+        <FullscreenImageViewer
+          imageUrl={file.downloadURL}
+          alt={file.name}
+          isOpen={isFullscreen}
+          onClose={() => setIsFullscreen( false )}
+        />
+      </>
     );
   }
 
@@ -206,7 +286,7 @@ const AssetFileTile = ( {
     <div {...tileProps}>
       <div className="flex-1 flex items-center justify-center p-4 min-h-[180px] relative">
         <FileIcon className="w-16 h-16 text-muted-foreground" />
-        {[ "mp3", "wav" ].includes( file.ext.toLowerCase() ) && (
+        {isAudio && (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
             {audioComponent}
           </div>
