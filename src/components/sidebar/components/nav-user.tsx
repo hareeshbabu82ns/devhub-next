@@ -29,11 +29,13 @@ import {
 import { useSession } from "next-auth/react";
 import { avatarAltName } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useAppVersion } from "@/hooks/use-app-version";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const router = useRouter();
   const session = useSession();
+  const { version, isLoading } = useAppVersion();
 
   return (
     <SidebarMenu>
@@ -98,22 +100,22 @@ export function NavUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem>
-                <Sparkles />
-                version: {process.env.npm_package_version || ''}
+                <Sparkles className="mr-2 h-4 w-4" />
+                {isLoading ? "Loading version..." : `Version: ${version}`}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => router.push( "/settings" )}>
-                <BadgeCheck />
+                <BadgeCheck className="mr-2 h-4 w-4" />
                 Account
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <CreditCard />
+                <CreditCard className="mr-2 h-4 w-4" />
                 Billing
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <Bell />
+                <Bell className="mr-2 h-4 w-4" />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -124,7 +126,7 @@ export function NavUser() {
                 router.push( "/" );
               }}
             >
-              <LogOut />
+              <LogOut className="mr-2 h-4 w-4" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

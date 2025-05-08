@@ -4,7 +4,6 @@ const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   // swcMinify: true,
-  serverExternalPackages: ["tesseract.js", "pdf2pic"],
   eslint: {
     ignoreDuringBuilds: true,
   },
