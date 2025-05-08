@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "../ui/button";
 
-export const DeleteConfirmDlgTrigger = ({
+export const DeleteConfirmDlgTrigger = ( {
   onConfirm,
   children,
   title,
@@ -17,9 +17,9 @@ export const DeleteConfirmDlgTrigger = ({
 }: {
   onConfirm: () => void;
   children: React.ReactNode;
-  title?: string;
-  description?: string;
-}) => {
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+} ) => {
   return (
     <Dialog>
       <DialogTrigger asChild>{children}</DialogTrigger>

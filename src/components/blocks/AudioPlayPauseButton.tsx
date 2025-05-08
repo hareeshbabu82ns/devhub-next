@@ -66,6 +66,7 @@ export default function AudioPlayPauseButton( {
       size="icon"
       variant="ghost"
       aria-label={isPlaying ? "Pause" : "Play"}
+      title={isPlaying ? "Pause" : "Play"}
       onClick={() => ( isPlaying ? pause() : play() )}
     >
       {isPlaying ? <PauseIcon /> : <PlayIcon />}
