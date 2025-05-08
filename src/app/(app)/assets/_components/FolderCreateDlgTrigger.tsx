@@ -17,20 +17,20 @@ import { useState } from "react";
 interface FolderCreateDlgTriggerProps extends DialogProps {
   path?: string;
   loading?: boolean;
-  onCreate?: (name: string) => void;
+  onCreate?: ( name: string ) => void;
 }
 
-export default function FolderCreateDlgTrigger({
+export default function FolderCreateDlgTrigger( {
   path,
   loading,
   onCreate,
   ...rest
-}: FolderCreateDlgTriggerProps) {
-  const [name, setName] = useState("New Folder");
+}: FolderCreateDlgTriggerProps ) {
+  const [ name, setName ] = useState( "New Folder" );
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
-        <Button variant="ghost" type="button" size="icon" disabled={loading}>
+        <Button variant="ghost" type="button" size="icon" disabled={loading} title="Create Folder">
           <FolderCreateIcon className="size-5" />
         </Button>
       </DialogTrigger>
@@ -50,13 +50,13 @@ export default function FolderCreateDlgTrigger({
               id="name"
               type="search"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={( e ) => setName( e.target.value )}
               className="col-span-3"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" onClick={() => onCreate && onCreate(name)}>
+          <Button type="button" onClick={() => onCreate && onCreate( name )}>
             Create
           </Button>
         </DialogFooter>

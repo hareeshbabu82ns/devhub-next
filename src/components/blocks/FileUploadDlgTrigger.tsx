@@ -17,23 +17,23 @@ interface FileUploadDlgTriggerProps extends DialogProps {
   currentPath?: string;
   accept?: UploadFileType[];
   multiple?: boolean;
-  onUploaded?: (path: string[]) => void | undefined;
+  onUploaded?: ( path: string[] ) => void | undefined;
 }
-export default function FileUploadDlgTrigger({
+export default function FileUploadDlgTrigger( {
   // onUploaded,
   currentPath,
-  accept = ["image/jpeg", "image/png", "image/jpeg"],
+  accept = [ "image/jpeg", "image/png", "image/jpeg" ],
   multiple = true,
   onUploaded,
   ...rest
-}: FileUploadDlgTriggerProps) {
+}: FileUploadDlgTriggerProps ) {
   const router = useRouter();
   // const [path, setPath] = useState<string>(currentPath || "");
 
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
-        <Button variant="ghost" type="button" size="icon">
+        <Button variant="ghost" type="button" size="icon" title="Upload">
           <AddIcon className="size-5" />
         </Button>
       </DialogTrigger>
@@ -45,8 +45,8 @@ export default function FileUploadDlgTrigger({
           <MultipleFileUploadForm
             allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
-            onUploadSuccess={async (urls: string[]) => {
-              onUploaded?.(urls);
+            onUploadSuccess={async ( urls: string[] ) => {
+              onUploaded?.( urls );
               // router.refresh();
             }}
           />
@@ -54,8 +54,8 @@ export default function FileUploadDlgTrigger({
           <SingleFileUploadForm
             allowedTypes={accept}
             basePath={`/uploads/${currentPath}`}
-            onUploadSuccess={async (urls: string[]) => {
-              onUploaded?.(urls);
+            onUploadSuccess={async ( urls: string[] ) => {
+              onUploaded?.( urls );
             }}
           />
         )}

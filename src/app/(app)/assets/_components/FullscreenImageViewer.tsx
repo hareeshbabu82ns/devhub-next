@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Image from "next/image";
-import { Dialog, DialogContent, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import { X, ChevronLeft, ChevronRight, MoveIcon } from "lucide-react";
@@ -36,11 +36,15 @@ export default function FullscreenImageViewer( {
   const [ isDragging, setIsDragging ] = useState( false );
   const [ dragStart, setDragStart ] = useState( { x: 0, y: 0 } );
   const containerRef = useRef<HTMLDivElement>( null );
+  // Add animation frame ref for smoother dragging
+  const animationRef = useRef<number | null>( null );
+  const positionRef = useRef( { x: 0, y: 0 } );
 
   // Reset scale and position when image changes
   useEffect( () => {
     setScale( 1 );
     setPosition( { x: 0, y: 0 } );
+    positionRef.current = { x: 0, y: 0 };
     setIsLoading( true );
   }, [ imageUrl ] );
 
@@ -56,9 +60,12 @@ export default function FullscreenImageViewer( {
     const clientY = 'touches' in e ? e.touches[ 0 ].clientY : e.clientY;
 
     setDragStart( {
-      x: clientX - position.x,
-      y: clientY - position.y
+      x: clientX - positionRef.current.x,
+      y: clientY - positionRef.current.y
     } );
+
+    // Prevent default behaviors that might interfere with dragging
+    e.preventDefault();
   };
 
   const handleMouseMove = ( e: MouseEvent | TouchEvent ) => {
@@ -69,21 +76,41 @@ export default function FullscreenImageViewer( {
     const clientY = 'touches' in e ? e.touches[ 0 ].clientY : e.clientY;
 
     // Calculate new position
-    setPosition( {
+    const newPosition = {
       x: clientX - dragStart.x,
       y: clientY - dragStart.y
-    } );
+    };
+
+    // Update position ref immediately for smooth tracking
+    positionRef.current = newPosition;
+
+    // Use requestAnimationFrame for smoother updates
+    if ( animationRef.current === null ) {
+      animationRef.current = requestAnimationFrame( () => {
+        setPosition( newPosition );
+        animationRef.current = null;
+      } );
+    }
+
+    // Prevent default behaviors
+    e.preventDefault();
   };
 
   const handleMouseUp = () => {
     setIsDragging( false );
+    if ( animationRef.current ) {
+      cancelAnimationFrame( animationRef.current );
+      animationRef.current = null;
+    }
   };
 
   // Add event listeners for drag operations
   useEffect( () => {
-    window.addEventListener( 'mousemove', handleMouseMove );
+    const options = { passive: false }; // Improve touch performance
+
+    window.addEventListener( 'mousemove', handleMouseMove, options );
     window.addEventListener( 'mouseup', handleMouseUp );
-    window.addEventListener( 'touchmove', handleMouseMove );
+    window.addEventListener( 'touchmove', handleMouseMove, options );
     window.addEventListener( 'touchend', handleMouseUp );
 
     return () => {
@@ -91,6 +118,11 @@ export default function FullscreenImageViewer( {
       window.removeEventListener( 'mouseup', handleMouseUp );
       window.removeEventListener( 'touchmove', handleMouseMove );
       window.removeEventListener( 'touchend', handleMouseUp );
+
+      // Clean up any pending animation frames
+      if ( animationRef.current ) {
+        cancelAnimationFrame( animationRef.current );
+      }
     };
   }, [ isDragging, dragStart ] );
 
@@ -229,10 +261,12 @@ export default function FullscreenImageViewer( {
           <div className="absolute inset-0 flex items-center justify-center overflow-hidden" ref={containerRef}>
             <div
               style={{
-                transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
-                cursor: scale > 1 ? ( isDragging ? 'grabbing' : 'grab' ) : 'default'
+                transform: `scale(${scale}) translate3d(${position.x / scale}px, ${position.y / scale}px, 0)`,
+                cursor: scale > 1 ? ( isDragging ? 'grabbing' : 'grab' ) : 'default',
+                willChange: isDragging ? 'transform' : 'auto',
+                transition: isDragging ? 'none' : 'transform 200ms ease-out'
               }}
-              className="transition-transform duration-200 origin-center"
+              className="origin-center"
               onMouseDown={handleMouseDown}
               onTouchStart={handleMouseDown}
             >
@@ -244,7 +278,8 @@ export default function FullscreenImageViewer( {
                 quality={100}
                 className={cn(
                   "max-h-[85vh] max-w-[85vw] object-contain transition-opacity duration-300 select-none",
-                  isLoading ? "opacity-0" : "opacity-100"
+                  isLoading ? "opacity-0" : "opacity-100",
+                  "will-change-transform"
                 )}
                 onLoad={() => setIsLoading( false )}
                 priority

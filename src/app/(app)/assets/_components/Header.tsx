@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { Icons } from "@/components/utils/icons";
 import { UploadFileType } from "@/types";
 
-const Header = ({
+const Header = ( {
   path,
   accept,
   asSelector = false,
@@ -31,40 +31,40 @@ const Header = ({
   path: string;
   accept?: UploadFileType[];
   asSelector?: boolean;
-  onDeleted?: (path: string) => void;
+  onDeleted?: ( path: string ) => void;
   refresh?: () => void;
-  onPathChange?: (path: string) => void;
-}) => {
+  onPathChange?: ( path: string ) => void;
+} ) => {
   const router = useRouter();
-  const paths = path.split("/").filter(Boolean);
+  const paths = path.split( "/" ).filter( Boolean );
 
-  const [openCreateDlg, setOpenCreateDlg] = useState(false);
+  const [ openCreateDlg, setOpenCreateDlg ] = useState( false );
 
   const { mutate: createFolderFn, isPending: loadingCreateFolder } =
-    useMutation({
-      mutationKey: ["createFolder", path],
-      mutationFn: async (params: { name: string }) => {
-        await createFolder(`${path}/${params.name}`);
+    useMutation( {
+      mutationKey: [ "createFolder", path ],
+      mutationFn: async ( params: { name: string } ) => {
+        await createFolder( `${path}/${params.name}` );
       },
-    });
+    } );
 
   const { mutate: deleteFolderFn, isPending: loadingDeleteFolder } =
-    useMutation({
-      mutationKey: ["deleteFolder", path],
-      mutationFn: async (params: { name: string }) => {
+    useMutation( {
+      mutationKey: [ "deleteFolder", path ],
+      mutationFn: async ( params: { name: string } ) => {
         await deleteFolder(
           params.name === path ? path : `${path}/${params.name}`,
         );
       },
-    });
+    } );
 
-  const onCreateFolder = async (name: string) => {
+  const onCreateFolder = async ( name: string ) => {
     createFolderFn(
       { name },
       {
         onSuccess: () => {
-          setOpenCreateDlg(false);
-          if (asSelector) refresh?.(); else router.refresh();
+          setOpenCreateDlg( false );
+          if ( asSelector ) refresh?.(); else router.refresh();
         },
       },
     );
@@ -75,13 +75,13 @@ const Header = ({
       { name: path },
       {
         onSuccess: () => {
-          if (asSelector) {
+          if ( asSelector ) {
             onDeleted?.(
-                `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
-              );
+              `/assets/${paths.slice( 0, paths.length - 1 ).join( "/" )}`,
+            );
           } else {
             router.replace(
-              `/assets/${paths.slice(0, paths.length - 1).join("/")}`,
+              `/assets/${paths.slice( 0, paths.length - 1 ).join( "/" )}`,
             );
           }
         },
@@ -116,6 +116,7 @@ const Header = ({
               type="button"
               size="icon"
               disabled={loadingDeleteFolder}
+              title="Delete Folder"
             >
               <FolderDeleteIcon className="size-5" />
             </Button>
@@ -125,7 +126,8 @@ const Header = ({
           variant="ghost"
           type="button"
           size="icon"
-          onClick={() => (asSelector ? refresh && refresh() : router.refresh())}
+          title="Refresh"
+          onClick={() => ( asSelector ? refresh && refresh() : router.refresh() )}
         >
           <Icons.refresh className="size-5" />
         </Button>
@@ -134,14 +136,14 @@ const Header = ({
   );
 };
 
-const PathNavigator = ({
+const PathNavigator = ( {
   path,
   onLinkClicked,
 }: {
   path: string;
-  onLinkClicked?: (path: string) => void;
-}) => {
-  const paths = path.split("/").filter(Boolean);
+  onLinkClicked?: ( path: string ) => void;
+} ) => {
+  const paths = path.split( "/" ).filter( Boolean );
 
   return (
     <nav className="flex items-center space-x-2">
@@ -152,14 +154,14 @@ const PathNavigator = ({
               <p className="font-bold text-secondary">Root</p>
             ) : (
               <BreadcrumbLink
-                onClick={onLinkClicked ? () => onLinkClicked(`/`) : undefined}
+                onClick={onLinkClicked ? () => onLinkClicked( `/` ) : undefined}
                 href={onLinkClicked ? undefined : `/assets`}
               >
                 Root
               </BreadcrumbLink>
             )}
           </BreadcrumbItem>
-          {paths.map((path, index) => (
+          {paths.map( ( path, index ) => (
             <Fragment key={index}>
               <BreadcrumbSeparator>
                 <Slash />
@@ -172,15 +174,15 @@ const PathNavigator = ({
                     onClick={
                       onLinkClicked
                         ? () =>
-                            onLinkClicked(
-                              `/${paths.slice(0, index + 1).join("/")}`,
-                            )
+                          onLinkClicked(
+                            `/${paths.slice( 0, index + 1 ).join( "/" )}`,
+                          )
                         : undefined
                     }
                     href={
                       onLinkClicked
                         ? undefined
-                        : `/assets/${paths.slice(0, index + 1).join("/")}`
+                        : `/assets/${paths.slice( 0, index + 1 ).join( "/" )}`
                     }
                   >
                     {path}
@@ -188,7 +190,7 @@ const PathNavigator = ({
                 )}
               </BreadcrumbItem>
             </Fragment>
-          ))}
+          ) )}
         </BreadcrumbList>
       </Breadcrumb>
     </nav>

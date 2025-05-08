@@ -20,13 +20,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useEffect, useRef, useState } from "react";
-import FullscreenImageViewer from "./FullscreenImageViewer";
 
 const AssetFileTile = ( {
   file,
   path,
   onDeleteFile,
   onClick,
+  onOpenFullscreen,
   asFileSelector = false,
 }: {
   path: string;
@@ -34,11 +34,11 @@ const AssetFileTile = ( {
   asFileSelector?: boolean;
   onDeleteFile?: ( path: string ) => void;
   onClick?: ( file: FileAttributes ) => void;
+  onOpenFullscreen?: () => void;
 } ) => {
   const [ , copyToClipboard ] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
   const [ isFocused, setIsFocused ] = useState( false );
-  const [ isFullscreen, setIsFullscreen ] = useState( false );
   const tileRef = useRef<HTMLDivElement>( null );
   const audioRef = useRef<HTMLButtonElement>( null );
 
@@ -53,8 +53,8 @@ const AssetFileTile = ( {
       switch ( e.key ) {
         case " ":  // Space key
           e.preventDefault(); // Prevent scrolling
-          if ( isImage ) {
-            setIsFullscreen( true );
+          if ( isImage && onOpenFullscreen ) {
+            onOpenFullscreen();
           } else if ( isAudio && audioRef.current ) {
             audioRef.current.click();
           }
@@ -63,8 +63,8 @@ const AssetFileTile = ( {
         case "Enter":
           if ( file.isDirectory || asFileSelector ) {
             onClick && onClick( file );
-          } else if ( isImage ) {
-            setIsFullscreen( true );
+          } else if ( isImage && onOpenFullscreen ) {
+            onOpenFullscreen();
           }
           break;
       }
@@ -75,7 +75,7 @@ const AssetFileTile = ( {
       element.addEventListener( "keydown", handleKeyDown );
       return () => element.removeEventListener( "keydown", handleKeyDown );
     }
-  }, [ isFocused, file, isImage, isAudio, asFileSelector, onClick ] );
+  }, [ isFocused, file, isImage, isAudio, asFileSelector, onClick, onOpenFullscreen ] );
 
   // Audio component for both inline and dropdown use
   const audioComponent = isAudio && (
@@ -95,7 +95,7 @@ const AssetFileTile = ( {
           type="button"
           size="icon"
           variant="ghost"
-          className="h-8 w-8"
+          className="h-8 w-8 bg-background/80"
           onClick={( e ) => e.stopPropagation()}
         >
           <MoreVertical className="size-4" />
@@ -111,8 +111,8 @@ const AssetFileTile = ( {
         >
           <Icons.clipboard className="size-4 mr-1" /> Copy URL
         </DropdownMenuItem>
-        {isImage && (
-          <DropdownMenuItem onClick={() => setIsFullscreen( true )}>
+        {isImage && onOpenFullscreen && (
+          <DropdownMenuItem onClick={onOpenFullscreen}>
             <Maximize2 className="size-4 mr-1" /> View Fullscreen
           </DropdownMenuItem>
         )}
@@ -144,21 +144,6 @@ const AssetFileTile = ( {
   // Desktop action buttons
   const desktopActions = (
     <div className="flex flex-row gap-1 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity absolute right-2 top-2 bg-background/80 rounded p-1">
-      {isImage && (
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={( e ) => {
-            e.stopPropagation();
-            setIsFullscreen( true );
-          }}
-          title="View fullscreen"
-        >
-          <Maximize2 className="size-4" />
-        </Button>
-      )}
       <Button
         type="button"
         size="icon"
@@ -192,7 +177,7 @@ const AssetFileTile = ( {
             onClick={( e ) => e.stopPropagation()}
             title="Delete Asset"
           >
-            <Icons.trash className="size-4" />
+            <Icons.trash className="size-4 text-destructive" />
           </Button>
         </DeleteConfirmDlgTrigger>
       )}
@@ -245,39 +230,29 @@ const AssetFileTile = ( {
 
   if ( isImage ) {
     return (
-      <>
-        <div
-          {...tileProps}
-          onClick={( e ) => {
-            e.stopPropagation();
-            if ( asFileSelector && onClick ) {
-              onClick( file );
-            } else {
-              setIsFullscreen( true );
-            }
-          }}
-        >
-          <div className="relative flex-1 aspect-square">
-            <Image
-              src={file.downloadURL}
-              alt={file.name}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover transition-all group-hover:scale-105"
-            />
-            {fileActions}
-          </div>
-          {fileName}
+      <div
+        {...tileProps}
+        onClick={( e ) => {
+          e.stopPropagation();
+          if ( asFileSelector && onClick ) {
+            onClick( file );
+          } else if ( onOpenFullscreen ) {
+            onOpenFullscreen();
+          }
+        }}
+      >
+        <div className="relative flex-1 aspect-square">
+          <Image
+            src={file.downloadURL}
+            alt={file.name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-all group-hover:scale-105"
+          />
+          {fileActions}
         </div>
-
-        {/* Fullscreen Image Viewer */}
-        <FullscreenImageViewer
-          imageUrl={file.downloadURL}
-          alt={file.name}
-          isOpen={isFullscreen}
-          onClose={() => setIsFullscreen( false )}
-        />
-      </>
+        {fileName}
+      </div>
     );
   }
 

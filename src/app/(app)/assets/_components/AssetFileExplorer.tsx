@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useDebounce } from "@/hooks/use-debounce";
 import AssetSearchInput from "./AssetSearchInput";
-
+import FullscreenImageViewer from "./FullscreenImageViewer";
 
 const AssetFileExplorer = ( { path }: { path: string } ) => {
   const router = useRouter();
@@ -38,6 +38,10 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
   // Pagination state
   const [ currentPage, setCurrentPage ] = useState( 1 );
   const [ itemsPerPage, setItemsPerPage ] = useState( 12 );
+
+  // Fullscreen image viewer state
+  const [ isImageViewerOpen, setIsImageViewerOpen ] = useState( false );
+  const [ activeImageIndex, setActiveImageIndex ] = useState<number>( -1 );
 
   // Responsive grid adjustments
   const isMobile = useMediaQuery( "(max-width: 640px)" );
@@ -108,6 +112,44 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
     }
   }, [ data, debouncedSearchQuery, useRegex ] );
 
+  // Filter only images for the image viewer
+  const imageAssets = useMemo( () => {
+    if ( !filteredAssets ) return [];
+    return filteredAssets.filter( file =>
+      !file.isDirectory &&
+      [ 'jpg', 'jpeg', 'png', 'svg', 'webp', 'gif' ].includes( file.ext.toLowerCase() )
+    );
+  }, [ filteredAssets ] );
+
+  // Image viewer handlers
+  const openImageViewer = ( fileIndex: number ) => {
+    // Find the actual index in the imageAssets array
+    const imageIndex = imageAssets.findIndex( img =>
+      img.name === filteredAssets[ fileIndex ].name
+    );
+
+    if ( imageIndex !== -1 ) {
+      setActiveImageIndex( imageIndex );
+      setIsImageViewerOpen( true );
+    }
+  };
+
+  const handlePreviousImage = () => {
+    if ( activeImageIndex > 0 ) {
+      setActiveImageIndex( activeImageIndex - 1 );
+    }
+  };
+
+  const handleNextImage = () => {
+    if ( activeImageIndex < imageAssets.length - 1 ) {
+      setActiveImageIndex( activeImageIndex + 1 );
+    }
+  };
+
+  const handleCloseImageViewer = () => {
+    setIsImageViewerOpen( false );
+  };
+
   if ( isFetching || isPending ) return <Loader />;
   if ( error ) return <SimpleAlert title={error.message} />;
 
@@ -145,6 +187,11 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
   // Generate page options for dropdown
   const pageOptions = Array.from( { length: totalPages }, ( _, i ) => i + 1 );
 
+  // Determine active image information for the fullscreen viewer
+  const activeImage = activeImageIndex >= 0 && activeImageIndex < imageAssets.length
+    ? imageAssets[ activeImageIndex ]
+    : null;
+
   return (
     <div className="space-y-6">
       {/* Search component */}
@@ -166,16 +213,31 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
         </div>
       ) : totalItems > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3 md:gap-4">
-          {currentItems.map( ( file ) => (
+          {currentItems.map( ( file, index ) => (
             <AssetFileTile
               key={file.name}
               file={file}
               path={currentPath}
               onDeleteFile={onDeleteFile}
               onClick={onClick}
+              onOpenFullscreen={() => openImageViewer( startIndex + index )}
             />
           ) )}
         </div>
+      )}
+
+      {/* Fullscreen Image Viewer */}
+      {activeImage && (
+        <FullscreenImageViewer
+          imageUrl={activeImage.downloadURL}
+          alt={activeImage.name}
+          isOpen={isImageViewerOpen}
+          onClose={handleCloseImageViewer}
+          onNext={handleNextImage}
+          onPrevious={handlePreviousImage}
+          hasNext={activeImageIndex < imageAssets.length - 1}
+          hasPrevious={activeImageIndex > 0}
+        />
       )}
 
       {totalPages > 1 && (
