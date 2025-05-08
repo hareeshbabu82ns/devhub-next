@@ -25,11 +25,13 @@ const data = {
     {
       title: "Gods",
       path: "/entities?type=GOD&offset=0",
+      activeSearchParams: { type: "GOD" },
       icon: <Icons.god className="size-4 stroke-2 text-inherit" />,
     },
     {
       title: "Authors",
       path: "/entities?type=AUTHOR&offset=0",
+      activeSearchParams: { type: "AUTHOR" },
       icon: <Icons.artist className="size-4 stroke-2 text-inherit" />,
     },
     {
@@ -51,10 +53,12 @@ const data = {
         {
           title: "Editor",
           path: "/sanscript?tab=editor",
+          activeSearchParams: { tab: "editor" }
         },
         {
           title: "Converter",
           path: "/sanscript?tab=transConv",
+          activeSearchParams: { tab: "transConv" }
         },
       ],
     },
