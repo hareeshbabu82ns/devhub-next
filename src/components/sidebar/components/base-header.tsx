@@ -24,7 +24,6 @@ export function BaseHeader() {
           </div>
           <div className="grid flex-1 text-left leading-tight">
             <span className="truncate font-semibold text-lg leading-5">DevHub</span>
-            <span className="truncate text-xs">{process.env.npm_package_version || ''}</span>
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>

@@ -50,7 +50,7 @@ export function NavUser() {
                   alt={session?.data?.user.name || ""}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {avatarAltName(session?.data?.user.name || "")}
+                  {avatarAltName( session?.data?.user.name || "" )}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -80,7 +80,7 @@ export function NavUser() {
                     alt={session?.data?.user.name || ""}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {avatarAltName(session?.data?.user.name || "")}
+                    {avatarAltName( session?.data?.user.name || "" )}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
@@ -99,12 +99,12 @@ export function NavUser() {
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                Upgrade to Pro
+                version: {process.env.npm_package_version || ''}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <DropdownMenuItem onClick={() => router.push( "/settings" )}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
@@ -121,7 +121,7 @@ export function NavUser() {
             <DropdownMenuItem
               onClick={async () => {
                 await signOut();
-                router.push("/");
+                router.push( "/" );
               }}
             >
               <LogOut />

@@ -1,3 +1,5 @@
+import { saveAs } from "file-saver";
+import { fetchEntityHierarchy, uploadEntityWithChildren } from "./actions";
 import { ENTITY_DEFAULT_IMAGE_THUMBNAIL, LANGUAGES } from "@/lib/constants";
 import {
   Entity,
@@ -111,3 +113,55 @@ export const mapDbToEntity = (e: any, language: string, meaning?: string) => {
   );
   return item;
 };
+
+export async function downloadEntityHierarchy(entityId: string) {
+  try {
+    const hierarchy = await fetchEntityHierarchy(entityId);
+
+    if (!hierarchy) {
+      throw new Error("Entity not found");
+    }
+
+    const blob = new Blob([JSON.stringify(hierarchy, null, 2)], {
+      type: "application/json",
+    });
+
+    saveAs(blob, `entity_${entityId}_hierarchy.json`);
+  } catch (error) {
+    console.error("Failed to download entity hierarchy:", error);
+  }
+}
+
+async function processEntityFile(file: File, parentId: string | null = null) {
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data || !data.type) {
+      throw new Error("Invalid file format");
+    }
+    await uploadEntityWithChildren(data, parentId);
+    console.log("Entities created successfully");
+  } catch (error) {
+    console.error("Failed to process entity file:", error);
+  }
+}
+
+export async function handleEntityFileUpload(
+  e: React.ChangeEvent<HTMLInputElement>,
+  parentId: string | null = null,
+) {
+  if (!e.target.files) return;
+  if (e.target.files.length === 0) return;
+  if (e.target.files.length > 1) {
+    console.error("Please upload only one file");
+    return;
+  }
+  if (e.target.files[0].type !== "application/json") {
+    console.error("Please upload a JSON file");
+    return;
+  }
+  const file = e.target.files[0];
+  if (file) {
+    await processEntityFile(file, parentId);
+  }
+}

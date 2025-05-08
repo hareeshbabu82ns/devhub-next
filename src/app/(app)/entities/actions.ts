@@ -16,7 +16,10 @@ import { Prisma, Entity } from "@prisma/client";
 import { EntityTypeEnum, EntityWithRelations } from "@/lib/types";
 import { transliteratedText } from "../sanscript/_components/utils";
 import { mapDbToEntity } from "./utils";
-import { LANGUAGE_SELECT_DEFAULT } from "@/lib/constants";
+import {
+  ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+  LANGUAGE_SELECT_DEFAULT,
+} from "@/lib/constants";
 
 export const fetchAudioLinksIncludingChildren = async ({
   id,
@@ -121,6 +124,26 @@ export const bookmarkEntity = async (
   return res;
 };
 
+const deleteChildrenRecursively = async (
+  children: Entity["id"][],
+  txn: Prisma.TransactionClient,
+): Promise<void> => {
+  const childrens = await txn.entity.findMany({
+    where: { id: { in: children } },
+    select: { id: true, children: true },
+  });
+  if (childrens.length > 0) {
+    for (const child of childrens) {
+      if (child.children && child.children.length) {
+        await deleteChildrenRecursively(child.children, txn);
+      }
+    }
+    await txn.entity.deleteMany({
+      where: { id: { in: childrens.map((c) => c.id) } },
+    });
+  }
+};
+
 export const deleteEntity = async (
   id: Entity["id"],
   cascadingChildren: boolean = false,
@@ -130,16 +153,38 @@ export const deleteEntity = async (
     throw new Error("Unauthorized");
   }
 
-  const res = await db.$transaction(async (txn) => {
-    const entity = await txn.entity.delete({ where: { id } });
+  const res = await db.$transaction(
+    async (txn) => {
+      const entity = await txn.entity.delete({ where: { id } });
 
-    if (cascadingChildren && entity.children) {
-      await txn.entity.deleteMany({
-        where: { parents: { has: id } },
-      });
-    }
-    return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
-  });
+      if (cascadingChildren && entity.children && entity.children.length) {
+        await deleteChildrenRecursively(entity.children, txn);
+      }
+      if (entity.parents) {
+        // remove this entity from all parents
+        for (const parentId of entity.parents) {
+          // read parent entity
+          const parent = await txn.entity.findUnique({
+            where: { id: parentId },
+            select: { children: true },
+          });
+          // remove this entity from parent's children
+          if (parent) {
+            await txn.entity.update({
+              where: { id: parentId },
+              data: {
+                children: {
+                  set: parent.children.filter((c) => c !== entity.id),
+                },
+              },
+            });
+          }
+        }
+      }
+      return entity ? mapDbToEntity(entity, LANGUAGE_SELECT_DEFAULT) : entity;
+    },
+    { timeout: 20000 },
+  );
 
   return res;
 };
@@ -383,3 +428,160 @@ export const fetchEntities = async ({
   const results = entities.map((e) => mapDbToEntity(e, language));
   return { results, total: entitiesCount };
 };
+
+export async function uploadEntityWithChildren(
+  entityId: string,
+  parentId: string | null = null,
+): Promise<any | null> {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  return await uploadEntityWithChildrenInternal(entityId, parentId);
+}
+
+export async function uploadEntityWithChildrenInternal(
+  entity: any,
+  parentId: string | null = null,
+) {
+  const { children, ...entityData } = entity;
+
+  const createEntityData = {
+    ...entityData,
+    parents: parentId ? [parentId] : [],
+  };
+
+  const response = await db.entity.create({
+    data: createEntityData,
+    select: { id: true },
+  });
+
+  if (!response) return null;
+
+  const entityId = response.id;
+  if (parentId) {
+    await db.entity.update({
+      where: { id: parentId },
+      data: {
+        children: {
+          push: entityId,
+        },
+      },
+    });
+  }
+
+  // children with children - create individual entities and update parent
+  const childrenWithChildren = children?.filter(
+    (c: any) => c.children && c.children.length > 0,
+  );
+
+  const childrenWithChildrenIds: string[] = [];
+  for (const child of childrenWithChildren) {
+    const childResponse = await uploadEntityWithChildrenInternal(
+      child,
+      entityId,
+    );
+    if (childResponse) {
+      childrenWithChildrenIds.push(childResponse.id);
+    }
+  }
+
+  // children without children - create all children and update parent
+  const childrenWithoutChildren = children?.filter(
+    (c: any) => !c.children || c.children.length === 0,
+  );
+
+  const childrenWithoutChildrenIds: string[] = [];
+  if (childrenWithoutChildren?.length) {
+    const childrenData = childrenWithoutChildren.map((c: any) => {
+      const { children, ...childData } = c;
+      return {
+        ...childData,
+        parents: [entityId],
+      };
+    });
+    const childResponse = await db.entity.createMany({
+      data: childrenData,
+    });
+    if (childResponse && childResponse.count > 0) {
+      const childIds = await db.entity.findMany({
+        where: { parents: { has: entityId } },
+        select: { id: true },
+      });
+      childrenWithoutChildrenIds.push(...childIds.map((c) => c.id));
+    }
+  }
+  if (childrenWithoutChildrenIds.length > 0) {
+    await db.entity.update({
+      where: { id: entityId },
+      data: {
+        children: {
+          push: [...childrenWithoutChildrenIds],
+        },
+      },
+    });
+  }
+  return response;
+}
+
+export async function fetchEntityHierarchy(
+  entityId: string,
+): Promise<any | null> {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  return await fetchEntityHierarchyInternal(entityId);
+}
+
+export async function fetchEntityHierarchyInternal(
+  entityId: string,
+): Promise<any | null> {
+  const entity = await db.entity.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity) return null;
+
+  // read children
+  const children =
+    entity.children && entity.children.length
+      ? await db.entity.findMany({
+          where: { id: { in: [...entity.children] } },
+        })
+      : [];
+
+  const mappedChildren = children.filter(Boolean).map(mapEntityToDownloadData);
+  const finalChildren = [];
+  for (const child of mappedChildren) {
+    if (child.children && child.children.length) {
+      const childChildren = await Promise.all(
+        child.children.map((childId) => fetchEntityHierarchyInternal(childId)),
+      );
+      if (childChildren) {
+        child.children = childChildren.filter(Boolean);
+      }
+    }
+    finalChildren.push(child);
+  }
+
+  return {
+    ...mapEntityToDownloadData(entity),
+    children: finalChildren,
+  };
+}
+
+function mapEntityToDownloadData(entity: Entity) {
+  return {
+    type: entity.type,
+    imageThumbnail: entity.imageThumbnail || ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+    audio: entity.audio || "",
+    order: entity.order,
+    attributes: entity.attributes,
+    meaning: entity.meaning,
+    text: entity.text,
+    notes: entity.notes,
+    bookmarked: entity.bookmarked,
+    children: entity.children,
+  };
+}
