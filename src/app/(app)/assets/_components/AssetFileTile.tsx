@@ -190,7 +190,7 @@ const AssetFileTile = ( {
   ) : desktopActions;
 
   const fileName = (
-    <div className="w-full truncate text-sm font-medium text-center p-2 bg-muted/30">
+    <div className="w-full truncate text-sm font-medium text-center p-2 bg-muted/50">
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="truncate block">{file.name}</span>

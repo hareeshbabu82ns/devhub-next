@@ -9,7 +9,7 @@ import { ENTITY_TYPES_CHILDREN } from "@/lib/constants";
 import { Entity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
-import EntityBulkCreatorTrigger from "../_components/EntityBulkCreatorTrigger";
+// import EntityBulkCreatorTrigger from "../_components/EntityBulkCreatorTrigger";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { TileModel } from "@/types/entities";
@@ -81,6 +81,7 @@ const Page = () => {
         size="icon"
         type="button"
         variant="outline"
+        title="Create Entity"
         onClick={() => router.push( `/entities/new?parent=${entityId}` )}
       >
         <Icons.add className="size-4" />
@@ -89,6 +90,7 @@ const Page = () => {
         size="icon"
         type="button"
         variant="outline"
+        title="Download Entity with Children"
         onClick={() => {
           toast.promise( downloadEntityHierarchy( entityId ), {
             success: "Entity downloaded successfully!",
@@ -103,6 +105,7 @@ const Page = () => {
         size="icon"
         type="button"
         variant="outline"
+        title="Upload Entity"
         onClick={() => document?.getElementById( 'upload-entity-file' )?.click()}
       >
         <Icons.upload className="size-4" />

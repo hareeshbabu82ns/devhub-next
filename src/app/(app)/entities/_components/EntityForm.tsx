@@ -126,7 +126,7 @@ export default function EntityForm( {
   }
 
   const detailElements = (
-    <div className="flex flex-1 flex-col gap-6">
+    <div className="flex md:flex-2 lg:flex-3 flex-col gap-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Type */}
         <FormSelect
@@ -209,7 +209,7 @@ export default function EntityForm( {
   );
 
   const artTile = (
-    <div className="max-w-sm mx-auto">
+    <div className="md:flex-1 max-w-80 md:max-w-none p-1">
       <ArtTile
         model={{
           id: "",
