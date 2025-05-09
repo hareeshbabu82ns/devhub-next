@@ -26,6 +26,8 @@ import {
   useQueryLimitAtomValue,
   useTextSizeAtomValue,
 } from "@/hooks/use-config";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -33,6 +35,7 @@ interface DictionaryResultsProps {
 
 export function DictionaryResults( { asBrowse }: DictionaryResultsProps ) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
+  const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
 
   const localOrigins =
     useReadLocalStorage<string[]>( DICTIONARY_ORIGINS_SELECT_KEY ) || [];
@@ -125,7 +128,7 @@ export function DictionaryResults( { asBrowse }: DictionaryResultsProps ) {
           {data.results.map( ( item ) => (
             <div
               key={item.id}
-              className="border rounded-sm p-4 flex flex-col transition-colors hover:bg-muted/50"
+              className="group border rounded-sm p-4 flex flex-col transition-colors hover:bg-muted/50"
             >
               <div className={`pb-4 h-12 flex justify-between items-center`}>
                 <div
@@ -136,7 +139,13 @@ export function DictionaryResults( { asBrowse }: DictionaryResultsProps ) {
                     {item.origin}
                   </h4>
                 </div>
-                <MoreActions item={item} asBrowse={asBrowse} />
+                <MoreActions
+                  item={item}
+                  asBrowse={asBrowse}
+                  className={cn(
+                    isTouchDevice ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                  )}
+                />
               </div>
               <div
                 className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar markdown-content`}
@@ -168,13 +177,15 @@ export function DictionaryResults( { asBrowse }: DictionaryResultsProps ) {
 const MoreActions = ( {
   item,
   asBrowse,
+  className,
 }: {
   item: Partial<DictionaryItem>;
   asBrowse?: boolean;
+  className?: string;
 } ) => {
   const router = useRouter();
   return (
-    <div className="flex">
+    <div className={cn( "flex", className )}>
       <Button
         variant="ghost"
         size="icon"

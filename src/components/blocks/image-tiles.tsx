@@ -44,7 +44,7 @@ export const ArtTile = ( {
   const actions = [
     onEditClicked && {
       id: 'edit',
-      icon: <EditIcon size={16} className="text-white" />,
+      icon: <EditIcon className="size-4" />,
       label: 'Edit',
       handler: ( e: React.MouseEvent ) => {
         onEditClicked( model );
@@ -54,7 +54,7 @@ export const ArtTile = ( {
     },
     onBookmarkClicked && {
       id: 'bookmark',
-      icon: <BookmarkIcon size={16} className="text-white" />,
+      icon: <BookmarkIcon className="size-4" />,
       label: 'Bookmark',
       handler: ( e: React.MouseEvent ) => {
         onBookmarkClicked( model );
@@ -64,7 +64,7 @@ export const ArtTile = ( {
     },
     onShareClicked && {
       id: 'share',
-      icon: <ShareIcon size={16} className="text-white" />,
+      icon: <ShareIcon className="size-4" />,
       label: 'Share',
       handler: ( e: React.MouseEvent ) => {
         onShareClicked( model );
@@ -74,7 +74,7 @@ export const ArtTile = ( {
     },
     onDeleteClicked && {
       id: 'delete',
-      icon: <DeleteIcon size={16} className="text-white" />,
+      icon: <DeleteIcon className="size-4" />,
       label: 'Delete',
       handler: ( e: React.MouseEvent ) => {
         onDeleteClicked( model );
@@ -90,6 +90,64 @@ export const ArtTile = ( {
   const shouldShowMoreDropdown = actions.length > 2;
   const visibleActions = shouldShowMoreDropdown ? actions.slice( 0, 2 ) : actions;
   const overflowActions = shouldShowMoreDropdown ? actions.slice( 2 ) : [];
+
+  /* Action buttons - Positioned in the top-right corner */
+  const actionButtons = actions.length > 0 && (
+    <div className={cn(
+      "flex gap-1 transition-opacity",
+      // Show buttons by default on touch devices, otherwise only on hover/focus
+      isTouchDevice
+        ? "opacity-100"
+        : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+    )}>
+      {/* Show direct action buttons on all devices (both mobile and desktop) */}
+      {visibleActions.map( ( action ) => (
+        <Button
+          key={action?.id}
+          size="icon"
+          variant="ghost"
+          title={action?.label}
+          className={cn(
+            "size-6 text-primary",
+            action?.destructive && "text-destructive"
+          )}
+          onClick={action?.handler}
+          aria-label={action?.ariaLabel}
+        >
+          {action?.icon}
+        </Button>
+      ) )}
+
+      {/* Only show more dropdown if there are more than 2 actions */}
+      {shouldShowMoreDropdown && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-6 text-primary opacity-70 hover:opacity-100"
+              onClick={( e ) => e.stopPropagation()}
+              aria-label="More actions"
+            >
+              <MoreHorizontalIcon className="size-6" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {overflowActions.map( ( action ) => (
+              <DropdownMenuItem
+                key={action?.id}
+                onClick={action?.handler}
+                className={cn( action?.destructive && "text-destructive" )}
+              >
+                <span className="mr-2">{action?.icon}</span>
+                {action?.label}
+              </DropdownMenuItem>
+            ) )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -140,66 +198,14 @@ export const ArtTile = ( {
               </Badge>
             )}
           </div>
-          <p className="text-xs text-gray-200 opacity-90 line-clamp-1">
-            {model.subTitle}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-200 opacity-90 line-clamp-1">
+              {model.subTitle}
+            </p>
+            {actionButtons}
+          </div>
         </div>
       </div>
-
-      {/* Action buttons - Positioned in the top-right corner */}
-      {actions.length > 0 && (
-        <div className={cn(
-          "absolute top-2 right-2 flex gap-1 transition-opacity",
-          // Show buttons by default on touch devices, otherwise only on hover/focus
-          isTouchDevice
-            ? "opacity-100"
-            : "opacity-0 group-hover:opacity-100 focus-within:opacity-100"
-        )}>
-          {/* Show direct action buttons on all devices (both mobile and desktop) */}
-          {visibleActions.map( ( action ) => (
-            <Button
-              key={action?.id}
-              size="icon"
-              className={cn(
-                "h-8 w-8 rounded-full bg-black/30 backdrop-blur-sm",
-                action?.destructive && "text-destructive"
-              )}
-              onClick={action?.handler}
-              aria-label={action?.ariaLabel}
-            >
-              {action?.icon}
-            </Button>
-          ) )}
-
-          {/* Only show more dropdown if there are more than 2 actions */}
-          {shouldShowMoreDropdown && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="icon"
-                  className="h-8 w-8 rounded-full opacity-70 hover:opacity-100 bg-black/30 backdrop-blur-sm"
-                  onClick={( e ) => e.stopPropagation()}
-                  aria-label="More actions"
-                >
-                  <MoreHorizontalIcon size={16} className="text-white" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {overflowActions.map( ( action ) => (
-                  <DropdownMenuItem
-                    key={action?.id}
-                    onClick={action?.handler}
-                    className={cn( action?.destructive && "text-destructive" )}
-                  >
-                    <span className="mr-2">{action?.icon}</span>
-                    {action?.label}
-                  </DropdownMenuItem>
-                ) )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -296,13 +296,12 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
 
           {totalPages > 5 && (
             <div className="flex items-center gap-2 ml-1 sm:ml-4">
-              <span className="text-sm text-muted-foreground hidden sm:inline">Jump to:</span>
               <Select
                 value={currentPage.toString()}
                 onValueChange={handleJumpToPage}
               >
                 <SelectTrigger
-                  className="h-8 w-[70px] sm:w-[80px] flex-shrink-0"
+                  className="h-8 w-[70px] sm:w-[110px] flex-shrink-0"
                   aria-label="Jump to page"
                 >
                   <SelectValue placeholder="Page" />
@@ -315,17 +314,6 @@ const AssetFileExplorer = ( { path }: { path: string } ) => {
                   ) )}
                 </SelectContent>
               </Select>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex ml-1"
-                onClick={() => handleJumpToPage( currentPage.toString() )}
-                aria-label="Go to selected page"
-              >
-                <ChevronsRight className="size-4" />
-                <span className="sr-only">Go to page</span>
-              </Button>
             </div>
           )}
         </div>
