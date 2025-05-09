@@ -11,6 +11,7 @@ import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
 import { toast } from "sonner";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -32,6 +33,7 @@ export const ArtSlokamTile = ( {
 }: ArtSlokamTileProps ) => {
   const textSize = useTextSizeAtomValue();
   const [ , copyToClipboard ] = useCopyToClipboard();
+  const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
 
   return (
     <div
@@ -63,7 +65,7 @@ export const ArtSlokamTile = ( {
       )}
       <div className="flex flex-col space-y-2 flex-1">
         <div
-          className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
+          className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest markdown-content`}
         >
           <Markdown remarkPlugins={[ remarkGfm ]}>{model.title}</Markdown>
         </div>
@@ -84,7 +86,9 @@ export const ArtSlokamTile = ( {
               </div>
             )}
           </div>
-          <div className="hidden group-hover:flex flex-row">
+          <div className={cn( "hidden group-hover:flex flex-row",
+            isTouchDevice && "flex",
+          )}>
             {model.audio && (
               <AudioPlayPauseButton
                 url={model.audio}

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 // import { ScanSearch as AddIcon } from "lucide-react";
 import { Entity } from "@/lib/types";
 import { DialogProps } from "@radix-ui/react-dialog";
@@ -31,6 +31,7 @@ export default function SlokamDisplayDlgTrigger( {
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:w-5/6 sm:h-5/6 h-full sm:max-w-none flex flex-col overflow-auto">
+        <DialogTitle className="sr-only">Slokam Details</DialogTitle>
         <SlokamDetails slokamId={forSlokamId} />
       </DialogContent>
     </Dialog>

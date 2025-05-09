@@ -16,7 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "../ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 
 interface ArtTileProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -135,7 +135,7 @@ export const ArtTile = ( {
               {model.title}
             </h3>
             {model.childrenCount !== undefined && model.childrenCount > 0 && (
-              <Badge variant="secondary" className="opacity-90">
+              <Badge variant="outline">
                 {model.childrenCount}
               </Badge>
             )}
