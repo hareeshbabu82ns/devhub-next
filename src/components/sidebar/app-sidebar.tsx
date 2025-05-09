@@ -97,7 +97,7 @@ export function AppSidebar( { ...props }: React.ComponentProps<typeof Sidebar> )
       </SidebarContent>
       <SidebarFooter className="">
         {/* <SidebarDocs /> */}
-        <AudioPlayer className="hidden xl:flex" />
+        <AudioPlayer className="hidden xl:flex" isSidebar />
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

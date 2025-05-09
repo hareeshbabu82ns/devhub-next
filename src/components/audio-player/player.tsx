@@ -21,9 +21,10 @@ import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
 interface AudioPlayerProps {
   className?: string;
   isMini?: boolean;
+  isSidebar?: boolean;
 }
 
-const AudioPlayer = ( { className, isMini }: AudioPlayerProps ) => {
+const AudioPlayer = ( { className, isMini, isSidebar }: AudioPlayerProps ) => {
   const { load, isPlaying: playing, stop, play, pause, seek, src, getPosition } =
     useAudioPlayerContext();
   const [ playlist, dispatch ] = usePlaylistAtom();
@@ -55,108 +56,119 @@ const AudioPlayer = ( { className, isMini }: AudioPlayerProps ) => {
   return (
     <div
       className={cn(
-        "@container/main-player flex flex-col gap-2 border bg-muted rounded-sm p-1",
+        "flex gap-2 border bg-muted rounded-sm p-1",
+        isMini ? "flex-row" : "flex-col",
         className,
       )}
     >
-      <div className="flex flex-row gap-1 items-center justify-between">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Previous song"
-          onClick={() => dispatch( { type: "PREV_SONG" } )}
-          disabled={
-            playlist.songs.length === 0 ||
-            playlist.currentSongIndex === -1 ||
-            playlist.currentSongIndex === 0
-          }
-        >
-          <PrevIcon className="size-5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Previous song"
-          onClick={() => seek( getPosition() - playlist.seekInterval )}
-          disabled={!playing}
-        >
-          <RewindIcon className="size-5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label={playing ? "Pause" : "Play"}
-          disabled={playlist.songs.length === 0}
-          onClick={
-            playing
-              ? () => {
-                pause();
-                dispatch( { type: "PAUSE", payload: getPosition() } );
-              }
-              : () => play()
-          }
-        >
-          {playing ? (
-            <PauseIcon className="size-5" />
-          ) : (
-            <PlayIcon className="size-5" />
-          )}
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Previous song"
-          onClick={() => seek( getPosition() + playlist.seekInterval )}
-          disabled={!playing}
-        >
-          <ForwardIcon className="size-5" />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Next song"
-          onClick={() => dispatch( { type: "NEXT_SONG" } )}
-          disabled={
-            playlist.songs.length === 0 ||
-            playlist.currentSongIndex === -1 ||
-            playlist.currentSongIndex === playlist.songs.length - 1
-          }
-        >
-          <NextIcon className="size-5" />
-        </Button>
-        <Separator orientation="vertical" className="h-8" />
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label={playlist.repeat ? "Repeat off" : "Repeate on"}
-          onClick={() => dispatch( { type: "TOGGLE_REPEAT" } )}
-        >
-          {playlist.repeat ? (
-            <RepeatOnIcon className="size-5" />
-          ) : (
-            <RepeatIcon className="size-5" />
-          )}
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          aria-label="Clear playlist"
-          onClick={() => {
-            pause();
-            dispatch( { type: "CLEAR_PLAYLIST" } );
-          }}
-        >
-          <ClearIcon className="size-5" />
-        </Button>
-        <Separator orientation="vertical" className="h-8" />
-        <PlayListTrigger />
+      {/* Player Buttons */}
+      <div className={cn( isSidebar ? "flex flex-col" : "flex flex-row justify-center",
+        "gap-1" )}>
+        <div className="flex flex-row gap-1 items-center justify-between">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Previous song"
+            onClick={() => dispatch( { type: "PREV_SONG" } )}
+            disabled={
+              playlist.songs.length === 0 ||
+              playlist.currentSongIndex === -1 ||
+              playlist.currentSongIndex === 0
+            }
+          >
+            <PrevIcon className="size-5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Previous song"
+            onClick={() => seek( getPosition() - playlist.seekInterval )}
+            disabled={!playing}
+          >
+            <RewindIcon className="size-5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={playing ? "Pause" : "Play"}
+            disabled={playlist.songs.length === 0}
+            onClick={
+              playing
+                ? () => {
+                  pause();
+                  dispatch( { type: "PAUSE", payload: getPosition() } );
+                }
+                : () => play()
+            }
+          >
+            {playing ? (
+              <PauseIcon className="size-5" />
+            ) : (
+              <PlayIcon className="size-5" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Previous song"
+            onClick={() => seek( getPosition() + playlist.seekInterval )}
+            disabled={!playing}
+          >
+            <ForwardIcon className="size-5" />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Next song"
+            onClick={() => dispatch( { type: "NEXT_SONG" } )}
+            disabled={
+              playlist.songs.length === 0 ||
+              playlist.currentSongIndex === -1 ||
+              playlist.currentSongIndex === playlist.songs.length - 1
+            }
+          >
+            <NextIcon className="size-5" />
+          </Button>
+        </div>
+        <Separator orientation="vertical" className="h-8" hidden={isSidebar} />
+        <div className="flex flex-row gap-1 items-center justify-between">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label={playlist.repeat ? "Repeat off" : "Repeate on"}
+            title={playlist.repeat ? "Repeat off" : "Repeat on"}
+            disabled={playlist.songs.length === 0}
+            onClick={() => dispatch( { type: "TOGGLE_REPEAT" } )}
+          >
+            {playlist.repeat ? (
+              <RepeatOnIcon className="size-5" />
+            ) : (
+              <RepeatIcon className="size-5" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            aria-label="Clear playlist"
+            title="Clear playlist"
+            disabled={playlist.songs.length === 0}
+            onClick={() => {
+              pause();
+              dispatch( { type: "CLEAR_PLAYLIST" } );
+            }}
+          >
+            <ClearIcon className="size-5" />
+          </Button>
+          <Separator orientation="vertical" className="h-8" hidden={isSidebar} />
+          <PlayListTrigger />
+        </div>
       </div>
       <div className={cn( isMini ? "hidden" : "flex flex-col flex-1 gap-2" )}>
         <Separator />

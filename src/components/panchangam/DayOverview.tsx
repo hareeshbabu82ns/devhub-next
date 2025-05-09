@@ -26,12 +26,12 @@ interface DayOverviewProps {
 
 const hours = Array.from(
   { length: 24 },
-  (_, i) => `${String(i).padStart(2, "0")}:00`,
+  ( _, i ) => `${String( i ).padStart( 2, "0" )}:00`,
 );
 
-const calculatePosition = (time: string, fromHour: number = 0) => {
-  const [hour, minute] = time.split(":").map(Number);
-  return (hour - fromHour) * 60 + minute + 8; // Returns total minutes from 00:00
+const calculatePosition = ( time: string, fromHour: number = 0 ) => {
+  const [ hour, minute ] = time.split( ":" ).map( Number );
+  return ( hour - fromHour ) * 60 + minute + 8; // Returns total minutes from 00:00
 };
 
 const checkOverlap = (
@@ -39,10 +39,10 @@ const checkOverlap = (
   b: ScheduleItem,
   fromHour: number = 0,
 ) => {
-  const startA = calculatePosition(a.startTime, fromHour);
-  const endA = calculatePosition(a.endTime, fromHour);
-  const startB = calculatePosition(b.startTime, fromHour);
-  const endB = calculatePosition(b.endTime, fromHour);
+  const startA = calculatePosition( a.startTime, fromHour );
+  const endA = calculatePosition( a.endTime, fromHour );
+  const startB = calculatePosition( b.startTime, fromHour );
+  const endB = calculatePosition( b.endTime, fromHour );
   return startA < endB && startB < endA; // True if schedules overlap
 };
 
@@ -51,50 +51,50 @@ const calculateHeight = (
   endTime: string,
   fromHour: number = 0,
 ) => {
-  const startMinutes = calculatePosition(startTime, fromHour);
-  const endMinutes = calculatePosition(endTime, fromHour);
+  const startMinutes = calculatePosition( startTime, fromHour );
+  const endMinutes = calculatePosition( endTime, fromHour );
   return endMinutes - startMinutes; // Duration in minutes
 };
 
 // Get the current time and calculate its position on the timeline
-const getCurrentTimePosition = (fromHour: number = 0) => {
+const getCurrentTimePosition = ( fromHour: number = 0 ) => {
   const now = new Date();
-  const currentMinutes = (now.getHours() - fromHour) * 60 + now.getMinutes();
+  const currentMinutes = ( now.getHours() - fromHour ) * 60 + now.getMinutes();
   return currentMinutes + 8;
 };
 
-const findMinimumHour = (schedules: ScheduleItem[]) => {
+const findMinimumHour = ( schedules: ScheduleItem[] ) => {
   let minHour = 24;
-  for (const schedule of schedules) {
-    const [hour] = schedule.startTime.split(":").map(Number);
-    minHour = Math.min(minHour, hour);
+  for ( const schedule of schedules ) {
+    const [ hour ] = schedule.startTime.split( ":" ).map( Number );
+    minHour = Math.min( minHour, hour );
   }
   return minHour;
 };
 
-const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
-  const scrollRef = useRef<HTMLDivElement>(null); // Ref to handle scrolling
+const DayOverview: React.FC<DayOverviewProps> = ( { schedules } ) => {
+  const scrollRef = useRef<HTMLDivElement>( null ); // Ref to handle scrolling
 
   // Scroll to the current time position on load
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({
+  useEffect( () => {
+    if ( scrollRef.current ) {
+      scrollRef.current.scrollIntoView( {
         behavior: "smooth",
         block: "center",
-      });
+      } );
     }
-  }, []);
+  }, [] );
 
-  const minHour = findMinimumHour(schedules); // Minimum hour for the timeline
-  const currentTimePosition = getCurrentTimePosition(minHour); // Current time for the dotted line
+  const minHour = findMinimumHour( schedules ); // Minimum hour for the timeline
+  const currentTimePosition = getCurrentTimePosition( minHour ); // Current time for the dotted line
 
   return (
     <div className="w-full min-w-[500px] mx-auto py-2 px-4 overflow-x-auto no-scrollbar">
       <ScrollArea className="h-96 w-full overflow-y-auto relative ">
         {/* Hours bar - 1440px for 24 hours x 60 minutes */}
-        <div className={cn("relative  pt-2", `h-[${(24 - minHour) * 60}px]`)}>
-          {hours.map((hour, index) => {
-            if (index < minHour) return null;
+        <div className={cn( "relative  pt-2", `h-[${( 24 - minHour ) * 60}px]` )}>
+          {hours.map( ( hour, index ) => {
+            if ( index < minHour ) return null;
             return (
               <div key={hour} className="relative h-[60px]">
                 {/* Hour marker */}
@@ -104,7 +104,7 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
                 </div>
               </div>
             );
-          })}
+          } )}
 
           {/* Dotted line for current time */}
           <div
@@ -114,8 +114,8 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
           ></div>
 
           {/* Render schedule cards */}
-          {schedules.map((schedule, index) => {
-            const topPosition = calculatePosition(schedule.startTime, minHour);
+          {schedules.map( ( schedule, index ) => {
+            const topPosition = calculatePosition( schedule.startTime, minHour );
             const height = calculateHeight(
               schedule.startTime,
               schedule.endTime,
@@ -123,13 +123,13 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
             );
             // Check if this schedule overlaps with previous schedules
             let overlapLevel = 0;
-            for (let i = 0; i < index; i++) {
-              if (checkOverlap(schedules[i], schedule, minHour)) {
+            for ( let i = 0; i < index; i++ ) {
+              if ( checkOverlap( schedules[ i ], schedule, minHour ) ) {
                 overlapLevel += 1; // Increment overlap level if there's an overlap
               }
             }
             const maxIndent = 5; // Maximum indent level to avoid excessive indentation
-            const indentLevel = Math.min(overlapLevel, maxIndent);
+            const indentLevel = Math.min( overlapLevel, maxIndent );
 
             return (
               <Dialog key={schedule.title}>
@@ -161,10 +161,10 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
                     }}
                   >
                     <div
-                      className={cn("text-sm font-medium p-0", {
+                      className={cn( "text-sm font-medium p-0", {
                         "text-warning": schedule.negative,
                         "text-success": !schedule.negative,
-                      })}
+                      } )}
                     >
                       {schedule.title}
                     </div>
@@ -175,7 +175,7 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
                 </DialogTrigger>
               </Dialog>
             );
-          })}
+          } )}
         </div>
       </ScrollArea>
     </div>

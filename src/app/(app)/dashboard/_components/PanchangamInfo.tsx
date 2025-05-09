@@ -27,20 +27,20 @@ import { Calendar } from "@/components/ui/calendar";
 // ];
 
 const PanchangamInfo = () => {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
+  const [ date, setDate ] = React.useState<Date | undefined>( new Date() );
 
   const cityId = usePanchangamPlaceAtomValue();
 
-  const { data, isPending, isError, refetch } = useQuery({
-    queryKey: ["panchangam", cityId, date],
+  const { data, isPending, isError, refetch } = useQuery( {
+    queryKey: [ "panchangam", cityId, date ],
     queryFn: async () => {
-      const response = await getDayPanchangam({ place: cityId, date });
+      const response = await getDayPanchangam( { place: cityId, date } );
       return response;
     },
-  });
+  } );
 
-  if (isPending) return <Loader />;
-  if (isError) return <SimpleAlert title="Error fetching panchangam" />;
+  if ( isPending ) return <Loader />;
+  if ( isError ) return <SimpleAlert title="Error fetching panchangam" />;
 
   const datePicker = (
     <Popover>
@@ -53,7 +53,7 @@ const PanchangamInfo = () => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format(date, "PP") : <span>Pick a date</span>}
+          {date ? format( date, "PP" ) : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
@@ -86,14 +86,14 @@ const PanchangamInfo = () => {
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-1 @3xl/panchangam:grid-cols-2 gap-2">
+      <div className="flex-1 grid grid-cols-1 @3xl/panchangam:grid-cols-2 gap-2">
         <div className="flex flex-col gap-4 p-2">
           {/* <pre>{JSON.stringify(data.consizeInfo, null, 2)}</pre> */}
           <div className="flex flex-col gap-4">
             <div className="font-semibold">
               Date:{" "}
               <span className="text-warning">
-                {date ? format(date, "PPPP") : ""}
+                {date ? format( date, "PPPP" ) : ""}
               </span>
             </div>
             {/* <div className="font-semibold">Date: {data.consizeInfo.date}</div> */}
@@ -132,7 +132,7 @@ const PanchangamInfo = () => {
           </div>
         </div>
 
-        <div className="flex overflow-y-auto">
+        <div className="flex-1 flex overflow-y-auto">
           <DayOverview schedules={data.consizeInfo.schedules} />
         </div>
       </div>
