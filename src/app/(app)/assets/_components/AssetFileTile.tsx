@@ -191,7 +191,7 @@ const AssetFileTile = ( {
 
   const fileName = (
     <div className="w-full truncate text-sm font-medium text-center p-2 bg-muted/50">
-      <Tooltip>
+      <Tooltip delayDuration={1000}>
         <TooltipTrigger asChild>
           <span className="truncate block">{file.name}</span>
         </TooltipTrigger>

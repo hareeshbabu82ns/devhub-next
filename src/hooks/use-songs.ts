@@ -29,7 +29,8 @@ const playlistReducer = (
       | "PLAY"
       | "PAUSE"
       | "SET_CURRENT_INDEX"
-      | "CLEAR_PLAYLIST";
+      | "CLEAR_PLAYLIST"
+      | "SEEK_RELATIVE";
     payload?: any;
   },
 ) => {
@@ -79,6 +80,12 @@ const playlistReducer = (
         repeat: !state.repeat,
       };
     case "NEXT_SONG":
+      if (state.currentSongIndex === -1) {
+        return {
+          ...state,
+          currentSongIndex: -1,
+        };
+      }
       state.songs[state.currentSongIndex].position = 0;
       return {
         ...state,
@@ -116,6 +123,10 @@ const playlistReducer = (
       return {
         ...state,
       };
+    case "SEEK_RELATIVE":
+      // This is used for relative seeking (forward/backward by seconds)
+      // The actual implementation is handled in the player component
+      return state; // Just pass through, no state changes needed
     default:
       return state;
   }
