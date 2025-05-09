@@ -64,7 +64,7 @@ export function NavMain( {
 
   const itemsWithActiveState = useMemo( () => {
     return items.map( item => {
-      let isPathActive = item.exact
+      const isPathActive = item.exact
         ? pathname === item.path
         : pathname.startsWith( item.path );
 

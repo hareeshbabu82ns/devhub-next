@@ -70,10 +70,10 @@ const AssetSearchInput = ( {
                   </TooltipTrigger>
                   <TooltipContent side="right">
                     <p>Enable regular expression pattern search</p>
-                    <p className="text-xs text-muted-foreground mt-1">Examples:</p>
-                    <ul className="text-xs text-muted-foreground list-disc pl-4 mt-0.5 space-y-0.5">
-                      <li>^img - starts with "img"</li>
-                      <li>\.jpg$ - ends with ".jpg"</li>
+                    <p className="text-xs text-secondary-foreground mt-1">Examples:</p>
+                    <ul className="text-xs text-secondary-foreground list-disc pl-4 mt-0.5 space-y-0.5">
+                      <li>^img - starts with &quot;img&quot;</li>
+                      <li>\.jpg$ - ends with &quot;.jpg&quot;</li>
                       <li>\d{4} - contains 4 digits</li>
                     </ul>
                   </TooltipContent>
@@ -93,9 +93,9 @@ const AssetSearchInput = ( {
       {debouncedSearchQuery && !regexError && (
         <div className="mt-2 text-sm text-muted-foreground">
           {totalItems === 0 ? (
-            <span>No results found for "{debouncedSearchQuery}"</span>
+            <span>No results found for &quot;{debouncedSearchQuery}&quot;</span>
           ) : (
-            <span>Found {totalItems} result{totalItems !== 1 ? 's' : ''} for "{debouncedSearchQuery}"</span>
+            <span>Found {totalItems} result{totalItems !== 1 ? 's' : ''} for &quot;{debouncedSearchQuery}&quot;</span>
           )}
         </div>
       )}

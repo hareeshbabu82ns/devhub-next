@@ -62,7 +62,7 @@ const AssetFileTile = ( {
 
         case "Enter":
           if ( file.isDirectory || asFileSelector ) {
-            onClick && onClick( file );
+            onClick?.( file );
           } else if ( isImage && onOpenFullscreen ) {
             onOpenFullscreen();
           }
