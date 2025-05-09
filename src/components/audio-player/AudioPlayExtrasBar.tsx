@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useAudioPlayerContext } from "react-use-audio-player";
 import AudioSeekBar from "./AudioSeekBar";
 import AudioTimeLabel from "./AudioTimeLabel";
@@ -11,11 +11,22 @@ interface AudioPlayExtrasBarProps {
   isSidebar?: boolean;
 }
 
-const AudioPlayExtrasBar = ( { className, isSidebar }: AudioPlayExtrasBarProps ) => {
-  const { duration, setRate, rate, src } = useAudioPlayerContext();
+/**
+ * Component that provides additional audio controls like seek bar,
+ * time display, volume, and playback speed
+ */
+const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtrasBarProps ) => {
+  const { setRate, rate, src } = useAudioPlayerContext();
+
+  // Optimize rate change handler
+  const handleRateChange = useCallback( ( e: React.ChangeEvent<HTMLSelectElement> ) => {
+    setRate( Number( e.target.value ) );
+  }, [ setRate ] );
 
   // Extract filename from path for cleaner display
-  const displayName = src ? src.split( '/' ).pop()?.split( '?' )[ 0 ] : "No track selected";
+  const displayName = src
+    ? src.split( '/' ).pop()?.split( '?' )[ 0 ] || "Unknown track"
+    : "No track selected";
 
   // For sidebar mode, show a compact version with icon-only controls
   if ( isSidebar ) {
@@ -24,13 +35,13 @@ const AudioPlayExtrasBar = ( { className, isSidebar }: AudioPlayExtrasBarProps )
         <div className="w-full text-center text-xs truncate mb-1 border-b pb-1" aria-live="polite">
           {displayName}
         </div>
-        <div className="flex justify-center space-x-2">
+        <div className="flex justify-center space-x-2 items-center w-full">
           <div className="flex items-center text-xs">
-            <FaRunning className="size-3 mr-1" />
+            <FaRunning className="size-3 mr-1" aria-hidden="true" />
             <select
-              className="bg-transparent text-xs focus:ring-1 focus:ring-offset-1 w-12"
+              className="bg-transparent text-xs focus:ring-1 focus:ring-offset-1 w-14"
               value={rate}
-              onChange={( e ) => setRate( Number( e.target.value ) )}
+              onChange={handleRateChange}
               aria-label="Playback speed"
             >
               <option value="0.5">0.5x</option>
@@ -48,31 +59,31 @@ const AudioPlayExtrasBar = ( { className, isSidebar }: AudioPlayExtrasBarProps )
   // Standard mode with full controls
   return (
     <div className={cn( "flex flex-col flex-1 items-start gap-2", className )}>
-      {/* Track information with marquee effect */}
+      {/* Track information with marquee effect for long titles */}
       <div
-        className="w-full truncate border-b pb-1 mb-1"
+        className="flex flex-1 border-b pb-4 mb-1"
         aria-live="polite"
         aria-label="Current track"
       >
-        <div className="group w-full">
-          <div className="relative text-sm font-medium group-hover:animate-slide overflow-hidden">
+        <div className="group flex-1">
+          <div className="relative text-sm font-medium group-hover:animate-marquee overflow-hidden whitespace-nowrap">
             {displayName}
           </div>
-          <div className="text-xs text-muted-foreground truncate mt-0.5">
-            {src}
-          </div>
+          {src && (
+            <div className="text-xs text-muted-foreground line-clamp-1 overflow-ellipsis mt-0.5">
+              {src}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Seek bar - only show if duration is available */}
-      {duration !== Infinity && (
-        <div className="w-full" role="group" aria-label="Playback progress">
-          <AudioSeekBar />
-        </div>
-      )}
+      {/* Seek bar */}
+      <div className="flex" role="group" aria-label="Playback progress">
+        <AudioSeekBar />
+      </div>
 
       {/* Controls grid - adapt to different screen sizes */}
-      <div className="grid w-full gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
+      <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
         {/* Time display */}
         <div className="col-span-2" role="timer" aria-label="Playback time">
           <AudioTimeLabel />
@@ -87,10 +98,9 @@ const AudioPlayExtrasBar = ( { className, isSidebar }: AudioPlayExtrasBarProps )
             <FaRunning className="size-4 text-muted-foreground" aria-hidden="true" />
             <select
               className="w-full rounded-sm text-xs bg-background focus:ring-2 focus:ring-offset-1"
-              name="playbackSpeed"
               id="playback-speed"
               value={rate}
-              onChange={( e ) => setRate( Number( e.target.value ) )}
+              onChange={handleRateChange}
               aria-label="Playback speed"
             >
               <option value="0.5">0.5x</option>
@@ -109,6 +119,8 @@ const AudioPlayExtrasBar = ( { className, isSidebar }: AudioPlayExtrasBarProps )
       </div>
     </div>
   );
-};
+} );
+
+AudioPlayExtrasBar.displayName = "AudioPlayExtrasBar";
 
 export default AudioPlayExtrasBar;

@@ -10,7 +10,10 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import AudioPlayer from "../audio-player/player";
-import PlayListTrigger from "../audio-player/PlayListTrigger";
+// Import the new playlist components
+import { PlaylistSheet } from "../audio-player/PlaylistSheet";
+import { PlaylistSheetProvider } from "@/hooks/use-playlist-sheet";
+import { PlaylistTrigger } from "../audio-player/PlaylistTrigger";
 import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 
@@ -22,17 +25,22 @@ const WithDefaultLayout = ( {
   const pathname = usePathname();
 
   return (
-    <SidebarProvider>
-      <AppSidebar variant="inset" />
-      <SidebarInset>
-        <TopNavBar />
-        <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min flex">
-            {children}
-          </div>
-        </main>
-      </SidebarInset>
-    </SidebarProvider>
+    <PlaylistSheetProvider>
+      <SidebarProvider>
+        <AppSidebar variant="inset" />
+        <SidebarInset>
+          <TopNavBar />
+          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min flex">
+              {children}
+            </div>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+
+      {/* Render the playlist sheet at the root level */}
+      <PlaylistSheet />
+    </PlaylistSheetProvider>
   );
 };
 
@@ -44,22 +52,10 @@ const TopNavBar = () => {
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <AudioPlayer className="hidden md:flex xl:hidden" isMini />
-          {/* <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb> */}
         </div>
         <div className="flex flex-row gap-2">
-          <PlayListTrigger className="md:hidden" />
+          {/* Use the simplified PlaylistTrigger component */}
+          <PlaylistTrigger className="md:hidden" />
           <QuickAccessMenuTrigger />
           <QuickSettingsTrigger />
         </div>

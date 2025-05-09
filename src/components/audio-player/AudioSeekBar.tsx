@@ -5,8 +5,6 @@ import React, {
   useRef,
   useState,
   FunctionComponent,
-  MouseEvent,
-  KeyboardEvent,
 } from "react";
 import { useAudioPlayerContext } from "react-use-audio-player";
 
@@ -14,24 +12,36 @@ interface AudioSeekBarProps {
   className?: string;
 }
 
-const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => {
-  const { isPlaying: playing, getPosition, duration, seek } = useAudioPlayerContext();
+/**
+ * A seekable progress bar for audio playback with keyboard accessibility
+ * and performance optimizations.
+ */
+const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = React.memo( ( { className } ) => {
+  const { getPosition, duration, seek } = useAudioPlayerContext();
   const [ pos, setPos ] = useState( 0 );
-  const frameRef = useRef<number>( null );
+  const frameRef = useRef<number | null>( null );
   const seekBarElem = useRef<HTMLDivElement>( null );
+  const isDraggingRef = useRef( false );
 
-  // Animation frame for smooth progress updates
+  // Animation frame for smooth progress updates with performance optimization
   useEffect( () => {
+    // Using RAF provides smoother updates than setInterval
     const animate = () => {
-      setPos( getPosition() );
+      // Skip position updates while user is dragging to avoid jumps
+      if ( !isDraggingRef.current ) {
+        setPos( getPosition() );
+      }
       frameRef.current = requestAnimationFrame( animate );
     };
 
-    frameRef.current = window.requestAnimationFrame( animate );
+    // Start animation
+    frameRef.current = requestAnimationFrame( animate );
 
+    // Cleanup on unmount
     return () => {
       if ( frameRef.current ) {
         cancelAnimationFrame( frameRef.current );
+        frameRef.current = null;
       }
     };
   }, [ getPosition ] );
@@ -40,24 +50,70 @@ const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => 
   const currentTime = formatTime( pos );
   const totalTime = formatTime( duration );
 
-  // Handle mouse click for seeking
+  // Handle mouse click/drag for seeking
   const handleSeek = useCallback(
-    ( event: MouseEvent ) => {
-      const { pageX: eventOffsetX } = event;
+    ( event: React.MouseEvent | React.TouchEvent ) => {
+      if ( !seekBarElem.current ) return;
 
-      if ( seekBarElem.current ) {
-        const rect = seekBarElem.current.getBoundingClientRect();
-        const percent = ( eventOffsetX - rect.left ) / rect.width;
-        const newPos = Math.max( 0, Math.min( 1, percent ) ) * duration;
-        seek( newPos );
-      }
+      // Get pointer position
+      const rect = seekBarElem.current.getBoundingClientRect();
+      const pageX = 'touches' in event
+        ? event.touches[ 0 ].pageX
+        : event.pageX;
+
+      const percent = Math.max( 0, Math.min( 1, ( pageX - rect.left ) / rect.width ) );
+      const newPos = percent * duration;
+      seek( newPos );
     },
     [ duration, seek ],
   );
 
+  // Handle touch/mouse start for drag operations
+  const handleDragStart = useCallback( ( event: React.MouseEvent | React.TouchEvent ) => {
+    event.preventDefault();
+    isDraggingRef.current = true;
+    handleSeek( event );
+
+    const handleMove = ( e: MouseEvent | TouchEvent ) => {
+      e.preventDefault();
+      const mouseEvent = e as MouseEvent;
+      const touchEvent = e as TouchEvent;
+
+      const pageX = 'touches' in e
+        ? touchEvent.touches[ 0 ].pageX
+        : mouseEvent.pageX;
+
+      if ( !seekBarElem.current ) return;
+
+      const rect = seekBarElem.current.getBoundingClientRect();
+      const percent = Math.max( 0, Math.min( 1, ( pageX - rect.left ) / rect.width ) );
+      const newPos = percent * duration;
+      setPos( newPos ); // Update visual position while dragging
+    };
+
+    const handleEnd = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener( 'mousemove', handleMove );
+      document.removeEventListener( 'mouseup', handleEnd );
+      document.removeEventListener( 'touchmove', handleMove );
+      document.removeEventListener( 'touchend', handleEnd );
+
+      // Apply the final position when drag ends
+      if ( seekBarElem.current ) {
+        const newPos = pos;
+        seek( newPos );
+      }
+    };
+
+    document.addEventListener( 'mousemove', handleMove, { passive: false } );
+    document.addEventListener( 'mouseup', handleEnd );
+    document.addEventListener( 'touchmove', handleMove, { passive: false } );
+    document.addEventListener( 'touchend', handleEnd );
+  }, [ duration, pos, seek, handleSeek ] );
+
   // Handle keyboard navigation for accessibility
   const handleKeyDown = useCallback(
-    ( event: KeyboardEvent ) => {
+    ( event: React.KeyboardEvent ) => {
       // Skip by 5 seconds for arrow keys
       const skipTime = 5;
 
@@ -85,7 +141,7 @@ const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => 
 
   if ( duration === Infinity ) return null;
 
-  // Calculate percentage for visual progress and ARIA values
+  // Calculate percentage for visual progress
   const progressPercent = ( pos / duration ) * 100;
 
   return (
@@ -93,11 +149,13 @@ const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => 
       className={cn(
         "relative w-full flex-1 overflow-hidden h-2 rounded-full",
         "bg-slate-200 dark:bg-slate-900",
-        "hover:h-3 transition-height duration-150",
+        "hover:h-3 group transition-all duration-150",
         className,
       )}
       ref={seekBarElem}
       onClick={handleSeek}
+      onMouseDown={handleDragStart}
+      onTouchStart={handleDragStart}
       onKeyDown={handleKeyDown}
       role="slider"
       tabIndex={0}
@@ -109,19 +167,22 @@ const AudioSeekBar: FunctionComponent<AudioSeekBarProps> = ( { className } ) => 
     >
       <div
         style={{ width: `${progressPercent}%` }}
-        className="bg-secondary h-full"
+        className="bg-secondary h-full transition-all"
       />
-      {/* Seek handle for better visual feedback */}
       <div
-        className="absolute top-1/2 -translate-y-1/2 size-3 rounded-full bg-primary shadow-md pointer-events-none"
-        style={{ left: `${progressPercent}%`, transform: 'translate(-50%, -50%)' }}
+        className="absolute top-1/2 -translate-y-1/2 size-3 rounded-full bg-primary shadow-md 
+                 opacity-0 group-hover:opacity-100 pointer-events-none transform -translate-x-1/2
+                 transition-opacity duration-200"
+        style={{ left: `${progressPercent}%` }}
       />
     </div>
   );
-};
+} );
+
+AudioSeekBar.displayName = "AudioSeekBar";
 
 // Helper function to format time in MM:SS format
-function formatTime( seconds: number ): string {
+export function formatTime( seconds: number ): string {
   if ( !seconds || !isFinite( seconds ) ) return '0:00';
 
   const mins = Math.floor( seconds / 60 );
