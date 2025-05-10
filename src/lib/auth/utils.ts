@@ -1,5 +1,5 @@
 // import GithubProvider from "next-auth/providers/github"
-import { type UserRole } from "@prisma/client";
+import { type UserRole } from "@/app/generated/prisma";
 import { type DefaultSession, NextAuthConfig } from "next-auth";
 import {} from "next-auth/jwt";
 import { apiRoutePrefix } from "@/config/routes";

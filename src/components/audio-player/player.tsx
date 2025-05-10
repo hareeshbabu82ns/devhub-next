@@ -4,8 +4,10 @@ import { usePlaylistAtom } from "@/hooks/use-songs";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
-import TransportControls from "./AudioControls";
-import PlaylistControls from "./PlaylistControls";
+import AudioControls from "./AudioControls";
+// import PlaylistControls from "./PlaylistControls";
+import { useReadLocalStorage } from "usehooks-ts";
+import { LS_AUDIO_PLAYER_VOLUME } from "@/lib/constants";
 
 interface AudioPlayerProps {
   className?: string;
@@ -14,12 +16,14 @@ interface AudioPlayerProps {
 }
 
 /**
- * Main audio player component that displays transport and playlist controls
+ * Main audio player component that displays audio and playlist controls
  * with optional layout variants (mini, sidebar)
  */
 const AudioPlayer = ( { className, isMini, isSidebar }: AudioPlayerProps ) => {
   const { load, seek, src } = useAudioPlayerContext();
   const [ playlist, dispatch ] = usePlaylistAtom();
+  const savedVolume =
+    useReadLocalStorage<number>( LS_AUDIO_PLAYER_VOLUME ) || 1;
 
   // Track if user has requested to stop playback - persists between component renders
   const userPausedRef = useRef( false );
@@ -37,6 +41,7 @@ const AudioPlayer = ( { className, isMini, isSidebar }: AudioPlayerProps ) => {
 
       load( currentSong.src, {
         autoplay: shouldAutoPlay,
+        initialVolume: savedVolume,
         loop: false, // Don't use native loop - we'll handle this in our code
         html5: playlist.stream,
         format: "mp3",
@@ -97,15 +102,15 @@ const AudioPlayer = ( { className, isMini, isSidebar }: AudioPlayerProps ) => {
           isMini ? "items-center" : ""
         )}
       >
-        {/* Transport Controls (play/pause, prev/next, seek) */}
-        <TransportControls />
+        {/* Audio Controls (play/pause, prev/next, seek) */}
+        <AudioControls />
 
         {/* Separator with responsive orientation */}
         {!isSidebar && !isMini && <Separator orientation="vertical" className="h-8" />}
-        {isSidebar && <Separator className="my-1" />}
+        {/* {isSidebar && <Separator className="my-1" />} */}
 
         {/* Playlist Controls (repeat, clear, playlist) - direct render without passing trigger prop */}
-        <PlaylistControls />
+        {/* <PlaylistControls /> */}
       </div>
 
       {/* Extended Controls - hide in mini mode */}

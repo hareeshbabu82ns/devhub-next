@@ -7,7 +7,7 @@ import {
   MdOutlineRepeatOn,
   MdOutlinePlaylistRemove as ClearIcon,
 } from "react-icons/md";
-import { PlaylistTrigger } from "./PlaylistTrigger";
+// import { PlaylistTrigger } from "./PlaylistTrigger";
 
 interface PlaylistControlsProps {
   className?: string;
@@ -51,7 +51,7 @@ const PlaylistControls: React.FC<PlaylistControlsProps> = ( {
       />
 
       {/* Use the new simpler PlaylistTrigger component */}
-      {!hideTrigger && <PlaylistTrigger />}
+      {/* {!hideTrigger && <PlaylistTrigger />} */}
     </div>
   );
 };

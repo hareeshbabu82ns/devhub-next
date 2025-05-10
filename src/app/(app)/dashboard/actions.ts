@@ -1,15 +1,22 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { mapDbToEntity } from "../entities/utils";
 import { auth } from "@/lib/auth";
 
-export const fetchBookmarkedEntities = async ( { language, pageIndex = 0, pageSize = 100 }:
-  { language: string, pageIndex?: number, pageSize?: number } ) => {
+export const fetchBookmarkedEntities = async ({
+  language,
+  pageIndex = 0,
+  pageSize = 100,
+}: {
+  language: string;
+  pageIndex?: number;
+  pageSize?: number;
+}) => {
   const session = await auth();
-  if ( !session ) {
-    throw new Error( "Unauthorized" );
+  if (!session) {
+    throw new Error("Unauthorized");
   }
 
   const where: Prisma.EntityWhereInput = {
@@ -17,11 +24,11 @@ export const fetchBookmarkedEntities = async ( { language, pageIndex = 0, pageSi
     bookmarked: true,
   };
 
-  const entitiesCount = await db.entity.count( {
+  const entitiesCount = await db.entity.count({
     where,
-  } );
+  });
 
-  const entities = await db.entity.findMany( {
+  const entities = await db.entity.findMany({
     where,
     orderBy: {
       updatedAt: "desc",
@@ -46,21 +53,21 @@ export const fetchBookmarkedEntities = async ( { language, pageIndex = 0, pageSi
                               type: true,
                               bookmarked: true,
                               imageThumbnail: true,
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
-  } );
+  });
 
-  const results = entities.map( ( e ) => mapDbToEntity( e, language ) );
+  const results = entities.map((e) => mapDbToEntity(e, language));
   return { results, total: entitiesCount };
-}
+};

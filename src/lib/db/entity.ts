@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { LANGUAGE_SCHEME_MAP } from "../constants";
 import Sanscript from "@indic-transliteration/sanscript";
 
@@ -24,7 +24,7 @@ export const defaultEntityCreateInput: Prisma.EntityCreateInput = {
     {
       language: "SAN",
       value: "$transliterateFrom=TEL",
-    }
+    },
   ],
   // attributes: [
   //   {
@@ -50,7 +50,7 @@ export const defaultEntityUpdateInput: Prisma.EntityUpdateInput = {
     {
       language: "SAN",
       value: "$transliterateFrom=TEL",
-    }
+    },
   ],
   attributes: [
     {

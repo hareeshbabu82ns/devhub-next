@@ -15,7 +15,7 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { EntityWithRelations } from "@/lib/types";
 import { toast } from "sonner";
 import { useMemo } from "react";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { entityLanguageValueTransliterateHelper } from "../../utils";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 

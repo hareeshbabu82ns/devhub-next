@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/app/generated/prisma"
 }
 
 datasource db {
@@ -27,6 +28,8 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  Playlist Playlist[]
 }
 
 model Account {
@@ -49,6 +52,7 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Session {
@@ -60,6 +64,9 @@ model Session {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expires])
 }
 
 model VerificationToken {
@@ -69,6 +76,8 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@index([identifier])
+  @@index([expires])
 }
 
 // Optional for WebAuthn support
@@ -85,6 +94,7 @@ model Authenticator {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, credentialID])
+  @@index([userId, providerAccountId])
 }
 
 //********** AuthJS End **********//
@@ -118,6 +128,12 @@ model Entity {
 
   @@index([order, type, text])
   @@index([type, bookmarked, updatedAt(sort: Desc)])
+  @@index([parents])
+  @@index([children])
+  @@index([audio])
+  @@index([bookmarked, updatedAt(sort: Desc)])
+  @@index([type, updatedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
   @@fulltext([order, type, text, meaning])
   @@map("Entities")
 }
@@ -170,6 +186,9 @@ model DictionaryWord {
   @@index([phonetic])
   @@index([origin, phonetic, wordIndex])
   @@index([origin, word])
+  @@index([origin])
+  @@index([updatedAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
   @@fulltext([word, description, phonetic])
   @@map("DictWords")
 }
@@ -185,3 +204,38 @@ type AttributeValueType {
 }
 
 //********** Dictionary End **********//
+
+//********** Playlist Begin **********//
+model Playlist {
+  id        String         @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  image     String?        @default("")
+  isPublic  Boolean        @default(false)
+  // Reference to the user who created the playlist
+  userId    String         @db.ObjectId
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Many-to-many relationship with Entity
+  songs     PlaylistSong[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@index([userId])
+  @@map("Playlists")
+}
+
+model PlaylistSong {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  // Reference to the playlist
+  playlistId String   @db.ObjectId
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  // Asset Path
+  src        String
+  // Item-specific attributes
+  order      Int      @default(0)
+  addedAt    DateTime @default(now())
+
+  @@index([playlistId, order])
+  @@map("PlaylistSongs")
+}
+
+//********** Playlist End **********//

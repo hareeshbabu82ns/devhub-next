@@ -12,7 +12,7 @@ import {
   convertSortingToPrisma,
 } from "@/components/data-table/utils";
 import { columns } from "./columns";
-import { Prisma, Entity } from "@prisma/client";
+import { Prisma, Entity } from "@/app/generated/prisma";
 import { EntityTypeEnum, EntityWithRelations } from "@/lib/types";
 import { transliteratedText } from "../sanscript/_components/utils";
 import { mapDbToEntity } from "./utils";

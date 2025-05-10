@@ -59,8 +59,8 @@ export function PlaylistSheet() {
             <Separator orientation="vertical" className="mx-2 h-6" />
             <PlaylistControls hideTrigger />
           </div>
-          <div className="flex items-center p-4">
-            <AudioPlayExtrasBar />
+          <div className="flex items-center px-4">
+            <AudioPlayExtrasBar hideSongName />
           </div>
 
           {/* Simple playlist view without controls to avoid circular dependencies */}
@@ -130,9 +130,9 @@ function PlaylistSongTile( { song, index }: { song: Song; index: number } ) {
 
   return (
     <div
-      className={`flex items-center gap-3 p-3 rounded-md transition-colors
+      className={`flex items-center gap-3 px-3 py-1 rounded-md transition-colors
         ${isActive
-          ? "bg-secondary/40 border border-secondary"
+          ? "bg-secondary/20 border border-secondary"
           : "hover:bg-muted/60"}`}
     >
       <Button
@@ -150,9 +150,9 @@ function PlaylistSongTile( { song, index }: { song: Song; index: number } ) {
       </Button>
 
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{displayTitle}</p>
+        <p className="text-sm font-medium line-clamp-1 overflow-ellipsis">{displayTitle}</p>
         {song.artist && (
-          <p className="text-xs text-muted-foreground truncate">
+          <p className="text-xs text-muted-foreground line-clamp-1 overflow-ellipsis">
             {song.artist}
           </p>
         )}

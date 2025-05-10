@@ -1,6 +1,6 @@
 "use server";
 
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/app/generated/prisma";
 import { db } from "../db";
 import { Resend } from "resend";
 import { JSX } from "react";

@@ -2,12 +2,12 @@
 
 import config from "@/config";
 import * as cheerio from "cheerio";
-import { readFileSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
 import path from "path";
 import { db } from "../db";
-import { Prisma } from "@prisma/client";
-import { transliteratedText, transliterateText } from "@/app/(app)/sanscript/_components/utils";
+import { Prisma } from "@/app/generated/prisma";
+import { transliteratedText } from "@/app/(app)/sanscript/_components/utils";
 
 const baseUrl = "https://sacred-texts.com/hin/mbs";
 //book sample: "https://sacred-texts.com/hin/mbs/mbsi05.htm"
@@ -109,7 +109,7 @@ const baseUrl = "https://sacred-texts.com/hin/mbs";
 
 18 = Svargarohana Parva
 */
-const entityTitle = 'mahaa bhaaratam';
+const entityTitle = "mahaa bhaaratam";
 
 const parvamTitles: string[] = [
   "aadi parvam",
@@ -134,31 +134,31 @@ const parvamTitles: string[] = [
 const chapters = [
   225, 72, 299, 67, 197, 117, 173, 69, 64, 18, 27, 353, 154, 96, 47, 9, 3, 5,
 ];
-const baseStructure = Array( 18 )
-  .fill( 0 )
-  .map( ( _, idx ) => {
-    const paddedIdx = String( idx + 1 ).padStart( 2, "0" );
+const baseStructure = Array(18)
+  .fill(0)
+  .map((_, idx) => {
+    const paddedIdx = String(idx + 1).padStart(2, "0");
     return {
       idx,
       // title: `Parvam ${paddedIdx}`,
-      title: parvamTitles[ idx ],
+      title: parvamTitles[idx],
       page: `mbsi${paddedIdx}.htm`,
       url: `${baseUrl}/mbsi${paddedIdx}.htm`,
-      chapters: Array( chapters[ idx ] )
-        .fill( 0 )
-        .map( ( _, cidx ) => {
-          const paddedChapterIdx = String( cidx + 1 ).padStart( 3, "0" );
+      chapters: Array(chapters[idx])
+        .fill(0)
+        .map((_, cidx) => {
+          const paddedChapterIdx = String(cidx + 1).padStart(3, "0");
           return {
             idx: cidx,
             title: `adhyaayam ${paddedChapterIdx}`,
             page: `mbs${paddedIdx}${paddedChapterIdx}.htm`,
             url: `${baseUrl}/mbs${paddedIdx}${paddedChapterIdx}.htm`,
           };
-        } ),
+        }),
     };
-  } );
+  });
 
-export async function createMahabharathaEntityDB( parentId: string ) {
+export async function createMahabharathaEntityDB(parentId: string) {
   // const filePath = path.resolve( `${config.dataFolder}/mahabharatham/0_structure.json` );
   // const baseStructure = readFileSync( filePath, "utf-8" );
   // console.log( baseStructure );
@@ -166,7 +166,7 @@ export async function createMahabharathaEntityDB( parentId: string ) {
   let entity = undefined;
 
   // check if entity exists
-  const entityExists = await db.entity.findFirst( {
+  const entityExists = await db.entity.findFirst({
     where: {
       type: "ITIHASAM",
       text: {
@@ -175,111 +175,118 @@ export async function createMahabharathaEntityDB( parentId: string ) {
         },
       },
     },
-    select: { id: true, childrenRel: { select: { id: true, order: true } } }
-  } );
+    select: { id: true, childrenRel: { select: { id: true, order: true } } },
+  });
 
-  if ( !entityExists ) {
-    const data: Prisma.EntityCreateArgs[ "data" ] = {
+  if (!entityExists) {
+    const data: Prisma.EntityCreateArgs["data"] = {
       type: "ITIHASAM",
       imageThumbnail: "/default-om_256.png",
-      text: transliteratedText( [
+      text: transliteratedText([
         {
-          "language": "ITRANS",
-          "value": entityTitle
+          language: "ITRANS",
+          value: entityTitle,
         },
         {
-          "language": "SAN",
-          "value": "$transliterateFrom=ITRANS"
+          language: "SAN",
+          value: "$transliterateFrom=ITRANS",
         },
         {
-          "language": "TEL",
-          "value": "$transliterateFrom=ITRANS"
+          language: "TEL",
+          value: "$transliterateFrom=ITRANS",
         },
-      ] ),
+      ]),
       parentsRel: {
         connect: {
-          id: parentId
-        }
+          id: parentId,
+        },
       },
       childrenRel: {
-        create: baseStructure.map( ( parvam ) => ( {
+        create: baseStructure.map((parvam) => ({
           order: parvam.idx,
           type: "PARVAM",
           imageThumbnail: "/default-om_256.png",
-          text: transliteratedText( [
+          text: transliteratedText([
             {
-              "language": "ITRANS",
-              "value": parvam.title
+              language: "ITRANS",
+              value: parvam.title,
             },
             {
-              "language": "SAN",
-              "value": "$transliterateFrom=ITRANS"
+              language: "SAN",
+              value: "$transliterateFrom=ITRANS",
             },
             {
-              "language": "TEL",
-              "value": "$transliterateFrom=ITRANS"
+              language: "TEL",
+              value: "$transliterateFrom=ITRANS",
             },
-          ] ),
-        } ) ),
+          ]),
+        })),
       },
     };
     // console.dir( data, { depth: 6 } );
 
     // create entity and parvas
-    const newEntity = await db.entity.create( {
-      data, select: { id: true, childrenRel: { select: { id: true, order: true } } }
-    } );
+    const newEntity = await db.entity.create({
+      data,
+      select: { id: true, childrenRel: { select: { id: true, order: true } } },
+    });
     // console.log( `Entity created: ${newEntity.id}` );
     entity = newEntity;
   } else {
     entity = entityExists;
   }
 
-  if ( !entity ) {
-    throw new Error( "Root Mahabharatham Entity not created" );
+  if (!entity) {
+    throw new Error("Root Mahabharatham Entity not created");
   }
 
-  console.log( `Root Entity: ${entity.id}` );
+  console.log(`Root Entity: ${entity.id}`);
 
-  for ( const parvam of baseStructure ) {
-
-    const parvamEntityId = entity.childrenRel.find( ( c ) => c.order === parvam.idx )?.id;
-    if ( !parvamEntityId ) {
-      throw new Error( `Parvam Entity not found: ${parvam.idx}` );
+  for (const parvam of baseStructure) {
+    const parvamEntityId = entity.childrenRel.find(
+      (c) => c.order === parvam.idx,
+    )?.id;
+    if (!parvamEntityId) {
+      throw new Error(`Parvam Entity not found: ${parvam.idx}`);
     }
 
-    for ( const chapter of parvam.chapters ) {
-      const filePath = path.resolve( `${config.dataFolder}/mahabharatham/extract_slokas/${chapter.page}.json` );
-      const text = await readFile( filePath, 'utf-8' );
+    for (const chapter of parvam.chapters) {
+      const filePath = path.resolve(
+        `${config.dataFolder}/mahabharatham/extract_slokas/${chapter.page}.json`,
+      );
+      const text = await readFile(filePath, "utf-8");
       // console.log( text );
-      const json = JSON.parse( text ) as any;
+      const json = JSON.parse(text) as any;
       // console.log( json );
 
-      const data: Prisma.EntityCreateArgs[ "data" ] = {
+      const data: Prisma.EntityCreateArgs["data"] = {
         order: chapter.idx,
         type: "ADHYAAYAM",
         imageThumbnail: "/default-om_256.png",
-        text: transliteratedText( json.entities[ 0 ].text ),
+        text: transliteratedText(json.entities[0].text),
         parentsRel: {
           connect: {
-            id: parvamEntityId
-          }
+            id: parvamEntityId,
+          },
         },
         childrenRel: {
-          create: json.entities[ 0 ].children.map( ( sloka: any ) => ( {
+          create: json.entities[0].children.map((sloka: any) => ({
             ...sloka,
-            text: transliteratedText( sloka.text ),
-          } ) ),
+            text: transliteratedText(sloka.text),
+          })),
         },
       };
 
       // console.dir( data, { depth: 5 } );
 
       // create adhyaayam and slokas
-      const newEntity = await db.entity.create( {
-        data, select: { id: true }
-      } );
-      console.log( `adhyaayam Entity created:${parvam.idx}-${chapter.idx} ${chapter.title} ${newEntity.id}` );
+      const newEntity = await db.entity.create({
+        data,
+        select: { id: true },
+      });
+      console.log(
+        `adhyaayam Entity created:${parvam.idx}-${chapter.idx} ${chapter.title} ${newEntity.id}`,
+      );
       // break;
     }
     // break;
@@ -287,16 +294,20 @@ export async function createMahabharathaEntityDB( parentId: string ) {
 }
 
 export async function fetchSlokas() {
-  const filePath = path.resolve( `${config.dataFolder}/mahabharatham/0_structure.json` );
-  await writeFile( filePath, JSON.stringify( baseStructure, null, 2 ) );
+  const filePath = path.resolve(
+    `${config.dataFolder}/mahabharatham/0_structure.json`,
+  );
+  await writeFile(filePath, JSON.stringify(baseStructure, null, 2));
   // console.log( baseStructure );
-  for ( const parvam of baseStructure ) {
-    for ( const chapter of parvam.chapters ) {
-      const response = await fetch( chapter.url );
+  for (const parvam of baseStructure) {
+    for (const chapter of parvam.chapters) {
+      const response = await fetch(chapter.url);
       const text = await response.text();
       // console.log( text );
-      const filePath = path.resolve( `${config.dataFolder}/mahabharatham/extract/${chapter.page}` );
-      await writeFile( filePath, text );
+      const filePath = path.resolve(
+        `${config.dataFolder}/mahabharatham/extract/${chapter.page}`,
+      );
+      await writeFile(filePath, text);
       // break;
     }
     // break;
@@ -343,99 +354,117 @@ export async function fetchSlokas() {
 export async function processSlokas() {
   // const slokas = [];
   let parvamIdx = 0;
-  for ( const parvam of baseStructure ) {
+  for (const parvam of baseStructure) {
     let chapterIdx = 0;
-    for ( const chapter of parvam.chapters ) {
-      console.log( `Processing: ${parvamIdx} ${parvam.title} - ${chapterIdx} ${chapter.title}` );
+    for (const chapter of parvam.chapters) {
+      console.log(
+        `Processing: ${parvamIdx} ${parvam.title} - ${chapterIdx} ${chapter.title}`,
+      );
       // const response = await fetch( chapter.url );
       // const text = await response.text();
-      const filePath = path.resolve( `${config.dataFolder}/mahabharatham/extract/${chapter.page}` );
-      const text = await readFile( filePath, "utf-8" );
+      const filePath = path.resolve(
+        `${config.dataFolder}/mahabharatham/extract/${chapter.page}`,
+      );
+      const text = await readFile(filePath, "utf-8");
 
-      const $ = cheerio.load( text );
+      const $ = cheerio.load(text);
 
       const slokasSans: string[] = [];
       let currentSloka: string[] = [];
-      $( 'td:first' ).text().split( "\n" ).map( l => l.trim() ).filter( l => l.length ).forEach( ( line ) => {
-        // console.log( line );
-        const slokaNumber = line.match( /^\d+$/ )?.[ 0 ];
-        if ( slokaNumber ) {
-          // console.log( `Sloka Number: ${slokaNumber}` );
-          if ( currentSloka.length ) {
-            slokasSans.push( currentSloka.join( "  \n" ) );
-            currentSloka = [];
+      $("td:first")
+        .text()
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length)
+        .forEach((line) => {
+          // console.log( line );
+          const slokaNumber = line.match(/^\d+$/)?.[0];
+          if (slokaNumber) {
+            // console.log( `Sloka Number: ${slokaNumber}` );
+            if (currentSloka.length) {
+              slokasSans.push(currentSloka.join("  \n"));
+              currentSloka = [];
+            }
+          } else {
+            currentSloka.push(line);
           }
-        } else {
-          currentSloka.push( line );
-        }
-      } );
+        });
       // console.log( slokasSans );
       const slokasIast: string[] = [];
       currentSloka = [];
-      $( 'td:last' ).text().split( "\n" ).map( l => l.trim() ).filter( l => l.length ).forEach( ( line ) => {
-        // console.log( line );
-        const slokaNumber = line.match( /^\d+$/ )?.[ 0 ];
-        if ( slokaNumber ) {
-          // console.log( `Sloka Number: ${slokaNumber}` );
-          if ( currentSloka.length ) {
-            slokasIast.push( currentSloka.join( "  \n" ) );
-            currentSloka = [];
+      $("td:last")
+        .text()
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l.length)
+        .forEach((line) => {
+          // console.log( line );
+          const slokaNumber = line.match(/^\d+$/)?.[0];
+          if (slokaNumber) {
+            // console.log( `Sloka Number: ${slokaNumber}` );
+            if (currentSloka.length) {
+              slokasIast.push(currentSloka.join("  \n"));
+              currentSloka = [];
+            }
+          } else {
+            currentSloka.push(line);
           }
-        } else {
-          currentSloka.push( line );
-        }
-      } );
+        });
 
       const finalJson = {
         version: "current",
         // parvamIdx,
         // parvam: parvam.title,
-        entities: [ {
-          order: chapterIdx,
-          type: "ADHYAAYAM",
-          text: [
-            {
-              "language": "ITRANS",
-              "value": chapter.title
-            },
-            {
-              "language": "SAN",
-              "value": "$transliterateFrom=ITRANS"
-            },
-            {
-              "language": "TEL",
-              "value": "$transliterateFrom=ITRANS"
-            },
-          ],
-          imageThumbnail: "/default-om_256.png",
-          children: slokasSans.map( ( sloka, idx ) => ( {
-            order: idx,
-            type: "SLOKAM",
-            imageThumbnail: "/default-om_256.png",
+        entities: [
+          {
+            order: chapterIdx,
+            type: "ADHYAAYAM",
             text: [
               {
-                "language": "SAN",
-                "value": sloka
+                language: "ITRANS",
+                value: chapter.title,
               },
               {
-                "language": "IAST",
-                "value": slokasIast[ idx ]
+                language: "SAN",
+                value: "$transliterateFrom=ITRANS",
               },
               {
-                "language": "ITRANS",
-                "value": "$transliterateFrom=SAN"
+                language: "TEL",
+                value: "$transliterateFrom=ITRANS",
               },
-              {
-                "language": "TEL",
-                "value": "$transliterateFrom=SAN"
-              },
-            ]
-          } ) ),
-        } ],
+            ],
+            imageThumbnail: "/default-om_256.png",
+            children: slokasSans.map((sloka, idx) => ({
+              order: idx,
+              type: "SLOKAM",
+              imageThumbnail: "/default-om_256.png",
+              text: [
+                {
+                  language: "SAN",
+                  value: sloka,
+                },
+                {
+                  language: "IAST",
+                  value: slokasIast[idx],
+                },
+                {
+                  language: "ITRANS",
+                  value: "$transliterateFrom=SAN",
+                },
+                {
+                  language: "TEL",
+                  value: "$transliterateFrom=SAN",
+                },
+              ],
+            })),
+          },
+        ],
       };
 
-      const filePathSlokas = path.resolve( `${config.dataFolder}/mahabharatham/extract_slokas/${chapter.page}.json` );
-      writeFileSync( filePathSlokas, JSON.stringify( finalJson, null, 2 ) );
+      const filePathSlokas = path.resolve(
+        `${config.dataFolder}/mahabharatham/extract_slokas/${chapter.page}.json`,
+      );
+      writeFileSync(filePathSlokas, JSON.stringify(finalJson, null, 2));
 
       chapterIdx++;
       // break;

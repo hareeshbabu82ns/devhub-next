@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { DictionaryItem } from "./types";
-import { DictionaryWord, Prisma } from "@prisma/client";
+import { DictionaryWord, Prisma } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
 import { mapDbToDictionary } from "./utils";
 import { LANGUAGE_SELECT_DEFAULT } from "@/lib/constants";

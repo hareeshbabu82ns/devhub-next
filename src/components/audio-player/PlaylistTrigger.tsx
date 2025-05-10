@@ -18,7 +18,7 @@ export function PlaylistTrigger( { className }: { className?: string } ) {
 
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       aria-label={`Open playlist (${songCount} songs)`}
       className={`relative ${className}`}

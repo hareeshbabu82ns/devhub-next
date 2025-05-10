@@ -1,9 +1,12 @@
 import { cn } from "@/lib/utils";
-import React, { ChangeEvent, useCallback, useState, useRef, useEffect } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import { MdVolumeDown, MdVolumeUp, MdVolumeOff } from "react-icons/md";
 import { useAudioPlayerContext } from "react-use-audio-player";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
+import { Slider } from "../ui/slider";
+import { useLocalStorage } from "usehooks-ts";
+import { LS_AUDIO_PLAYER_VOLUME } from "@/lib/constants";
 
 interface AudioVolumeControlProps {
   className?: string;
@@ -18,69 +21,15 @@ const AudioVolumeControl = React.memo( ( { className, iconOnly = false }: AudioV
   const { setVolume, volume } = useAudioPlayerContext();
   const [ previousVolume, setPreviousVolume ] = useState<number>( 1 );
   const volumeRef = useRef<HTMLInputElement>( null );
-
-  // Store volume in localStorage for persistence
-  // useEffect( () => {
-  //   // Load saved volume on mount
-  //   const savedVolume = localStorage.getItem( 'audioPlayerVolume' );
-  //   if ( savedVolume !== null ) {
-  //     const parsedVolume = parseFloat( savedVolume );
-  //     if ( !isNaN( parsedVolume ) && parsedVolume >= 0 && parsedVolume <= 1 ) {
-  //       setVolume( parsedVolume );
-  //     }
-  //   }
-  // }, [ setVolume ] );
-
-  // Save volume changes to localStorage
-  // useEffect( () => {
-  //   localStorage.setItem( 'audioPlayerVolume', volume.toString() );
-  // }, [ volume ] );
+  const [ , setSavedVolume ] = useLocalStorage<number>( LS_AUDIO_PLAYER_VOLUME, 1 );
 
   // Handle volume change with debounced updates
   const handleChange = useCallback(
-    ( slider: ChangeEvent<HTMLInputElement> ) => {
-      const volValue = parseFloat( ( Number( slider.target.value ) / 100 ).toFixed( 2 ) );
-      setVolume( volValue );
+    ( volume: number ) => {
+      setSavedVolume( volume );
+      setVolume( volume );
     },
-    [ setVolume ],
-  );
-
-  // Handle keyboard controls for volume adjustment
-  const handleKeyDown = useCallback(
-    ( e: React.KeyboardEvent<HTMLInputElement> ) => {
-      let newVolume = volume;
-
-      switch ( e.key ) {
-        case 'ArrowUp':
-        case 'ArrowRight':
-          newVolume = Math.min( 1, volume + 0.05 );
-          e.preventDefault();
-          break;
-        case 'ArrowDown':
-        case 'ArrowLeft':
-          newVolume = Math.max( 0, volume - 0.05 );
-          e.preventDefault();
-          break;
-        case 'Home':
-          newVolume = 0;
-          e.preventDefault();
-          break;
-        case 'End':
-          newVolume = 1;
-          e.preventDefault();
-          break;
-        case 'm':
-          // 'm' key toggles mute
-          toggleMute();
-          e.preventDefault();
-          break;
-      }
-
-      if ( newVolume !== volume ) {
-        setVolume( newVolume );
-      }
-    },
-    [ volume, setVolume ]
+    [ setVolume, setSavedVolume ],
   );
 
   // Toggle mute/unmute
@@ -123,21 +72,13 @@ const AudioVolumeControl = React.memo( ( { className, iconOnly = false }: AudioV
               >
                 <VolumeIcon className="size-4" />
               </Button>
-              <input
-                type="range"
+              <Slider value={[ volume * 100 ]}
+                onValueChange={( r ) => handleChange( r[ 0 ] / 100 )}
                 min={0}
                 max={100}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                value={volume * 100}
-                className="flex-1"
+                className="flex-1 w-22"
                 aria-label="Volume control"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={Math.round( volume * 100 )}
-                aria-valuetext={`Volume ${Math.round( volume * 100 )}%`}
-                ref={volumeRef}
-              />
+                ref={volumeRef} />
             </div>
           </div>
         </PopoverContent>
@@ -157,21 +98,13 @@ const AudioVolumeControl = React.memo( ( { className, iconOnly = false }: AudioV
       >
         <VolumeIcon className="size-4" />
       </Button>
-      <input
-        type="range"
+      <Slider value={[ volume * 100 ]}
+        onValueChange={( r ) => handleChange( r[ 0 ] / 100 )}
         min={0}
         max={100}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        value={volume * 100}
-        className="flex-1"
+        className="flex-1 w-22"
         aria-label="Volume control"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={Math.round( volume * 100 )}
-        aria-valuetext={`Volume ${Math.round( volume * 100 )}%`}
-        ref={volumeRef}
-      />
+        ref={volumeRef} />
     </div>
   );
 } );

@@ -5,23 +5,29 @@ import AudioTimeLabel from "./AudioTimeLabel";
 import AudioVolumeControl from "./AudioVolumeControl";
 import { FaRunning } from "react-icons/fa";
 import { cn } from "@/lib/utils";
+import { Separator } from "../ui/separator";
+import { Slider } from "../ui/slider";
 
 interface AudioPlayExtrasBarProps {
   className?: string;
   isSidebar?: boolean;
+  hideSongName?: boolean;
 }
 
 /**
  * Component that provides additional audio controls like seek bar,
  * time display, volume, and playback speed
  */
-const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtrasBarProps ) => {
+const AudioPlayExtrasBar = React.memo( ( { className, isSidebar, hideSongName }: AudioPlayExtrasBarProps ) => {
   const { setRate, rate, src } = useAudioPlayerContext();
 
   // Optimize rate change handler
-  const handleRateChange = useCallback( ( e: React.ChangeEvent<HTMLSelectElement> ) => {
-    setRate( Number( e.target.value ) );
+  const handleRateChange = useCallback( ( range: number ) => {
+    setRate( range );
   }, [ setRate ] );
+  // const handleRateChange = useCallback( ( e: React.ChangeEvent<HTMLSelectElement> ) => {
+  //   setRate( Number( e.target.value ) );
+  // }, [ setRate ] );
 
   // Extract filename from path for cleaner display
   const displayName = src
@@ -31,17 +37,18 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtr
   // For sidebar mode, show a compact version with icon-only controls
   if ( isSidebar ) {
     return (
-      <div className={cn( "flex flex-col items-center gap-2 p-1", className )}>
-        <div className="w-full text-center text-xs truncate mb-1 border-b pb-1" aria-live="polite">
+      <div className={cn( "flex flex-col items-stretch gap-2 p-1", className )}>
+        <div className={cn( "w-full text-center text-xs truncate", { "hidden": hideSongName } )} aria-live="polite">
           {displayName}
         </div>
-        <div className="flex justify-center space-x-2 items-center w-full">
-          <div className="flex items-center text-xs">
+        <Separator className={hideSongName ? "hidden" : ""} />
+        <div className="flex justify-between space-x-2 items-center w-full">
+          {/* <div className="flex items-center text-xs">
             <FaRunning className="size-3 mr-1" aria-hidden="true" />
             <select
               className="bg-transparent text-xs focus:ring-1 focus:ring-offset-1 w-14"
               value={rate}
-              onChange={handleRateChange}
+              onChange={( e ) => handleRateChange( Number( e.target.value ) )}
               aria-label="Playback speed"
             >
               <option value="0.5">0.5x</option>
@@ -49,6 +56,19 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtr
               <option value="1.5">1.5x</option>
               <option value="2">2x</option>
             </select>
+          </div> */}
+          {/* Playback speed control */}
+          <div className="flex flex-row gap-3 items-center">
+            <FaRunning className="size-3 text-muted-foreground" />
+            <Slider value={[ rate ]}
+              onValueChange={( r ) => handleRateChange( r[ 0 ] )}
+              min={0.5}
+              max={2}
+              step={0.25}
+              defaultValue={[ 1 ]}
+              className="flex-1 w-18"
+              aria-label="Playback speed" />
+            <p className="text-xs text-muted-foreground">{rate}x</p>
           </div>
           <AudioVolumeControl iconOnly />
         </div>
@@ -58,13 +78,14 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtr
 
   // Standard mode with full controls
   return (
-    <div className={cn( "flex flex-col flex-1 items-start gap-2", className )}>
+    <div className={cn( "flex flex-col flex-1 items-stretch gap-2", className )}>
       {/* Track information with marquee effect for long titles */}
-      <div
-        className="flex flex-1 border-b pb-4 mb-1"
+      {hideSongName ? null : <div
+        className="flex flex-1 border-b mb-1"
         aria-live="polite"
         aria-label="Current track"
       >
+
         <div className="group flex-1">
           <div className="relative text-sm font-medium group-hover:animate-marquee overflow-hidden whitespace-nowrap">
             {displayName}
@@ -75,7 +96,7 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtr
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Seek bar */}
       <div className="flex" role="group" aria-label="Playback progress">
@@ -83,38 +104,30 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar }: AudioPlayExtr
       </div>
 
       {/* Controls grid - adapt to different screen sizes */}
-      <div className="grid gap-2 grid-cols-2 sm:grid-cols-4 lg:grid-cols-6">
-        {/* Time display */}
-        <div className="col-span-2" role="timer" aria-label="Playback time">
-          <AudioTimeLabel />
-        </div>
+      <div className="flex-1 flex flex-row items-center justify-around">
 
         {/* Playback speed control */}
-        <div className="flex flex-row gap-2 items-center col-span-2 sm:col-span-1">
-          <div className="flex items-center gap-1.5">
-            <label htmlFor="playback-speed" className="sr-only">
-              Playback Speed
-            </label>
-            <FaRunning className="size-4 text-muted-foreground" aria-hidden="true" />
-            <select
-              className="w-full rounded-sm text-xs bg-background focus:ring-2 focus:ring-offset-1"
-              id="playback-speed"
-              value={rate}
-              onChange={handleRateChange}
-              aria-label="Playback speed"
-            >
-              <option value="0.5">0.5x</option>
-              <option value="0.75">0.75x</option>
-              <option value="1">1x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-            </select>
-          </div>
+        <div className="flex flex-row gap-3 items-center">
+          <FaRunning className="size-4 text-muted-foreground" />
+          <Slider value={[ rate ]}
+            onValueChange={( r ) => handleRateChange( r[ 0 ] )}
+            min={0.5}
+            max={2}
+            step={0.25}
+            defaultValue={[ 1 ]}
+            className="w-28"
+            aria-label="Playback speed" />
+          <p className="text-sm text-muted-foreground">{rate}x</p>
         </div>
 
         {/* Volume control */}
         <div className="col-span-2 md:col-span-3" aria-label="Volume control">
           <AudioVolumeControl />
+        </div>
+
+        {/* Time display */}
+        <div className="col-span-2 text-center" role="timer" aria-label="Playback time">
+          <AudioTimeLabel />
         </div>
       </div>
     </div>

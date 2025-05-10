@@ -1,6 +1,8 @@
 import { Option } from "@/components/ui/multi-select";
 import { EntityTypeEnum } from "./types";
 
+export const LS_AUDIO_PLAYER_VOLUME = "audioPlayerVolume";
+
 export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
 export const QUERY_RESULT_LIMIT_DEFAULT = "10";
 export const QUERY_RESULT_LIMITS = ["10", "25", "50", "100", "150", "200"];

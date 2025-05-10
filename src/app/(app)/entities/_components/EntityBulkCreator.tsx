@@ -11,7 +11,7 @@ import { z } from "zod";
 import { EntityTypeEnum } from "@/lib/types";
 import { useMutation } from "@tanstack/react-query";
 import { createEntity, getEntityByText } from "../actions";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/app/generated/prisma";
 import { toast } from "sonner";
 import { LANGUAGES } from "@/lib/constants";
 interface EntityBulkCreatorProps {

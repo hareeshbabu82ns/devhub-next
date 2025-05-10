@@ -55,7 +55,7 @@ const TopNavBar = () => {
         </div>
         <div className="flex flex-row gap-2">
           {/* Use the simplified PlaylistTrigger component */}
-          <PlaylistTrigger className="md:hidden" />
+          <PlaylistTrigger />
           <QuickAccessMenuTrigger />
           <QuickSettingsTrigger />
         </div>
