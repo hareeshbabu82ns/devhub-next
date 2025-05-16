@@ -202,7 +202,7 @@ const entityToEntityForm = ( entity: EntityWithRelations ) => {
     meaning: ( entity.meaningData || [] ) as any,
     audio: entity.audio,
     order: entity.order,
-    notes: entity.notes,
+    notes: entity.notes || "",
     // text: entity.text,
     // children: entity.children.map( ( child ) => entityToEntityForm( child ) ),
     parentIDs: entity.parents?.map( ( parent ) => ( {
