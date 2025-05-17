@@ -8,6 +8,7 @@ import path from "path";
 import { db } from "../db";
 import { Prisma } from "@/app/generated/prisma";
 import { transliteratedText } from "@/app/(app)/sanscript/_components/utils";
+import Sanscript from "@indic-transliteration/sanscript";
 
 const baseUrl = "https://sacred-texts.com/hin/mbs";
 //book sample: "https://sacred-texts.com/hin/mbs/mbsi05.htm"
@@ -195,6 +196,10 @@ export async function createMahabharathaEntityDB(parentId: string) {
           language: "TEL",
           value: "$transliterateFrom=ITRANS",
         },
+        {
+          language: "IAST",
+          value: "$transliterateFrom=ITRANS",
+        },
       ]),
       parentsRel: {
         connect: {
@@ -217,6 +222,10 @@ export async function createMahabharathaEntityDB(parentId: string) {
             },
             {
               language: "TEL",
+              value: "$transliterateFrom=ITRANS",
+            },
+            {
+              language: "IAST",
               value: "$transliterateFrom=ITRANS",
             },
           ]),
@@ -357,6 +366,10 @@ export async function processSlokas() {
   for (const parvam of baseStructure) {
     let chapterIdx = 0;
     for (const chapter of parvam.chapters) {
+      // if (chapterIdx !== 1) {
+      //   chapterIdx++;
+      //   continue;
+      // }
       console.log(
         `Processing: ${parvamIdx} ${parvam.title} - ${chapterIdx} ${chapter.title}`,
       );
@@ -380,7 +393,7 @@ export async function processSlokas() {
           // console.log( line );
           const slokaNumber = line.match(/^\d+$/)?.[0];
           if (slokaNumber) {
-            // console.log( `Sloka Number: ${slokaNumber}` );
+            // console.log(`Sloka Number: ${slokaNumber}`);
             if (currentSloka.length) {
               slokasSans.push(currentSloka.join("  \n"));
               currentSloka = [];
@@ -389,7 +402,11 @@ export async function processSlokas() {
             currentSloka.push(line);
           }
         });
-      // console.log( slokasSans );
+      if (currentSloka.length) {
+        slokasSans.push(currentSloka.join("  \n"));
+        currentSloka = [];
+      }
+
       const slokasIast: string[] = [];
       currentSloka = [];
       $("td:last")
@@ -410,6 +427,10 @@ export async function processSlokas() {
             currentSloka.push(line);
           }
         });
+      if (currentSloka.length) {
+        slokasIast.push(currentSloka.join("  \n"));
+        currentSloka = [];
+      }
 
       const finalJson = {
         version: "current",
@@ -426,11 +447,17 @@ export async function processSlokas() {
               },
               {
                 language: "SAN",
-                value: "$transliterateFrom=ITRANS",
+                // value: "$transliterateFrom=ITRANS",
+                value: Sanscript.t(
+                  chapter.title,
+                  "itrans_dravidian",
+                  "devanagari",
+                ),
               },
               {
                 language: "TEL",
-                value: "$transliterateFrom=ITRANS",
+                // value: "$transliterateFrom=ITRANS",
+                value: Sanscript.t(chapter.title, "itrans_dravidian", "telugu"),
               },
             ],
             imageThumbnail: "/default-om_256.png",
@@ -449,11 +476,13 @@ export async function processSlokas() {
                 },
                 {
                   language: "ITRANS",
-                  value: "$transliterateFrom=SAN",
+                  // value: "$transliterateFrom=SAN",
+                  value: Sanscript.t(sloka, "devanagari", "itrans_dravidian"),
                 },
                 {
                   language: "TEL",
-                  value: "$transliterateFrom=SAN",
+                  // value: "$transliterateFrom=SAN",
+                  value: Sanscript.t(sloka, "devanagari", "telugu"),
                 },
               ],
             })),
@@ -464,6 +493,7 @@ export async function processSlokas() {
       const filePathSlokas = path.resolve(
         `${config.dataFolder}/mahabharatham/extract_slokas/${chapter.page}.json`,
       );
+      // console.log(finalJson.entities[0].children.length);
       writeFileSync(filePathSlokas, JSON.stringify(finalJson, null, 2));
 
       chapterIdx++;
