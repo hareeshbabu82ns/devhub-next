@@ -19,19 +19,23 @@ import path from "path";
 // import { config } from "@/config";
 
 export const updateEntitiesScript = async () => {
-  // 1
+  // 1 Ramayanam
   // await scrapeRamayanamPages();
   // 2
   // await scrapeRayayanamPagesJSON();
   // 3
   // await createRamayanaEntityDB("67097f78685941d233751dcb");
-  // 1
+  // await updateAudioUrlsRamayanam( "63366f12a55ed064583701eb" );
+  //
+  // 1 Mahabharatham
   // await scrapeMeaningPages();
   // 2
   // await scrapeMeaningPagesJSON();
+  // 3
   // await processSlokas();
+  // 4
   // await createMahabharathaEntityDB("67097f78685941d233751dcb");
-  // await updateAudioUrlsRamayanam( "63366f12a55ed064583701eb" );
+  //
   // await upgradeEntitiesAll();
 };
 

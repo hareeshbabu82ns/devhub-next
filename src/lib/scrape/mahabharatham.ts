@@ -477,12 +477,12 @@ export async function processSlokas() {
                 {
                   language: "ITRANS",
                   // value: "$transliterateFrom=SAN",
-                  value: Sanscript.t(sloka, "devanagari", "itrans_dravidian"),
+                  value: Sanscript.t(slokasIast[idx], "iast", "itrans"),
                 },
                 {
                   language: "TEL",
                   // value: "$transliterateFrom=SAN",
-                  value: Sanscript.t(sloka, "devanagari", "telugu"),
+                  value: Sanscript.t(slokasIast[idx], "iast", "telugu"),
                 },
               ],
             })),
