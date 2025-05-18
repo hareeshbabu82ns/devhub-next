@@ -7,16 +7,19 @@ import { Icons } from "@/components/utils/icons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { fetchEntitySiblings } from "../../../actions";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import EntityNavigationView from "@/app/(app)/entities/_components/EntityBreadcrumbView";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import { useKeyboardNavigation, KEYS } from "@/hooks";
+import { useKeyboardNavigation, useSwipeNavigation, KEYS } from "@/hooks";
 
 const Page = () => {
   const params = useParams();
   const { entityId, childId } = params as { entityId: string; childId: string };
   const router = useRouter();
+
+  // Create a ref for the container to enable swipe detection
+  const containerRef = useRef<HTMLDivElement>( null );
 
   // Track the current slokam ID locally for client-side navigation
   const [ currentSlokamId, setCurrentSlokamId ] = useState( childId );
@@ -113,6 +116,22 @@ const Page = () => {
     enabled: true
   } );
 
+  // Add swipe gesture support for touch devices
+  useSwipeNavigation( containerRef as React.RefObject<HTMLElement>, {
+    threshold: 70, // Minimum distance to trigger a swipe (px)
+    enabled: true,
+    onSwipeLeft: () => {
+      if ( navigationInfo.next ) {
+        handleNext();
+      }
+    },
+    onSwipeRight: () => {
+      if ( navigationInfo.prev ) {
+        handlePrevious();
+      }
+    }
+  } );
+
   // Handle popstate (browser back/forward buttons)
   useEffect( () => {
     const handlePopState = () => {
@@ -132,27 +151,29 @@ const Page = () => {
   if ( error ) return <SimpleAlert title={error.message} />;
 
   const navigationView = (
-    <div className="flex flex-row items-center justify-between pb-4">
+    <div className="flex flex-col md:flex-row items-center justify-between gap-2 pb-4">
       {/* Header Left Actions */}
-      <div className="flex items-center gap-2">
-        <Button
-          onClick={() => router.back()}
-          type="button"
-          variant="outline"
-          size="icon"
-          title="Back (← Backspace)"
-          aria-label="Back (← Backspace)"
-        >
-          <Icons.chevronLeft className="size-4" />
-        </Button>
-        <Button
-          onClick={() => refetch()}
-          type="button"
-          variant="outline"
-          size="icon"
-        >
-          <Icons.refresh className="size-4" />
-        </Button>
+      <div className="flex flex-col md:flex-row items-center gap-2">
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => router.back()}
+            type="button"
+            variant="outline"
+            size="icon"
+            title="Back (← Backspace)"
+            aria-label="Back (← Backspace)"
+          >
+            <Icons.chevronLeft className="size-4" />
+          </Button>
+          <Button
+            onClick={() => refetch()}
+            type="button"
+            variant="outline"
+            size="icon"
+          >
+            <Icons.refresh className="size-4" />
+          </Button>
+        </div>
         <EntityNavigationView entityId={currentSlokamId} />
       </div>
       {/* Header Right Actions */}
@@ -164,8 +185,8 @@ const Page = () => {
           variant="outline"
           size="icon"
           disabled={!navigationInfo.prev}
-          title="Previous slokam (← Left arrow)"
-          aria-label="Previous slokam (← Left arrow)"
+          title="Previous slokam (← Left arrow or swipe right)"
+          aria-label="Previous slokam (← Left arrow or swipe right)"
         >
           <Icons.chevronLeft className="size-4 mr-1" />
         </Button>
@@ -196,8 +217,8 @@ const Page = () => {
           variant="outline"
           size="icon"
           disabled={!navigationInfo.next}
-          title="Next slokam (→ Right arrow)"
-          aria-label="Next slokam (→ Right arrow)"
+          title="Next slokam (→ Right arrow or swipe left)"
+          aria-label="Next slokam (→ Right arrow or swipe left)"
         >
           <Icons.chevronRight className="size-4 ml-1" />
         </Button>
@@ -206,7 +227,7 @@ const Page = () => {
   )
 
   return (
-    <div className="flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.20))]">
+    <div className="flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.20))]" ref={containerRef}>
       {navigationView}
       <SlokamDetails slokamId={currentSlokamId} />
     </div>
