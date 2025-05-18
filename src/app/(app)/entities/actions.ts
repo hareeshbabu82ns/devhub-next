@@ -585,3 +585,86 @@ function mapEntityToDownloadData(entity: Entity) {
     children: entity.children,
   };
 }
+
+export async function fetchEntitySiblings(entityId: string): Promise<{
+  currentEntityId: string;
+  siblings: Array<{
+    id: string;
+    order: number;
+  }>;
+  prev: {
+    id: string;
+    order: number;
+  } | null;
+  next: {
+    id: string;
+    order: number;
+  } | null;
+}> {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  // Get the current entity to find its parent and order
+  const currentEntity = await db.entity.findUnique({
+    where: { id: entityId },
+    select: { id: true, order: true, parents: true, text: true },
+  });
+
+  if (
+    !currentEntity ||
+    !currentEntity.parents ||
+    currentEntity.parents.length === 0
+  ) {
+    return {
+      currentEntityId: entityId,
+      siblings: [],
+      prev: null,
+      next: null,
+    };
+  }
+
+  // Get the parent ID
+  const parentId = currentEntity.parents[0];
+
+  // Find all siblings (entities with the same parent)
+  const siblings = await db.entity.findMany({
+    where: {
+      parents: {
+        has: parentId,
+      },
+    },
+    select: {
+      id: true,
+      order: true,
+    },
+    orderBy: {
+      order: "asc",
+    },
+  });
+
+  // Map siblings without including text to keep response size small
+  const siblingsWithOrder = siblings.map((sibling) => ({
+    id: sibling.id,
+    order: sibling.order,
+  }));
+
+  // Find the current entity's index in the siblings array
+  const currentIndex = siblingsWithOrder.findIndex((s) => s.id === entityId);
+
+  // Determine previous and next siblings
+  const prevSibling =
+    currentIndex > 0 ? siblingsWithOrder[currentIndex - 1] : null;
+  const nextSibling =
+    currentIndex < siblingsWithOrder.length - 1
+      ? siblingsWithOrder[currentIndex + 1]
+      : null;
+
+  return {
+    currentEntityId: entityId,
+    siblings: siblingsWithOrder,
+    prev: prevSibling,
+    next: nextSibling,
+  };
+}

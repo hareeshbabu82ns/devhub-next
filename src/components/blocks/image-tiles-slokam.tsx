@@ -6,12 +6,13 @@ import remarkGfm from "remark-gfm";
 import { useCopyToClipboard } from "usehooks-ts";
 import AudioPlayPauseButton from "./AudioPlayPauseButton";
 import Image from "next/image";
-import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
+// import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
 import { toast } from "sonner";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useParams, useRouter } from "next/navigation";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -31,6 +32,9 @@ export const ArtSlokamTile = ( {
   onTileClicked,
   onBookmarkClicked,
 }: ArtSlokamTileProps ) => {
+  const router = useRouter();
+  const params = useParams();
+  const { entityId } = params as { entityId: string; };
   const textSize = useTextSizeAtomValue();
   const [ , copyToClipboard ] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
@@ -72,13 +76,28 @@ export const ArtSlokamTile = ( {
         <div className="flex items-center justify-between h-8">
           <div className="flex items-center gap-4">
             {index > 0 && (
-              <SlokamDisplayDlgTrigger
-                key={model.id}
-                triggerTitle={( model.order ? model.order + 1 : index )
+              <Button
+                variant="ghost"
+                type="button"
+                size="icon"
+                className="text-muted-foreground"
+                onClick={( e ) => {
+                  e.stopPropagation();
+                  // // navigate to /<entityId>/child/<childId>
+                  router.push( `/entities/${entityId}/child/${model.id}` );
+                }}
+              >
+                {( model.order ? model.order + 1 : index )
                   .toString()
                   .padStart( 3, "0" )}
-                forSlokamId={model.id}
-              />
+              </Button>
+              // <SlokamDisplayDlgTrigger
+              //   key={model.id}
+              //   triggerTitle={( model.order ? model.order + 1 : index )
+              //     .toString()
+              //     .padStart( 3, "0" )}
+              //   forSlokamId={model.id}
+              // />
             )}
             {model.subTitle && (
               <div className="text-sm text-muted-foreground">

@@ -5,8 +5,6 @@ import { readEntity } from "@/app/(app)/entities/actions";
 import Loader from "../utils/loader";
 import SimpleAlert from "../utils/SimpleAlert";
 import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
-import { Icons } from "../utils/icons";
 import { ArtSlokamTile } from "./image-tiles-slokam";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -26,6 +24,7 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
   const meaningLanguage = useMeaningLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
 
+  // Fetch current slokam details
   const {
     data: slokam,
     isFetching,
@@ -40,7 +39,7 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
     },
   } );
 
-  if ( isFetching || isLoading ) return <Loader />;
+  if ( isLoading || isFetching ) return <Loader />;
   if ( error ) return <SimpleAlert title={error.message} />;
   if ( !slokam )
     return <SimpleAlert title={`No Slokam Found with id: ${slokamId}`} />;
@@ -49,18 +48,6 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
 
   return (
     <div className={cn( "flex flex-1 flex-col gap-4", className )}>
-      <div className="flex flex-row items-center justify-between">
-        <div>
-          <Button
-            onClick={() => refetch()}
-            type="button"
-            variant="outline"
-            size="icon"
-          >
-            <Icons.refresh className="size-4" />
-          </Button>
-        </div>
-      </div>
       {/* Slokam & Meaning */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="flex flex-1 flex-col p-4 rounded-md border">
@@ -90,7 +77,7 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
             <Markdown remarkPlugins={[ remarkGfm ]}>{slokam.notes}</Markdown>
           </div>
         </div>
-        <div className="flex flex-1 flex-col  p-4 rounded-md border">
+        <div className="flex flex-1 flex-col p-4 rounded-md border">
           <p className="text-secondary pb-2">Attributes:</p>
           <div className="flex flex-col">
             {slokam.attributes?.map( ( attr, idx ) => (
