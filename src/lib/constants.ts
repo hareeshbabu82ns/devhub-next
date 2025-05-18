@@ -4,8 +4,8 @@ import { EntityTypeEnum } from "./types";
 export const LS_AUDIO_PLAYER_VOLUME = "audioPlayerVolume";
 
 export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
-export const QUERY_RESULT_LIMIT_DEFAULT = "10";
-export const QUERY_RESULT_LIMITS = ["10", "25", "50", "100", "150", "200"];
+export const QUERY_RESULT_LIMIT_DEFAULT = "12";
+export const QUERY_RESULT_LIMITS = ["12", "24", "36", "48", "96", "144", "192"];
 
 export const LANGUAGE_MEANING_SELECT_KEY = "languageMeaning";
 export const LANGUAGE_SELECT_KEY = "language";

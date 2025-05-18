@@ -30,7 +30,6 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
     isFetching,
     isLoading,
     error,
-    refetch,
   } = useQuery( {
     queryKey: [ "slokamDetails", { slokamId, language, meaningLanguage } ],
     queryFn: async () => {
@@ -47,9 +46,9 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
   const slokamTile: TileModel = mapEntityToTileModel( slokam );
 
   return (
-    <div className={cn( "flex flex-1 flex-col gap-4", className )}>
+    <div className={cn( "@container/slokamDetails flex flex-1 flex-col gap-4", className )}>
       {/* Slokam & Meaning */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 @5xl/slokamDetails:grid-cols-2 gap-4">
         <div className="flex flex-1 flex-col p-4 rounded-md border">
           <p className="text-secondary pb-2">Slokam:</p>
           <ArtSlokamTile
@@ -68,7 +67,7 @@ const SlokamDetails = ( { slokamId, className }: CompParams ) => {
       </div>
 
       {/* Notes & Attributes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-6">
+      <div className="grid grid-cols-1 @5xl/slokamDetails:grid-cols-2 gap-4 pt-6">
         <div className="flex flex-1 flex-col p-4 rounded-md border">
           <p className="text-secondary pb-2">Notes:</p>
           <div
