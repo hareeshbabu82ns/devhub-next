@@ -11,7 +11,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import EntityNavigationView from "@/app/(app)/entities/_components/EntityBreadcrumbView";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import { useKeyboardNavigation, useSwipeNavigation, KEYS } from "@/hooks";
+import { useKeyboardNavigation, useAnimatedSwipe, KEYS } from "@/hooks";
 
 const Page = () => {
   const params = useParams();
@@ -23,6 +23,9 @@ const Page = () => {
 
   // Track the current slokam ID locally for client-side navigation
   const [ currentSlokamId, setCurrentSlokamId ] = useState( childId );
+
+  // Track the direction of navigation for entrance animation
+  const [ navigationDirection, setNavigationDirection ] = useState<"left" | "right" | null>( null );
 
   // Fetch siblings only once
   const {
@@ -73,6 +76,7 @@ const Page = () => {
   // Handle navigation
   const handlePrevious = useCallback( () => {
     if ( navigationInfo.prev ) {
+      setNavigationDirection( "right" ); // Moving backwards
       setCurrentSlokamId( navigationInfo.prev.id );
       updateUrl( navigationInfo.prev.id );
     }
@@ -80,6 +84,7 @@ const Page = () => {
 
   const handleNext = useCallback( () => {
     if ( navigationInfo.next ) {
+      setNavigationDirection( "left" ); // Moving forwards
       setCurrentSlokamId( navigationInfo.next.id );
       updateUrl( navigationInfo.next.id );
     }
@@ -94,6 +99,16 @@ const Page = () => {
   useEffect( () => {
     setCurrentSlokamId( childId );
   }, [ childId ] );
+
+  // Reset navigation direction after animation completes
+  useEffect( () => {
+    if ( navigationDirection ) {
+      const timer = setTimeout( () => {
+        setNavigationDirection( null );
+      }, 300 );
+      return () => clearTimeout( timer );
+    }
+  }, [ navigationDirection ] );
 
   // Add keyboard navigation support using the custom hook
   useKeyboardNavigation( {
@@ -116,10 +131,11 @@ const Page = () => {
     enabled: true
   } );
 
-  // Add swipe gesture support for touch devices
-  useSwipeNavigation( containerRef as React.RefObject<HTMLElement>, {
+  // Add animated swipe gesture support for touch devices
+  const { swipeDistance, swipeAnimation } = useAnimatedSwipe( containerRef as React.RefObject<HTMLElement>, {
     threshold: 70, // Minimum distance to trigger a swipe (px)
     enabled: true,
+    maxTranslation: 120, // Maximum translation in pixels
     onSwipeLeft: () => {
       if ( navigationInfo.next ) {
         handleNext();
@@ -198,7 +214,7 @@ const Page = () => {
           >
             <SelectTrigger className="w-[120px] truncate">
               <SelectValue placeholder="Select slokam">
-                {navigationInfo.current?.order || "1"} / {siblingData.siblings.length}
+                {( navigationInfo.current?.order || 0 ) + 1} / {siblingData.siblings.length}
               </SelectValue>
             </SelectTrigger>
             <SelectContent>
@@ -226,10 +242,50 @@ const Page = () => {
     </div>
   )
 
+  // Create dynamic styles for swipe animation
+  const swipeContainerStyle = {
+    transform: swipeDistance ? `translateX(${swipeDistance}px)` : undefined,
+    '--swipe-distance': `${swipeDistance}px`,
+  } as React.CSSProperties;
+
+  // Show navigation indicator arrows during swipe
+  const showLeftIndicator = swipeDistance > 30 && navigationInfo.prev;
+  const showRightIndicator = swipeDistance < -30 && navigationInfo.next;
+
+  // Determine entrance animation class based on navigation direction
+  const entranceAnimationClass = navigationDirection === "left"
+    ? "slide-in-from-right"
+    : navigationDirection === "right"
+      ? "slide-in-from-left"
+      : "";
+
   return (
     <div className="flex flex-1 flex-col min-h-[calc(100vh_-_theme(spacing.20))]" ref={containerRef}>
       {navigationView}
-      <SlokamDetails slokamId={currentSlokamId} />
+
+      {/* Swipe navigation indicators */}
+      <div className="relative flex-1">
+        {/* Left navigation indicator */}
+        {showLeftIndicator && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-primary text-primary-foreground rounded-full p-3 opacity-80 transition-opacity duration-200">
+            <Icons.chevronLeft className="size-5" />
+          </div>
+        )}
+
+        {/* Right navigation indicator */}
+        {showRightIndicator && (
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-primary text-primary-foreground rounded-full p-3 opacity-80 transition-opacity duration-200">
+            <Icons.chevronRight className="size-5" />
+          </div>
+        )}
+
+        <div
+          className={`swipe-container flex-1 ${swipeAnimation} ${entranceAnimationClass}`}
+          style={swipeContainerStyle}
+        >
+          <SlokamDetails slokamId={currentSlokamId} />
+        </div>
+      </div>
     </div>
   );
 };

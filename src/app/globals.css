@@ -339,6 +339,85 @@ button {
     scrollbar-width: auto; /* Firefox */
   }
 
+  /* Swipe animation styles */
+  .swipe-container {
+    will-change: transform;
+    transition: transform 0.2s ease-out 0s;
+  }
+
+  .swipe-container.slide-out-left {
+    animation: slide-out-to-left 0.25s ease-out forwards;
+  }
+
+  .swipe-container.slide-out-right {
+    animation: slide-out-to-right 0.25s ease-out forwards;
+  }
+
+  .swipe-container.slide-reset {
+    animation: slide-reset 0.15s ease-out forwards;
+  }
+
+  .swipe-container.slide-in-from-left {
+    animation: slide-in-from-left 0.25s ease-out forwards;
+  }
+
+  .swipe-container.slide-in-from-right {
+    animation: slide-in-from-right 0.25s ease-out forwards;
+  }
+
+  @keyframes slide-out-to-left {
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-out-to-right {
+    0% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-in-from-left {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-in-from-right {
+    0% {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slide-reset {
+    0% {
+      transform: translateX(var(--swipe-distance, 0px));
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+
   /* ==== File Upload */
   .file-upload {
     @apply text-xl flex cursor-pointer  flex-col items-center justify-center gap-3 rounded-md border border-dashed p-5;
