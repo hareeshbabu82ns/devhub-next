@@ -19,7 +19,7 @@
   --primary-hover: hsl(166 30% 60%);
   --primary-active: hsl(166 30% 50%);
   --secondary: hsl(220 40% 40%);
-  --secondary-foreground: hsl(220 5% 20%);
+  --secondary-foreground: hsl(220 35% 90%);
   --muted: hsl(166 10% 85%);
   --muted-foreground: hsl(166 5% 40%);
   --accent: hsl(166 35% 80%);
@@ -94,7 +94,7 @@
   --primary-hover: hsl(166 30% 70%);
   --primary-active: hsl(166 30% 50%);
   --secondary: hsl(220 30% 60%);
-  --secondary-foreground: hsl(220 5% 20%);
+  --secondary-foreground: hsl(220 5% 5%);
   --muted: hsl(166 10% 15%);
   --muted-foreground: hsl(166 5% 40%);
   --accent: hsl(166 35% 25%);
