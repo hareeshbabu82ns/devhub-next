@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { SentenceParseGraphView } from "./sentence-parse-graph";
 import {
   useSandhiSplits,
   useSandhiJoins,
@@ -23,11 +25,11 @@ import {
 import { TransliterationScheme } from "@/types/sanscript";
 
 export default function SanscriptUtils() {
-  const [ activeTab, setActiveTab ] = useState( "splits" );
+  const [ activeTab, setActiveTab ] = useState( "parse" );
 
   return (
     <div className="flex-1 flex flex-col gap-4 flex-grow p-1">
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <TabsList className="grid grid-cols-4 mb-6">
           <TabsTrigger value="splits">Sandhi Splits</TabsTrigger>
           <TabsTrigger value="joins">Sandhi Joins</TabsTrigger>
@@ -47,7 +49,7 @@ export default function SanscriptUtils() {
           <LanguageTagsTab />
         </TabsContent>
 
-        <TabsContent value="parse">
+        <TabsContent value="parse" className="flex-1 flex">
           <SentenceParseTab />
         </TabsContent>
       </Tabs>
@@ -388,7 +390,8 @@ function LanguageTagsTab() {
 }
 
 function SentenceParseTab() {
-  const [ text, setText ] = useState( "" );
+  // Example from documentation: "vāgvidāṃ varam"
+  const [ text, setText ] = useState( "vāgvidāṃ varam" );
   const [ schemeFrom, setSchemeFrom ] = useState<TransliterationScheme>(
     TransliterationScheme.IAST
   );
@@ -397,20 +400,31 @@ function SentenceParseTab() {
   );
   const [ limit, setLimit ] = useState( 2 );
   const [ preSegmented, setPreSegmented ] = useState( false );
+  const [ showGraph, setShowGraph ] = useState( true );
+  const [ selectedResultIndex, setSelectedResultIndex ] = useState( 0 );
 
   const { parse, parseResults, isLoading, error } = useSentenceParse();
 
   const handleSubmit = ( e: React.FormEvent ) => {
     e.preventDefault();
     parse( { text, schemeFrom, schemeTo, limit, preSegmented } );
+    // Reset to first result when submitting a new query
+    setSelectedResultIndex( 0 );
   };
 
+  // Auto-submit the example when component mounts
+  useEffect( () => {
+    if ( text && parseResults.length === 0 ) {
+      parse( { text, schemeFrom, schemeTo, limit, preSegmented } );
+    }
+  }, [ parse, text, schemeFrom, schemeTo, limit, preSegmented, parseResults.length ] );
+
   return (
-    <Card>
+    <Card className="flex-1">
       <CardHeader>
         <CardTitle>Sentence Parse</CardTitle>
       </CardHeader>
-      <CardContent >
+      <CardContent className="flex-1 flex flex-col gap-2">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-2">
             <Label htmlFor="text">Sanskrit Sentence</Label>
@@ -493,59 +507,102 @@ function SentenceParseTab() {
           {error && (
             <div className="text-destructive mt-2">{error.message}</div>
           )}
-
-          {parseResults.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-2">Results:</h3>
-              <div className="space-y-6">
-                {parseResults.map( ( parseResult, resultIndex ) => (
-                  <div key={resultIndex} className="space-y-4">
-                    <h4 className="font-medium">Analysis {resultIndex + 1}</h4>
-                    {parseResult.analysis.map( ( analysis, analysisIndex ) => (
-                      <div
-                        key={`analysis-${resultIndex}-${analysisIndex}`}
-                        className="bg-muted p-4 rounded-md"
-                      >
-                        <h5 className="font-medium mb-2">
-                          Graph {analysisIndex + 1}
-                        </h5>
-                        <div className="grid gap-2">
-                          {analysis.graph.map( ( graph, graphIndex ) => (
-                            <div
-                              key={`graph-${resultIndex}-${analysisIndex}-${graphIndex}`}
-                              className="border p-3 rounded-md"
-                            >
-                              <div>
-                                <span className="font-medium">Word:</span>{" "}
-                                {graph.node.pada}
-                              </div>
-                              <div>
-                                <span className="font-medium">Root:</span>{" "}
-                                {graph.node.root}
-                              </div>
-                              <div>
-                                <span className="font-medium">Tags:</span>{" "}
-                                {graph.node.tags.join( ", " )}
-                              </div>
-                              <div>
-                                <span className="font-medium">Predecessor:</span>{" "}
-                                {graph.predecessor ? graph.predecessor.pada : ""}
-                              </div>
-                              <div>
-                                <span className="font-medium">Relation:</span>{" "}
-                                {graph.relation ? graph.relation : ""}
-                              </div>
-                            </div>
-                          ) )}
-                        </div>
-                      </div>
-                    ) )}
-                  </div>
-                ) )}
+        </form>
+        {parseResults.length > 0 && (
+          <div className="flex-1 flex flex-col gap-4 overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium">Results:</h3>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="show-graph" className="text-sm">Text View</Label>
+                <Switch
+                  id="show-graph"
+                  checked={showGraph}
+                  onCheckedChange={setShowGraph}
+                />
+                <Label htmlFor="show-graph" className="text-sm">Graph View</Label>
               </div>
             </div>
-          )}
-        </form>
+
+            {parseResults.length > 1 && (
+              <div className="mb-4">
+                <Label className="mb-1 block">Select Analysis:</Label>
+                <Select
+                  value={selectedResultIndex.toString()}
+                  onValueChange={( value ) => setSelectedResultIndex( parseInt( value ) )}
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Select analysis" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {parseResults.map( ( _, index ) => (
+                      <SelectItem key={index} value={index.toString()}>
+                        Analysis {index + 1}
+                      </SelectItem>
+                    ) )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {showGraph ? (
+              <div className="flex-1 flex">
+                <SentenceParseGraphView
+                  parseResults={parseResults}
+                  selectedResultIndex={selectedResultIndex}
+                />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {parseResults.map( ( parseResult, resultIndex ) => (
+                  resultIndex === selectedResultIndex && (
+                    <div key={resultIndex} className="space-y-4">
+                      <h4 className="font-medium">Analysis {resultIndex + 1}</h4>
+                      {parseResult.analysis.map( ( analysis, analysisIndex ) => (
+                        <div
+                          key={`analysis-${resultIndex}-${analysisIndex}`}
+                          className="bg-muted p-4 rounded-md"
+                        >
+                          <h5 className="font-medium mb-2">
+                            Graph {analysisIndex + 1}
+                          </h5>
+                          <div className="grid gap-2">
+                            {analysis.graph.map( ( graph, graphIndex ) => (
+                              <div
+                                key={`graph-${resultIndex}-${analysisIndex}-${graphIndex}`}
+                                className="border p-3 rounded-md"
+                              >
+                                <div>
+                                  <span className="font-medium">Word:</span>{" "}
+                                  {graph.node.pada}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Root:</span>{" "}
+                                  {graph.node.root}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Tags:</span>{" "}
+                                  {graph.node.tags.join( ", " )}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Predecessor:</span>{" "}
+                                  {graph.predecessor ? graph.predecessor.pada : ""}
+                                </div>
+                                <div>
+                                  <span className="font-medium">Relation:</span>{" "}
+                                  {graph.relation ? graph.relation : ""}
+                                </div>
+                              </div>
+                            ) )}
+                          </div>
+                        </div>
+                      ) )}
+                    </div>
+                  )
+                ) )}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
