@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import React from "react";
+import { ReactFlowProvider } from '@xyflow/react';
 import { AppSidebar } from "../sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -25,22 +26,24 @@ const WithDefaultLayout = ( {
   const pathname = usePathname();
 
   return (
-    <PlaylistSheetProvider>
-      <SidebarProvider>
-        <AppSidebar variant="inset" />
-        <SidebarInset>
-          <TopNavBar />
-          <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min flex">
-              {children}
-            </div>
-          </main>
-        </SidebarInset>
-      </SidebarProvider>
+    <ReactFlowProvider>
+      <PlaylistSheetProvider>
+        <SidebarProvider>
+          <AppSidebar variant="inset" />
+          <SidebarInset>
+            <TopNavBar />
+            <main className="flex flex-1 flex-col gap-4 p-4 pt-0">
+              <div className="@container/main-content min-h-[100vh] flex-1 md:min-h-min flex">
+                {children}
+              </div>
+            </main>
+          </SidebarInset>
+        </SidebarProvider>
 
-      {/* Render the playlist sheet at the root level */}
-      <PlaylistSheet />
-    </PlaylistSheetProvider>
+        {/* Render the playlist sheet at the root level */}
+        <PlaylistSheet />
+      </PlaylistSheetProvider>
+    </ReactFlowProvider>
   );
 };
 

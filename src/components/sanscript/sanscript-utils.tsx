@@ -23,18 +23,20 @@ import {
   useSentenceParse,
 } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
+import MindMapGraph from "../mindmap/mind-map-graph";
 
 export default function SanscriptUtils() {
-  const [ activeTab, setActiveTab ] = useState( "parse" );
+  const [ activeTab, setActiveTab ] = useState( "mindmap" );
 
   return (
     <div className="flex-1 flex flex-col gap-4 flex-grow p-1">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        <TabsList className="grid grid-cols-4 mb-6">
+        <TabsList className="grid grid-cols-5 mb-6">
           <TabsTrigger value="splits">Sandhi Splits</TabsTrigger>
           <TabsTrigger value="joins">Sandhi Joins</TabsTrigger>
           <TabsTrigger value="tags">Language Tags</TabsTrigger>
           <TabsTrigger value="parse">Sentence Parse</TabsTrigger>
+          <TabsTrigger value="mindmap">MindMap</TabsTrigger>
         </TabsList>
 
         <TabsContent value="splits">
@@ -51,6 +53,10 @@ export default function SanscriptUtils() {
 
         <TabsContent value="parse" className="flex-1 flex">
           <SentenceParseTab />
+        </TabsContent>
+
+        <TabsContent value="mindmap" className="flex-1 flex">
+          <MindMapGraph />
         </TabsContent>
       </Tabs>
     </div>

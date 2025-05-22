@@ -19,6 +19,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from '@dagrejs/dagre';
 import ParseGraphNode from "./ParseGraphNode";
+import SentenceParseInputNode from "./SentenceParseInputNode";
 
 const dagreGraph = new dagre.graphlib.Graph().setDefaultEdgeLabel( () => ( {} ) );
 
@@ -84,6 +85,7 @@ interface SentenceParseGraphViewProps {
 }
 const nodeTypes = {
   parseGraphNode: ParseGraphNode,
+  sentenceParseInputNode: SentenceParseInputNode,
 };
 
 // Transform parse results into graph data
@@ -93,6 +95,12 @@ function transformToGraphData( parseResult: SentenceParseResult ): GraphData {
     nodes: [],
     edges: [],
   };
+
+  // Test: add simple 'tapaḥsvādhyāyanirataṃ'
+  graphData.nodes.push( {
+    id: 'sentenceParseInputNode', data: { text: '' }, type: 'sentenceParseInputNode',
+    position: { x: 0, y: 0 }
+  } satisfies Node );
 
   // Process only the first analysis for simplicity
   if ( !parseResult.analysis || parseResult.analysis.length === 0 ) {
