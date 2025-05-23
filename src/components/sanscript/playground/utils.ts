@@ -499,3 +499,57 @@ function connectOrphanNodesToParent(nodes: Node[], parentId: string): void {
     }
   });
 }
+
+/**
+ * Removes all child nodes and associated edges from a graph for a specific parent node.
+ * This function recursively removes all descendants of the specified parent.
+ *
+ * @param parentId - ID of the parent node whose children should be removed
+ * @param graphData - Graph data containing nodes and edges
+ * @returns GraphData with specified children removed
+ */
+export function removeChildrenFromGraph(
+  parentId: string,
+  graphData: GraphData,
+): GraphData {
+  // If the graph is empty, return as is
+  if (graphData.nodes.length === 0) {
+    return { ...graphData };
+  }
+
+  // Create a deep copy to avoid mutating the original data
+  const result: GraphData = {
+    nodes: [...graphData.nodes],
+    edges: [...graphData.edges],
+  };
+
+  // Find all descendant node IDs (direct and indirect children)
+  const nodesToRemove = new Set<string>();
+
+  // Helper function to recursively collect all descendants
+  const collectDescendants = (pId: string) => {
+    // Find all direct children
+    const directChildren = result.nodes.filter((node) => node.parentId === pId);
+
+    // Process each direct child
+    directChildren.forEach((child) => {
+      nodesToRemove.add(child.id);
+      // Recursively collect this child's descendants
+      collectDescendants(child.id);
+    });
+  };
+
+  // Start collecting from the specified parent
+  collectDescendants(parentId);
+
+  // Remove all identified nodes
+  result.nodes = result.nodes.filter((node) => !nodesToRemove.has(node.id));
+
+  // Remove all edges connected to any removed node
+  result.edges = result.edges.filter(
+    (edge) =>
+      !nodesToRemove.has(edge.source) && !nodesToRemove.has(edge.target),
+  );
+
+  return result;
+}

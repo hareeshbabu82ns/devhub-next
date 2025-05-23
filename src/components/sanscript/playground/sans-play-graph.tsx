@@ -1,9 +1,16 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Background, ConnectionLineType, Controls, NodeOrigin, Panel, ReactFlow } from "@xyflow/react";
+import {
+  Background,
+  ConnectionLineType,
+  Controls,
+  NodeOrigin,
+  Panel,
+  ReactFlow,
+} from "@xyflow/react";
 
-import '@xyflow/react/dist/style.css';
+import "@xyflow/react/dist/style.css";
 import SansPlayNode from "./sans-play-node";
 import SansPlayEdge from "./sans-play-edge";
 import useStore, { RFState } from "./sans-play-store";
@@ -12,23 +19,29 @@ import { useCallback } from "react";
 import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import { transformSentenceParseToGraphData } from "./utils";
+import SansPlayParserNode from "./sans-play-parser-node";
 
-
-const selector = ( state: RFState ) => ( {
+const selector = (state: RFState) => ({
   nodes: state.nodes,
   edges: state.edges,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   addChildNode: state.addChildNode,
   addChildNodes: state.addChildNodes,
-} );
+  removeChildNodes: state.removeChildNodes,
+  addSansPlayParserNode: state.addSansPlayParserNode,
+});
 
-const nodeOrigin: NodeOrigin = [ 0.5, 0.5 ];
-const connectionLineStyle = { stroke: 'var(--muted-foreground)', strokeWidth: 2 };
-const defaultEdgeOptions = { style: connectionLineStyle, type: 'sansPlay' };
+const nodeOrigin: NodeOrigin = [0.5, 0.5];
+const connectionLineStyle = {
+  stroke: "var(--muted-foreground)",
+  strokeWidth: 2,
+};
+const defaultEdgeOptions = { style: connectionLineStyle, type: "sansPlay" };
 
 const nodeTypes = {
   sansPlay: SansPlayNode,
+  sentenceParse: SansPlayParserNode,
 };
 
 const edgeTypes = {
@@ -36,33 +49,14 @@ const edgeTypes = {
 };
 
 export default function SanscriptPlayGraph() {
-  const { nodes, edges, onNodesChange, onEdgesChange, addChildNode, addChildNodes } = useStore(
-    useShallow( selector ),
-  );
-  const { parse, isLoading, error } = useSentenceParse();
-
-
-  const onAddNode = useCallback( () => {
-    // addChildNode( nodes[ 0 ], { x: 0, y: 0 } );
-    async function parseAction() {
-      parse( {
-        text: "vāgvidāṃ varam", schemeFrom: TransliterationScheme.IAST,
-        // text: "tapaḥsvādhyāyanirataṃ", schemeFrom: TransliterationScheme.IAST,
-        schemeTo: TransliterationScheme.IAST, preSegmented: false, limit: 2
-        // schemeTo: TransliterationScheme.IAST, preSegmented: false, limit: 2
-      }, {
-        onSuccess: ( data ) => {
-          // console.log( data );
-          const { nodes: newNodes, edges: newEdges } = transformSentenceParseToGraphData( "root", data );
-          addChildNodes( "root", newNodes, newEdges );
-        },
-        onError: ( error ) => {
-          console.error( error );
-        }
-      } );
-    }
-    return parseAction();
-  }, [ addChildNode, nodes ] );
+  const {
+    nodes,
+    edges,
+    onNodesChange,
+    onEdgesChange,
+    removeChildNodes,
+    addSansPlayParserNode,
+  } = useStore(useShallow(selector));
 
   return (
     <ReactFlow
@@ -83,10 +77,18 @@ export default function SanscriptPlayGraph() {
       {/* <Controls showInteractive={false} /> */}
       <Panel position="top-left">
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={onAddNode}>Add Node</Button>
+          <Button variant="outline" onClick={() => addSansPlayParserNode({})}>
+            Parser
+          </Button>
+          <Button variant="outline" onClick={() => removeChildNodes("root")}>
+            Remove Children
+          </Button>
         </div>
       </Panel>
-      <Controls style={{ backgroundColor: 'white', color: 'black' }} showInteractive={false} />
+      <Controls
+        style={{ backgroundColor: "white", color: "black" }}
+        showInteractive={false}
+      />
       <Background />
     </ReactFlow>
   );
