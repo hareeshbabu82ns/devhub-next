@@ -27,8 +27,8 @@ function MindMapNode( { id, data }: NodeProps<Node<NodeData>> ) {
 
   return (
     <>
-      <div className="inputWrapper">
-        <div className="dragHandle">
+      <div className="mindmap-inputWrapper">
+        <div className="mindmap-dragHandle">
           {/* icon taken from grommet https://icons.grommet.io */}
           <svg viewBox="0 0 24 24">
             <path
@@ -42,7 +42,7 @@ function MindMapNode( { id, data }: NodeProps<Node<NodeData>> ) {
         <input
           value={data.label}
           onChange={( evt ) => updateNodeLabel( id, evt.target.value )}
-          className="input"
+          className="mindmap-input"
           ref={inputRef}
         />
       </div>

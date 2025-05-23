@@ -227,8 +227,8 @@ export function SentenceParseGraphView( {
         // onConnect={onConnect}
         fitView
       >
-        <MiniMap style={{ backgroundColor: 'var(--color-bg-card)' }} />
-        <Controls style={{ color: 'var(--secondary-foreground)' }} />
+        {/* <MiniMap style={{ backgroundColor: 'var(--color-bg-card)' }} /> */}
+        <Controls style={{ color: 'var(--secondary-foreground)' }} showInteractive={false} />
         <Background />
       </ReactFlow>
     </div>

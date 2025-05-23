@@ -24,20 +24,26 @@ import {
 } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import MindMapGraph from "../mindmap/mind-map-graph";
+import SanscriptPlayGraph from "./playground/sans-play-graph";
 
 export default function SanscriptUtils() {
-  const [ activeTab, setActiveTab ] = useState( "mindmap" );
+  const [ activeTab, setActiveTab ] = useState( "playground" );
 
   return (
     <div className="flex-1 flex flex-col gap-4 flex-grow p-1">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        <TabsList className="grid grid-cols-5 mb-6">
+        <TabsList className="grid grid-cols-6 mb-6">
+          <TabsTrigger value="playground">Playground</TabsTrigger>
           <TabsTrigger value="splits">Sandhi Splits</TabsTrigger>
           <TabsTrigger value="joins">Sandhi Joins</TabsTrigger>
           <TabsTrigger value="tags">Language Tags</TabsTrigger>
           <TabsTrigger value="parse">Sentence Parse</TabsTrigger>
           <TabsTrigger value="mindmap">MindMap</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="playground">
+          <SanscriptPlayGraph />
+        </TabsContent>
 
         <TabsContent value="splits">
           <SandhiSplitsTab />
