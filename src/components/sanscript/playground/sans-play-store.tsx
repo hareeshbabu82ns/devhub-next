@@ -8,11 +8,11 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type XYPosition,
-  MarkerType,
 } from "@xyflow/react";
 import { create } from "zustand";
 import { nanoid } from "nanoid/non-secure";
 import { getLayoutedElements, removeChildrenFromGraph } from "./utils";
+import { defaultSplitterNodeData } from "./sans-play-splitter-node";
 import { defaultParserNodeData } from "./sans-play-parser-node";
 
 export type RFState = {
@@ -26,6 +26,13 @@ export type RFState = {
   updateNodeLabel: (nodeId: string, label: string) => void;
   removeChildNodes: (nodeId: string) => void;
   addSansPlayParserNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => void;
+  addSandhiSplitterNode: ({
     parentId,
     position,
   }: {
@@ -52,6 +59,12 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       id: nanoid(),
       type: "sentenceParse",
       data: { ...defaultParserNodeData },
+      position: { x: 0, y: 0 },
+    },
+    {
+      id: nanoid(),
+      type: "sandhiSplit",
+      data: { ...defaultSplitterNodeData },
       position: { x: 0, y: 0 },
     },
   ],
@@ -83,6 +96,43 @@ const useSansPlayStore = create<RFState>((set, get) => ({
     set({
       nodes: updatedGraph.nodes,
       edges: updatedGraph.edges,
+    });
+  },
+  addSandhiSplitterNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => {
+    // find the parent node
+    const parentNode = parentId
+      ? get().nodes.find((node) => node.id === parentId)
+      : undefined;
+
+    const newNode = {
+      id: nanoid(),
+      type: "sandhiSplit",
+      data: { ...defaultSplitterNodeData },
+      position: position || { x: 0, y: 0 },
+      parentId,
+    };
+
+    const newEdge = {
+      id: nanoid(),
+      source: parentId || "",
+      target: newNode.id,
+      type: "smoothstep",
+    };
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      [...get().nodes, newNode],
+      parentId ? [...get().edges, newEdge] : [...get().edges],
+    );
+
+    set({
+      nodes: layoutedNodes,
+      edges: layoutedEdges,
     });
   },
   addSansPlayParserNode: ({

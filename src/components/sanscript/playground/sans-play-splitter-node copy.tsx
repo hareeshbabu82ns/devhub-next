@@ -12,8 +12,8 @@ import { TransliterationScheme } from "@/types/sanscript";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
-import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
-import { transformSentenceParseToGraphData } from "./utils";
+import { useSandhiSplits } from "@/hooks/use-sanskrit-utils";
+import { transformSandhiSplitsToGraphData } from "./sandhi-utils";
 import useSansPlayStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
 import { cn } from "@/lib/utils";
@@ -24,23 +24,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import TextInputHandle from "@/components/graph/TextInputHandle";
 
-export type SansPlayParserData = {
+export type SansPlaySplitterData = {
   text: string;
   schemeFrom: TransliterationScheme;
   schemeTo: TransliterationScheme;
-  preSegmented: boolean;
   limit: number;
 };
 
-export const defaultParserNodeData: SansPlayParserData = {
-  text: "vāgvidāṃ varam",
-  schemeFrom: TransliterationScheme.IAST,
+export const defaultSplitterNodeData: SansPlaySplitterData = {
+  text: "తపఃస్వాధ్యాయనిరతం తపస్వీ వాగ్విదాం వరమ్",
+  schemeFrom: TransliterationScheme.TELUGU,
   schemeTo: TransliterationScheme.IAST,
-  preSegmented: false,
   limit: 1,
 };
 
@@ -49,9 +45,12 @@ const selector = (state: RFState) => ({
   removeChildNodes: state.removeChildNodes,
 });
 
-function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
+function SansPlaySplitterNode({
+  id,
+  data,
+}: NodeProps<Node<SansPlaySplitterData>>) {
   const { updateNodeData } = useReactFlow();
-  const { parse, isLoading, error } = useSentenceParse();
+  const { split, isLoading, error } = useSandhiSplits();
   const { addChildNodes, removeChildNodes } = useSansPlayStore(
     useShallow(selector),
   );
@@ -59,11 +58,11 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
   const onParse = useCallback(() => {
     async function parseAction() {
       removeChildNodes(id);
-      parse(data, {
+      split(data, {
         onSuccess: (data) => {
-          // console.log( data );
+          console.log(data);
           const { nodes: newNodes, edges: newEdges } =
-            transformSentenceParseToGraphData(id, data);
+            transformSandhiSplitsToGraphData(id, data);
           addChildNodes(id, newNodes, newEdges);
         },
         onError: (error) => {
@@ -72,7 +71,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
       });
     }
     return parseAction();
-  }, [id, data, parse, addChildNodes, removeChildNodes]);
+  }, [id, data, split, addChildNodes, removeChildNodes]);
 
   const onClear = useCallback(() => {
     removeChildNodes(id);
@@ -96,7 +95,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
           </div>
         )}
         <div className="flex bg-muted text-sidebar-foreground px-2 rounded-t-md flex-row justify-between items-center">
-          <div className="text-sm">Parser</div>
+          <div className="text-sm">Splitter</div>
           <div className="flex flex-row justify-end gap-1">
             <Button variant="ghost" size="icon" onClick={onClear}>
               <Icons.clear className="size-3" />
@@ -175,17 +174,6 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
                   }
                 />
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="preSegmented"
-                  checked={data.preSegmented}
-                  onCheckedChange={(checked) =>
-                    updateNodeData(id, { preSegmented: !!checked })
-                  }
-                />
-                <Label htmlFor="preSegmented">Segmented</Label>
-              </div>
             </div>
           </div>
         </div>
@@ -196,4 +184,4 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
   );
 }
 
-export default SansPlayParserNode;
+export default SansPlaySplitterNode;

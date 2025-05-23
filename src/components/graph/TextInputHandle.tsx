@@ -34,7 +34,11 @@ function TextInputHandle({
   useEffect(() => {
     if (connectedNodesData && connectedNodesData.length > 0) {
       const combinedText = connectedNodesData
-        .map((nodeData) => (nodeData?.data?.text as string) || "")
+        .map((nodeData) =>
+          nodeData.type === "sansPlay"
+            ? nodeData.data.label
+            : (nodeData?.data?.text as string) || "",
+        )
         .filter(Boolean)
         .join(" ");
 

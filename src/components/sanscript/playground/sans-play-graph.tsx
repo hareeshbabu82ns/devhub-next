@@ -15,13 +15,10 @@ import SansPlayNode from "./sans-play-node";
 import SansPlayEdge from "./sans-play-edge";
 import useStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
-import { useCallback } from "react";
-import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
-import { TransliterationScheme } from "@/types/sanscript";
-import { transformSentenceParseToGraphData } from "./utils";
 import SansPlayParserNode from "./sans-play-parser-node";
 import TextInputNode from "@/components/graph/TextInputNode";
 import SansPlayDeletableEdge from "./sans-play-deletable-edge";
+import SansPlaySplitterNode from "./sans-play-splitter-node";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -33,6 +30,7 @@ const selector = (state: RFState) => ({
   addChildNodes: state.addChildNodes,
   removeChildNodes: state.removeChildNodes,
   addSansPlayParserNode: state.addSansPlayParserNode,
+  addSandhiSplitterNode: state.addSandhiSplitterNode,
 });
 
 const nodeOrigin: NodeOrigin = [0.5, 0.5];
@@ -45,6 +43,7 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: "sansPlay" };
 const nodeTypes = {
   sansPlay: SansPlayNode,
   sentenceParse: SansPlayParserNode,
+  sandhiSplit: SansPlaySplitterNode,
   textInput: TextInputNode,
 };
 
@@ -62,6 +61,7 @@ export default function SanscriptPlayGraph() {
     onConnect,
     removeChildNodes,
     addSansPlayParserNode,
+    addSandhiSplitterNode,
   } = useStore(useShallow(selector));
 
   return (
@@ -87,8 +87,8 @@ export default function SanscriptPlayGraph() {
           <Button variant="outline" onClick={() => addSansPlayParserNode({})}>
             Parser
           </Button>
-          <Button variant="outline" onClick={() => removeChildNodes("root")}>
-            Remove Children
+          <Button variant="outline" onClick={() => addSandhiSplitterNode({})}>
+            Splitter
           </Button>
         </div>
       </Panel>
