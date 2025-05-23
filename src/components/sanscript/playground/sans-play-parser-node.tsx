@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useLayoutEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import {
   Handle,
   Position,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import TextInputHandle from "@/components/graph/TextInputHandle";
 
 export type SansPlayParserData = {
   text: string;
@@ -72,9 +73,19 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
     }
     return parseAction();
   }, [id, data, parse, addChildNodes, removeChildNodes]);
+
   const onClear = useCallback(() => {
     removeChildNodes(id);
   }, [id, removeChildNodes]);
+
+  const onTargetChange = useCallback(
+    (value: string) => {
+      if (value && value !== data.text) {
+        updateNodeData(id, { text: value });
+      }
+    },
+    [id, updateNodeData, data.text],
+  );
 
   return (
     <>
@@ -96,6 +107,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
             autoCapitalize="off"
             spellCheck="false"
             maxLength={100}
+            className="nodrag"
           />
           <div className="flex justify-between items-center gap-2">
             <Select
@@ -169,6 +181,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
           </Button>
         </div>
       </div>
+      <TextInputHandle id="text" onChange={onTargetChange} />
       <Handle type="source" position={Position.Right} />
     </>
   );

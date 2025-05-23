@@ -20,6 +20,7 @@ export type RFState = {
   edges: Edge[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
+  onConnect: (params: any) => void;
   addChildNode: (parentNode: Node, position: XYPosition) => void;
   addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
@@ -34,8 +35,38 @@ export type RFState = {
 };
 
 const useSansPlayStore = create<RFState>((set, get) => ({
-  nodes: [],
+  nodes: [
+    {
+      id: nanoid(),
+      type: "textInput",
+      data: { text: "देवदत्तः" },
+      position: { x: -300, y: 60 },
+    },
+    {
+      id: nanoid(),
+      type: "textInput",
+      data: { text: "ग्रामं गच्छति" },
+      position: { x: -300, y: -60 },
+    },
+    {
+      id: nanoid(),
+      type: "sentenceParse",
+      data: { ...defaultParserNodeData },
+      position: { x: 0, y: 0 },
+    },
+  ],
   edges: [],
+  onConnect: (params: any) => {
+    console.log("onConnect", params);
+    const newEdge = {
+      id: nanoid(),
+      ...params,
+      type: params.targetHandle === "text" ? "sansPlayDeletable" : "smoothstep",
+    };
+    set({
+      edges: [...get().edges, newEdge],
+    });
+  },
   onNodesChange: (changes: NodeChange[]) => {
     set({
       nodes: applyNodeChanges(changes, get().nodes),
@@ -150,19 +181,6 @@ const useSansPlayStore = create<RFState>((set, get) => ({
     // Create new nodes and edges
     const newNodes = [...get().nodes, ...nodes];
     const newEdges = [...get().edges, ...edges];
-
-    // Create a new edge for each new root nodes
-    // rootNodes.forEach( ( rootNode ) => {
-    //   const newEdge = {
-    //     id: `${parentNode.id}-${rootNode.id}`,
-    //     source: parentNode.id,
-    //     target: rootNode.id,
-    //     type: "smoothstep",
-    //     data: { ...rootNode },
-    //     markerEnd: { type: MarkerType.ArrowClosed },
-    //   };
-    //   newEdges.push( newEdge );
-    // } );
 
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       newNodes,

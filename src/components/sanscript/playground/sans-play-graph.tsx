@@ -20,12 +20,15 @@ import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import { transformSentenceParseToGraphData } from "./utils";
 import SansPlayParserNode from "./sans-play-parser-node";
+import TextInputNode from "@/components/graph/TextInputNode";
+import SansPlayDeletableEdge from "./sans-play-deletable-edge";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
   edges: state.edges,
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
+  onConnect: state.onConnect,
   addChildNode: state.addChildNode,
   addChildNodes: state.addChildNodes,
   removeChildNodes: state.removeChildNodes,
@@ -42,10 +45,12 @@ const defaultEdgeOptions = { style: connectionLineStyle, type: "sansPlay" };
 const nodeTypes = {
   sansPlay: SansPlayNode,
   sentenceParse: SansPlayParserNode,
+  textInput: TextInputNode,
 };
 
 const edgeTypes = {
   sansPlay: SansPlayEdge,
+  sansPlayDeletable: SansPlayDeletableEdge,
 };
 
 export default function SanscriptPlayGraph() {
@@ -54,6 +59,7 @@ export default function SanscriptPlayGraph() {
     edges,
     onNodesChange,
     onEdgesChange,
+    onConnect,
     removeChildNodes,
     addSansPlayParserNode,
   } = useStore(useShallow(selector));
@@ -66,6 +72,7 @@ export default function SanscriptPlayGraph() {
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
+      onConnect={onConnect}
       // onConnectStart={onConnectStart}
       // onConnectEnd={onConnectEnd}
       nodeOrigin={nodeOrigin}
