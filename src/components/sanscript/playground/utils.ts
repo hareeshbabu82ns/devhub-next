@@ -220,7 +220,12 @@ function processParseResult(
   }
 
   // Create a node representing this parse result
-  const parseNode = createParseNode(parseId, parseIndex);
+  const parseNode = createNode({
+    id: `${parseId}-${parseIndex}`,
+    data: {
+      label: `Graph ${parseIndex + 1}`,
+    },
+  });
   graphData.nodes.push(parseNode);
 
   // Process each analysis in this parse result
@@ -237,7 +242,7 @@ function processParseResult(
 
   // If a parent ID is provided, connect the parse node to it
   if (parentId) {
-    connectToParent(graphData, parentId, parseNode.id);
+    connectToParent({ graphData, parentId, targetId: parseNode.id });
   }
 
   return graphData;
@@ -254,18 +259,34 @@ function filterValidAnalyses(analyses: any[]): any[] {
 }
 
 /**
- * Creates a node representing a parse result.
+ * Creates a node representing a node in a graph.
  *
- * @param parseId - Unique ID for this parse operation
- * @param parseIndex - Index of the parse result
- * @returns Node representing the parse result
+ * @param id - ID for the new node
+ * @param parentId - ID of parent node
+ * @param data - Data to store with the node
+ * @returns Node representing the graph node
  */
-function createParseNode(parseId: string, parseIndex: number): Node {
+export function createNode({
+  id,
+  parentId,
+  data = {},
+}: {
+  id: string;
+  parentId?: string;
+  tags?: string[];
+  data: {
+    label?: string;
+    subTitle?: string;
+    tags?: string[];
+    [key: string]: any;
+  };
+}): Node {
   return {
-    id: `${parseId}-${parseIndex}`,
-    data: { label: `Graph ${parseIndex + 1}` },
-    type: "sansPlay",
+    id,
+    parentId,
     position: { x: 0, y: 0 },
+    data: data,
+    type: "sansPlay",
   } satisfies Node;
 }
 
@@ -363,26 +384,28 @@ function addGraphEdges(
     const predecessorId = `${parseNode.id}-${analysisIndex}-${item.predecessor.pada}`;
     const relationLabel = item.relation || "";
 
-    graphData.edges.push({
-      id: `${parseNode.id}-${analysisIndex}-${item.node.pada}-${item.predecessor.pada}`,
-      source: predecessorId,
-      target: nodeId,
-      label: relationLabel,
-      data: { ...item },
-      type: "smoothstep",
-      markerEnd: { type: MarkerType.ArrowClosed },
-    } satisfies Edge);
+    graphData.edges.push(
+      createEdge({
+        source: predecessorId,
+        target: nodeId,
+        data: {
+          label: relationLabel,
+          ...item,
+        },
+      }),
+    );
   } else {
     // Connect to parse node as root
-    graphData.edges.push({
-      id: `${parseNode.id}-${analysisIndex}-${item.node.pada}`,
-      source: parseNode.id,
-      target: nodeId,
-      label: `analysis ${analysisIndex + 1}`,
-      data: { ...item },
-      type: "smoothstep",
-      markerEnd: { type: MarkerType.ArrowClosed },
-    } satisfies Edge);
+    graphData.edges.push(
+      createEdge({
+        source: parseNode.id,
+        target: nodeId,
+        data: {
+          label: `analysis ${analysisIndex + 1}`,
+          ...item,
+        },
+      }),
+    );
   }
 }
 
@@ -452,20 +475,27 @@ function ensureNodeParenting(graphData: GraphData, parseNode: Node): void {
  * @param graphData - Graph data to add edge to
  * @param parentId - ID of parent node
  * @param targetId - ID of target node
+ * @param label - Optional label for the edge
+ * @returns void
  */
-function connectToParent(
-  graphData: GraphData,
-  parentId: string,
-  targetId: string,
-): void {
-  graphData.edges.push({
-    id: `${parentId}-${targetId}`,
-    source: parentId,
-    target: targetId,
-    data: {},
-    type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed },
-  } satisfies Edge);
+export function connectToParent({
+  graphData,
+  parentId,
+  targetId,
+  label,
+}: {
+  graphData: GraphData;
+  parentId: string;
+  targetId: string;
+  label?: string;
+}): void {
+  graphData.edges.push(
+    createEdge({
+      source: parentId,
+      target: targetId,
+      label,
+    }),
+  );
 }
 
 /**
@@ -474,7 +504,7 @@ function connectToParent(
  * @param targetGraph - Target graph to merge into
  * @param sourceGraphs - Source graphs to merge from
  */
-function mergeGraphData(
+export function mergeGraphData(
   targetGraph: GraphData,
   sourceGraphs: GraphData[],
 ): void {
@@ -492,7 +522,10 @@ function mergeGraphData(
  * @param nodes - Nodes to check
  * @param parentId - Parent ID to assign
  */
-function connectOrphanNodesToParent(nodes: Node[], parentId: string): void {
+export function connectOrphanNodesToParent(
+  nodes: Node[],
+  parentId: string,
+): void {
   nodes.forEach((node) => {
     if (!node.parentId) {
       node.parentId = parentId;
@@ -552,4 +585,43 @@ export function removeChildrenFromGraph(
   );
 
   return result;
+}
+
+/**
+ * Creates an edge between two nodes.
+ *
+ * @param id - Edge ID (automatically generated if not provided)
+ * @param source - Source node ID
+ * @param target - Target node ID
+ * @param label - Label for the edge
+ * @param data - Additional data to store with the edge
+ * @returns Edge object
+ */
+export function createEdge({
+  id,
+  source,
+  target,
+  label,
+  data,
+}: {
+  id?: string;
+  source: string;
+  target: string;
+  label?: string;
+  data?: {
+    label?: string;
+    startLabel?: string;
+    endLabel?: string;
+    [key: string]: any;
+  };
+}): Edge {
+  return {
+    id: id || `${source}-${target}`,
+    source,
+    target,
+    label,
+    data,
+    type: "sansPlay",
+    markerEnd: { type: MarkerType.ArrowClosed },
+  } satisfies Edge;
 }

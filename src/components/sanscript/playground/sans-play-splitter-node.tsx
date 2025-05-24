@@ -34,8 +34,8 @@ export type SansPlaySplitterData = {
 };
 
 export const defaultSplitterNodeData: SansPlaySplitterData = {
-  text: "",
-  // text: "తపఃస్వాధ్యాయనిరతం తపస్వీ వాగ్విదాం వరమ్",
+  // text: "",
+  text: "తపఃస్వాధ్యాయనిరతం తపస్వీ వాగ్విదాం వరమ్",
   schemeFrom: TransliterationScheme.TELUGU,
   schemeTo: TransliterationScheme.IAST,
   limit: 1,

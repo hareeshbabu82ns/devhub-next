@@ -1,8 +1,14 @@
 "use client";
 
-import { Edge, MarkerType, Node } from "@xyflow/react";
 import { nanoid } from "nanoid/non-secure";
-import { GraphData } from "./utils";
+import {
+  connectOrphanNodesToParent,
+  connectToParent,
+  createEdge,
+  createNode,
+  GraphData,
+  mergeGraphData,
+} from "./utils";
 import { LanguageTag } from "@/types/sanscript";
 
 /**
@@ -70,143 +76,48 @@ function processSplitResult(
   }
 
   // Create a node representing this split result
-  const splitNode = createSplitNode(splitId, splitIndex);
+  const splitNode = createNode({
+    id: `${splitId}-${splitIndex}`,
+    data: {
+      label: `Split ${splitIndex + 1}`,
+    },
+  });
   graphData.nodes.push(splitNode);
 
   // Create nodes for each word in the split
   splitResult.forEach((word, wordIndex) => {
-    const wordNode = createWordNode(
-      `${splitNode.id}-word-${wordIndex}`,
-      word,
-      splitNode.id,
-    );
+    const wordNode = createNode({
+      id: `${splitNode.id}-word-${wordIndex}`,
+      parentId: splitNode.id,
+      data: {
+        label: word,
+      },
+    });
     graphData.nodes.push(wordNode);
 
     // Connect to the split node
-    graphData.edges.push(
-      createEdge(splitNode.id, wordNode.id, `${wordIndex + 1}`, {
+    const wordEdge = createEdge({
+      source: splitNode.id,
+      target: wordNode.id,
+      data: {
+        endLabel: `${wordIndex + 1}`,
         splitIndex,
         wordIndex,
-      }),
-    );
+      },
+    });
+    graphData.edges.push(wordEdge);
   });
 
   // If a parent ID is provided, connect the split node to it
   if (parentId) {
-    connectToParent(graphData, parentId, splitNode.id);
+    connectToParent({
+      graphData,
+      parentId,
+      targetId: splitNode.id,
+    });
   }
 
   return graphData;
-}
-
-/**
- * Creates a node representing a split result.
- *
- * @param splitId - Unique ID for this split operation
- * @param splitIndex - Index of the split result
- * @returns Node representing the split result
- */
-function createSplitNode(splitId: string, splitIndex: number): Node {
-  return {
-    id: `${splitId}-${splitIndex}`,
-    data: { label: `Split ${splitIndex + 1}` },
-    type: "sansPlay",
-    position: { x: 0, y: 0 },
-  } satisfies Node;
-}
-
-/**
- * Creates a node representing a word in a split.
- *
- * @param id - ID for the new node
- * @param word - Word text to display
- * @param parentId - ID of parent split node
- * @returns Node representing the word
- */
-function createWordNode(id: string, word: string, parentId?: string): Node {
-  return {
-    id: id,
-    position: { x: 0, y: 0 }, // Will be positioned by layout algorithm
-    data: {
-      label: word,
-    },
-    type: "sansPlay",
-    parentId,
-  } satisfies Node;
-}
-
-/**
- * Creates an edge between two nodes.
- *
- * @param source - Source node ID
- * @param target - Target node ID
- * @param label - Label for the edge
- * @param data - Additional data to store with the edge
- * @returns Edge object
- */
-function createEdge(
-  source: string,
-  target: string,
-  label: string,
-  data: any = {},
-): Edge {
-  return {
-    id: `${source}-${target}`,
-    source,
-    target,
-    label,
-    data,
-    type: "smoothstep",
-    markerEnd: { type: MarkerType.ArrowClosed },
-  } satisfies Edge;
-}
-
-/**
- * Connects a node to a parent via an edge.
- *
- * @param graphData - Graph data to add edge to
- * @param parentId - ID of parent node
- * @param targetId - ID of target node
- */
-function connectToParent(
-  graphData: GraphData,
-  parentId: string,
-  targetId: string,
-  label?: string,
-): void {
-  graphData.edges.push(createEdge(parentId, targetId, label || "", {}));
-}
-
-/**
- * Merges multiple graph data objects into a single graph.
- *
- * @param targetGraph - Target graph to merge into
- * @param sourceGraphs - Source graphs to merge from
- */
-function mergeGraphData(
-  targetGraph: GraphData,
-  sourceGraphs: GraphData[],
-): void {
-  sourceGraphs.forEach((data) => {
-    if (data && data.nodes.length > 0) {
-      targetGraph.nodes.push(...data.nodes);
-      targetGraph.edges.push(...data.edges);
-    }
-  });
-}
-
-/**
- * Connects all nodes without parents to a specified parent.
- *
- * @param nodes - Nodes to check
- * @param parentId - Parent ID to assign
- */
-function connectOrphanNodesToParent(nodes: Node[], parentId: string): void {
-  nodes.forEach((node) => {
-    if (!node.parentId) {
-      node.parentId = parentId;
-    }
-  });
 }
 
 /**
@@ -274,39 +185,25 @@ function processJoinResult(
   }
 
   // Create a node representing this join result
-  const joinNode = createJoinNode(joinId, joinIndex, joinResult);
+  const joinNode = createNode({
+    id: `${joinId}-${joinIndex}`,
+    data: {
+      label: joinResult,
+      subtitle: `Join ${joinIndex + 1}`,
+    },
+  });
   graphData.nodes.push(joinNode);
 
   // If a parent ID is provided, connect the join node to it
   if (parentId) {
-    connectToParent(graphData, parentId, joinNode.id);
+    connectToParent({
+      graphData,
+      parentId,
+      targetId: joinNode.id,
+    });
   }
 
   return graphData;
-}
-
-/**
- * Creates a node representing a join result.
- *
- * @param joinId - Unique ID for this join operation
- * @param joinIndex - Index of the join result
- * @param joinText - The joined text to display
- * @returns Node representing the join result
- */
-function createJoinNode(
-  joinId: string,
-  joinIndex: number,
-  joinText: string,
-): Node {
-  return {
-    id: `${joinId}-${joinIndex}`,
-    data: {
-      label: joinText,
-      subtitle: `Join ${joinIndex + 1}`,
-    },
-    type: "sansPlay",
-    position: { x: 0, y: 0 },
-  } satisfies Node;
 }
 
 /**
@@ -321,6 +218,7 @@ function createJoinNode(
 export function transformWordTaggerToGraphData(
   parentId: string,
   tagResults: LanguageTag[],
+  options?: { tagsAsNodes?: boolean },
 ): GraphData {
   // Initialize empty graph data structure
   const graphData: GraphData = {
@@ -333,7 +231,7 @@ export function transformWordTaggerToGraphData(
 
   // Process each word and collect their graph representations
   const graphDataList = tagResults.map((tagResult, wordIndex) =>
-    processWordTags(tagResult, wordIndex, tagGroupId, parentId),
+    processWordTags(tagResult, wordIndex, tagGroupId, parentId, options),
   );
 
   // Merge all graph data into a single graph structure
@@ -361,6 +259,7 @@ function processWordTags(
   wordIndex: number,
   tagGroupId: string,
   parentId?: string,
+  options?: { tagsAsNodes?: boolean },
 ): GraphData {
   // Initialize graph data for this word
   const graphData: GraphData = {
@@ -374,77 +273,57 @@ function processWordTags(
   }
 
   // Create a node representing this word
-  const wordNode = createWordNode(
-    `${tagGroupId}-word-${wordIndex}`,
-    tagResult.word,
+  const wordNode = createNode({
+    id: `${tagGroupId}-word-${wordIndex}`,
     parentId,
-  );
+    data: {
+      label: tagResult.word,
+      tags: options?.tagsAsNodes ? undefined : tagResult.tags,
+    },
+  });
   graphData.nodes.push(wordNode);
 
-  // Create nodes for each tag for this word
-  tagResult.tags.forEach((tag, tagIndex) => {
-    const tagNode = createTagNode(
-      `${wordNode.id}-tag-${tagIndex}`,
-      tag,
-      wordNode.id,
-    );
-    graphData.nodes.push(tagNode);
+  if (options?.tagsAsNodes) {
+    // Create nodes for each tag for this word
+    tagResult.tags.forEach((tag, tagIndex) => {
+      // const tagNode = createTagNode({
+      //   id: `${wordNode.id}-tag-${tagIndex}`,
+      //   tag,
+      //   parentId: wordNode.id,
+      // });
+      const tagNode = createNode({
+        id: `${wordNode.id}-tag-${tagIndex}`,
+        parentId: wordNode.id,
+        data: {
+          label: tag,
+        },
+      });
+      graphData.nodes.push(tagNode);
 
-    // Connect tag to the word node
-    graphData.edges.push(
-      createEdge(wordNode.id, tagNode.id, "", {
-        wordIndex,
-        tagIndex,
-      }),
-    );
-  });
+      // Connect tag to the word node
+      graphData.edges.push(
+        createEdge({
+          source: wordNode.id,
+          target: tagNode.id,
+          data: {
+            endLabel: `${tagIndex + 1}`,
+            wordIndex,
+            tagIndex,
+          },
+        }),
+      );
+    });
+  }
 
   // If a parent ID is provided, connect the word node to it
   if (parentId) {
-    connectToParent(graphData, parentId, wordNode.id, "");
+    connectToParent({
+      graphData,
+      parentId,
+      targetId: wordNode.id,
+      label: "",
+    });
   }
 
   return graphData;
-}
-
-// /**
-//  * Creates a node representing a word.
-//  *
-//  * @param id - ID for the new node
-//  * @param word - Word text to display
-//  * @param parentId - Optional ID of parent node
-//  * @returns Node representing the word
-//  */
-// function createWordNode(id: string, word: string, parentId?: string): Node {
-//   return {
-//     id: id,
-//     position: { x: 0, y: 0 }, // Will be positioned by layout algorithm
-//     data: {
-//       label: word,
-//       subtitle: "Word",
-//     },
-//     type: "sansPlay",
-//     parentId,
-//   } satisfies Node;
-// }
-
-/**
- * Creates a node representing a grammatical tag.
- *
- * @param id - ID for the new node
- * @param tag - Tag text to display
- * @param parentId - ID of parent word node
- * @returns Node representing the tag
- */
-function createTagNode(id: string, tag: string, parentId: string): Node {
-  return {
-    id: id,
-    position: { x: 0, y: 0 }, // Will be positioned by layout algorithm
-    data: {
-      label: tag,
-      subtitle: "Tag",
-    },
-    type: "sansPlay",
-    parentId,
-  } satisfies Node;
 }

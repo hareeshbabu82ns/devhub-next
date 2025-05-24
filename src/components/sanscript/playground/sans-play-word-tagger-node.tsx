@@ -33,8 +33,8 @@ export type SansPlayWordTaggerData = {
 };
 
 export const defaultWordTaggerNodeData: SansPlayWordTaggerData = {
-  text: "",
-  // text: "వాగ్విదాం",
+  // text: "",
+  text: "వాగ్విదాం",
   schemeFrom: TransliterationScheme.TELUGU,
   schemeTo: TransliterationScheme.TELUGU,
 };
@@ -65,7 +65,7 @@ function SansPlayWordTaggerNode({
         onSuccess: (data) => {
           // console.log(data);
           const { nodes: newNodes, edges: newEdges } =
-            transformWordTaggerToGraphData(id, data);
+            transformWordTaggerToGraphData(id, data, { tagsAsNodes: false });
           addChildNodes(id, newNodes, newEdges);
         },
         onError: (error) => {
