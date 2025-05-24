@@ -10,6 +10,7 @@ import {
   useNodesData,
 } from "@xyflow/react";
 import { memo, useCallback, useEffect, useState } from "react";
+import { BaseHandle } from "./BaseHandle";
 
 function TextInputHandle({
   id,
@@ -18,6 +19,7 @@ function TextInputHandle({
   type = "target",
   position = Position.Left,
   limit = -1,
+  ...props
 }: Omit<HandleProps, "onChange" | "type" | "position"> & {
   id: string;
   onChange: (value: string) => void;
@@ -94,14 +96,16 @@ function TextInputHandle({
   }, [debouncedText, onChange]);
 
   return (
-    <Handle
+    <BaseHandle
       type={type}
       position={position}
       id={id}
       className="handle"
       // isValidConnection={isValidConnection}
+      {...props}
     />
   );
 }
 
 export default memo(TextInputHandle);
+TextInputHandle.displayName = "TextInputHandle";

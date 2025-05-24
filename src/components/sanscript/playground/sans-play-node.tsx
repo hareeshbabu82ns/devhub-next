@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useLayoutEffect } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
 import { Badge } from "@/components/ui/badge";
+import { BaseNode } from "@/components/graph/BaseNode";
 
 export type SansPlayData = {
   label: string;
@@ -8,28 +8,27 @@ export type SansPlayData = {
   tags?: string[];
 };
 
-function SansPlayNode({ id, data }: NodeProps<Node<SansPlayData>>) {
+function SansPlayNode({ id, data, selected }: NodeProps<Node<SansPlayData>>) {
   return (
-    <div
+    <BaseNode
       key={id}
-      className="bg-secondary text-secondary-foreground rounded-sm px-2 py-1 shadow-md"
+      selected={selected}
+      className="min-w-[172px] min-h-[70px] flex flex-col justify-center items-center gap-1 p-2"
     >
-      <div className="flex flex-col items-center gap-1">
-        <div className="">
-          {data.label} {data.subTitle && `(${data.subTitle})`}
-        </div>
-        <div className="max-w-36 flex gap-2 overflow-auto no-scrollbar">
-          {data.tags?.map((tag, index) => (
-            <Badge key={index} variant={"outline"}>
-              <span className="text-xs">{tag}</span>
-            </Badge>
-          ))}
-        </div>
+      <div className="flex-1 flex items-center justify-center">
+        {data.label} {data.subTitle && `(${data.subTitle})`}
+      </div>
+      <div className="flex gap-1 max-w-[160px] overflow-auto no-scrollbar">
+        {data.tags?.map((tag, index) => (
+          <Badge key={index} variant={"outline"}>
+            <span className="text-xs">{tag}</span>
+          </Badge>
+        ))}
       </div>
 
       <Handle type="target" position={Position.Top} />
       <Handle type="source" position={Position.Bottom} />
-    </div>
+    </BaseNode>
   );
 }
 

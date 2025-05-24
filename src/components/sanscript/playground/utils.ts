@@ -30,7 +30,7 @@ export function getLayoutedElements(
   edges: Edge[],
   direction = "TB",
   nodeWidth = 172,
-  nodeHeight = 36,
+  nodeHeight = 70,
 ): { nodes: Node[]; edges: Edge[] } {
   // Skip layout if no nodes to position
   if (nodes.length === 0) return { nodes, edges };
@@ -351,7 +351,11 @@ function createGraphNode(
 
   return {
     id: nodeId,
-    position: { x: 0, y: 0 }, // Will be positioned by layout algorithm
+    position: { x: 0, y: 0 },
+    // dragHandle:
+    //   item.node.tags && item.node.tags.length > 1
+    //     ? ".drag-handle__custom"
+    //     : undefined,
     data: {
       label: item.node.pada,
       ...item,

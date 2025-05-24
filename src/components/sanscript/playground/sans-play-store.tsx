@@ -8,6 +8,8 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type XYPosition,
+  reconnectEdge,
+  Connection,
 } from "@xyflow/react";
 import { create } from "zustand";
 import { nanoid } from "nanoid/non-secure";
@@ -55,6 +57,7 @@ export type RFState = {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (params: any) => void;
+  onReconnect: (oldEdge: Edge, newConnection: Connection) => void;
   addChildNode: (parentNode: Node, position: XYPosition) => void;
   addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
@@ -140,6 +143,11 @@ const useSansPlayStore = create<RFState>((set, get) => ({
   onEdgesChange: (changes: EdgeChange[]) => {
     set({
       edges: applyEdgeChanges(changes, get().edges),
+    });
+  },
+  onReconnect: (oldEdge: Edge, newConnection: Connection) => {
+    set({
+      edges: reconnectEdge(oldEdge, newConnection, get().edges),
     });
   },
   // Generic method for adding typed nodes

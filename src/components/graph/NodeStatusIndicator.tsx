@@ -1,0 +1,85 @@
+import React, { ReactNode } from "react";
+import clsx from "clsx";
+import { Icons } from "../utils/icons";
+import Loader from "../utils/loader";
+
+export type NodeStatusIndicatorProps = {
+  status?: "loading" | "success" | "error" | "initial";
+  children: ReactNode;
+};
+
+export const LoadingIndicator = ({ children }: { children: ReactNode }) => {
+  return (
+    <>
+      <div className="absolute -left-[1px] -top-[1px] h-[calc(100%+2px)] w-[calc(100%+2px)]">
+        <style>
+          {`
+        @keyframes spin {
+          from { transform: translate(-50%, -50%) rotate(0deg); }
+          to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        .spinner {
+          animation: spin 2s linear infinite;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          width: 140%;
+          aspect-ratio: 1;
+          transform-origin: center;
+        }
+      `}
+        </style>
+        <div className="absolute inset-0 overflow-hidden rounded-[7px]">
+          {/* <div className="absolute top-0 left-0 w-full h-full bg-card/90 rounded-md flex flex-row items-center justify-center gap-2"> */}
+          <Icons.spinner className="h-4 w-4 animate-spin" />
+          {/* </div> */}
+          <div className="spinner rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,_rgb(42,67,233)_0deg,_rgba(42,138,246,0)_360deg)]">
+            <Icons.spinner className="h-4 w-4 animate-spin" />
+          </div>
+        </div>
+      </div>
+      {children}
+      <div className="absolute inset-0 bg-card/90 rounded-md flex flex-row items-center justify-center">
+        <Loader className="-mr-10 mt-10" />
+      </div>
+    </>
+  );
+};
+
+const StatusBorder = ({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) => {
+  return (
+    <>
+      <div
+        className={clsx(
+          "absolute -left-[1px] -top-[1px] h-[calc(100%+2px)] w-[calc(100%+2px)] rounded-[7px] border-2",
+          className,
+        )}
+      />
+      {children}
+    </>
+  );
+};
+
+export const NodeStatusIndicator = ({
+  status,
+  children,
+}: NodeStatusIndicatorProps) => {
+  switch (status) {
+    case "loading":
+      return <LoadingIndicator>{children}</LoadingIndicator>;
+    case "success":
+      return (
+        <StatusBorder className="border-emerald-600">{children}</StatusBorder>
+      );
+    case "error":
+      return <StatusBorder className="border-red-400">{children}</StatusBorder>;
+    default:
+      return <>{children}</>;
+  }
+};

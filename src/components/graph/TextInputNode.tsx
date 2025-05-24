@@ -7,12 +7,14 @@ import {
   type Node,
 } from "@xyflow/react";
 import { Input } from "@/components/ui/input";
+import { BaseNode } from "./BaseNode";
 
 function TextInputNode({ id, data }: NodeProps<Node<{ text: string }>>) {
   const { updateNodeData } = useReactFlow();
 
   return (
-    <div className="p-2 shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground">
+    // <div className="p-2 shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground">
+    <BaseNode>
       <Input
         onChange={(evt) => updateNodeData(id, { text: evt.target.value })}
         value={data.text}
@@ -26,8 +28,9 @@ function TextInputNode({ id, data }: NodeProps<Node<{ text: string }>>) {
         className="nodrag"
       />
       <Handle type="source" position={Position.Right} />
-    </div>
+    </BaseNode>
   );
 }
 
 export default memo(TextInputNode);
+TextInputNode.displayName = "TextInputNode";

@@ -37,7 +37,23 @@ function SansPlayEdge(
     }>
   >,
 ) {
-  const { id, sourceX, sourceY, targetX, targetY, data, label } = props;
+  const {
+    id,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    data,
+    label,
+    sourcePosition,
+    targetPosition,
+    sourceHandleId,
+    targetHandleId,
+    pathOptions,
+    selectable,
+    deletable,
+    ...restProps
+  } = props;
 
   const [edgePath] = getSmoothStepPath({
     sourceX,
@@ -50,7 +66,13 @@ function SansPlayEdge(
   // if (!data) return <BaseEdge path={edgePath} {...props} />;
   return (
     <>
-      <BaseEdge id={id} path={edgePath} />
+      <BaseEdge
+        id={id}
+        path={edgePath}
+        {...restProps}
+        // selectable={`${Boolean(selectable)}`}
+        // deletable={`${Boolean(deletable)}`}
+      />
       <EdgeLabelRenderer>
         {edgeLabel && (
           <EdgeLabel

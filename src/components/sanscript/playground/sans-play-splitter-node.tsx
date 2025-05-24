@@ -10,13 +10,20 @@ import {
 } from "@xyflow/react";
 import { TransliterationScheme } from "@/types/sanscript";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Icons } from "@/components/utils/icons";
-import { useSandhiSplits, useSentenceParse } from "@/hooks/use-sanskrit-utils";
+import { useSandhiSplits } from "@/hooks/use-sanskrit-utils";
 import { transformSandhiSplitsToGraphData } from "./sandhi-utils";
 import useSansPlayStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
 import { cn } from "@/lib/utils";
+import {
+  NodeHeader,
+  NodeHeaderActions,
+  NodeHeaderClearAction,
+  NodeHeaderDeleteAction,
+  NodeHeaderExecuteAction,
+  NodeHeaderIcon,
+  NodeHeaderTitle,
+} from "@/components/graph/NodeHeader";
 import {
   Select,
   SelectContent,
@@ -25,6 +32,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import TextInputHandle from "@/components/graph/TextInputHandle";
+import { BaseNode } from "@/components/graph/BaseNode";
+import { SplitIcon } from "lucide-react";
+import { NodeStatusIndicator } from "@/components/graph/NodeStatusIndicator";
 
 export type SansPlaySplitterData = {
   text: string;
@@ -87,33 +97,26 @@ function SansPlaySplitterNode({
     [id, updateNodeData, data.text],
   );
 
-  const onDelete = useCallback(() => {
-    deleteElements({ nodes: [{ id }] });
-  }, [id, deleteElements]);
-
   return (
-    <>
-      <div className="shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground relative">
-        {isLoading && (
-          <div className="absolute top-0 left-0 w-full h-full bg-card/90 rounded-md flex flex-row items-center justify-center gap-2">
-            <Icons.spinner className="h-4 w-4 animate-spin" />
-          </div>
-        )}
-        <div className="flex bg-muted text-sidebar-foreground px-2 rounded-t-md flex-row justify-between items-center">
-          <div className="text-sm">Splitter</div>
-          <div className="flex flex-row justify-end gap-1">
-            <Button variant="ghost" size="icon" onClick={onDelete}>
-              <Icons.trash className="size-3 text-destructive" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onClear}>
-              <Icons.clear className="size-3" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onParse}>
-              <Icons.play className={cn("size-3", error && "text-red-500")} />
-            </Button>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 p-2">
+    <NodeStatusIndicator
+      status={isLoading ? "loading" : error ? "error" : "initial"}
+    >
+      <BaseNode className="p-0 min-w-[300px]">
+        <NodeHeader className="border-b rounded-t-md bg-muted text-sidebar-foreground">
+          <NodeHeaderIcon>
+            <SplitIcon />
+          </NodeHeaderIcon>
+          <NodeHeaderTitle>Splitter</NodeHeaderTitle>
+          <NodeHeaderActions>
+            <NodeHeaderDeleteAction deleteChildren />
+            <NodeHeaderClearAction onClick={onClear} />
+            <NodeHeaderExecuteAction
+              onClick={onParse}
+              className={cn(error && "text-red-500")}
+            />
+          </NodeHeaderActions>
+        </NodeHeader>
+        <div className="flex flex-col gap-2 px-2 py-3">
           <div className="flex flex-col items-stretch gap-1">
             <Input
               onChange={(evt) => updateNodeData(id, { text: evt.target.value })}
@@ -185,10 +188,10 @@ function SansPlaySplitterNode({
             </div>
           </div>
         </div>
-      </div>
-      <TextInputHandle id="text" onChange={onTargetChange} />
-      <Handle type="source" position={Position.Right} />
-    </>
+        <TextInputHandle id="text" onChange={onTargetChange} />
+        <Handle type="source" position={Position.Right} />
+      </BaseNode>
+    </NodeStatusIndicator>
   );
 }
 

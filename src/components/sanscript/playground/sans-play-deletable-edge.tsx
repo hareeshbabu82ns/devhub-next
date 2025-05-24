@@ -29,13 +29,11 @@ export default function SansPlayDeletableEdge({
       <EdgeLabelRenderer>
         <Button
           style={{
-            position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-            pointerEvents: "all",
           }}
           variant="ghost"
           size="icon"
-          className="nodrag nopan rounded-full"
+          className="nodrag nopan pointer-events-auto rounded-full absolute"
           onClick={() => {
             setEdges((es) => es.filter((e) => e.id !== id));
           }}

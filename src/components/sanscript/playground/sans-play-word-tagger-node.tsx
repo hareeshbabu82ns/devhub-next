@@ -10,8 +10,6 @@ import {
 } from "@xyflow/react";
 import { TransliterationScheme } from "@/types/sanscript";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Icons } from "@/components/utils/icons";
 import { useLanguageTags } from "@/hooks/use-sanskrit-utils";
 import useSansPlayStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
@@ -23,8 +21,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  NodeHeader,
+  NodeHeaderActions,
+  NodeHeaderClearAction,
+  NodeHeaderDeleteAction,
+  NodeHeaderExecuteAction,
+  NodeHeaderIcon,
+  NodeHeaderTitle,
+} from "@/components/graph/NodeHeader";
 import TextInputHandle from "@/components/graph/TextInputHandle";
 import { transformWordTaggerToGraphData } from "./sandhi-utils";
+import { BaseNode } from "@/components/graph/BaseNode";
+import { TagIcon } from "lucide-react";
+import { NodeStatusIndicator } from "@/components/graph/NodeStatusIndicator";
 
 export type SansPlayWordTaggerData = {
   text: string;
@@ -53,10 +63,6 @@ function SansPlayWordTaggerNode({
   const { addChildNodes, removeChildNodes } = useSansPlayStore(
     useShallow(selector),
   );
-
-  const onDelete = useCallback(() => {
-    deleteElements({ nodes: [{ id }] });
-  }, [id, deleteElements]);
 
   const onParse = useCallback(() => {
     async function parseAction() {
@@ -90,27 +96,24 @@ function SansPlayWordTaggerNode({
   );
 
   return (
-    <>
-      <div className="shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground relative">
-        {isLoading && (
-          <div className="absolute top-0 left-0 w-full h-full bg-card/90 rounded-md flex flex-row items-center justify-center gap-2">
-            <Icons.spinner className="h-4 w-4 animate-spin" />
-          </div>
-        )}
-        <div className="flex bg-muted text-sidebar-foreground px-2 rounded-t-md flex-row justify-between items-center">
-          <div className="text-sm">WordTagger</div>
-          <div className="flex flex-row justify-end">
-            <Button variant="ghost" size="icon" onClick={onDelete}>
-              <Icons.trash className="size-3 text-destructive" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onClear}>
-              <Icons.clear className="size-3" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={onParse}>
-              <Icons.play className={cn("size-3", error && "text-red-500")} />
-            </Button>
-          </div>
-        </div>
+    <NodeStatusIndicator
+      status={isLoading ? "loading" : error ? "error" : "initial"}
+    >
+      <BaseNode className="p-0 min-w-[300px]">
+        <NodeHeader className="border-b rounded-t-md bg-muted text-sidebar-foreground">
+          <NodeHeaderIcon>
+            <TagIcon />
+          </NodeHeaderIcon>
+          <NodeHeaderTitle>WordTagger</NodeHeaderTitle>
+          <NodeHeaderActions>
+            <NodeHeaderDeleteAction deleteChildren />
+            <NodeHeaderClearAction onClick={onClear} />
+            <NodeHeaderExecuteAction
+              onClick={onParse}
+              className={cn(error && "text-red-500")}
+            />
+          </NodeHeaderActions>
+        </NodeHeader>
         <div className="flex flex-col gap-2 p-2">
           <div className="flex flex-col items-stretch gap-1">
             <Input
@@ -167,10 +170,10 @@ function SansPlayWordTaggerNode({
             </div>
           </div>
         </div>
-      </div>
-      <TextInputHandle id="text" onChange={onTargetChange} limit={1} />
-      <Handle type="source" position={Position.Right} />
-    </>
+        <TextInputHandle id="text" onChange={onTargetChange} limit={1} />
+        <Handle type="source" position={Position.Right} />
+      </BaseNode>
+    </NodeStatusIndicator>
   );
 }
 

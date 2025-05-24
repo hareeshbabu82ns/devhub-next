@@ -22,6 +22,7 @@ import SansPlayDeletableEdge from "./sans-play-deletable-edge";
 import SansPlaySplitterNode from "./sans-play-splitter-node";
 import SansPlayJoinerNode from "./sans-play-joiner-node";
 import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
+import { BrainCircuitIcon, MergeIcon, SplitIcon, TagIcon } from "lucide-react";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -29,6 +30,7 @@ const selector = (state: RFState) => ({
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   onConnect: state.onConnect,
+  onReconnect: state.onReconnect,
   addSansPlayParserNode: state.addSansPlayParserNode,
   addSandhiSplitterNode: state.addSandhiSplitterNode,
   addSandhiJoinerNode: state.addSandhiJoinerNode,
@@ -49,6 +51,7 @@ export default function SanscriptPlayGraph() {
     onNodesChange,
     onEdgesChange,
     onConnect,
+    onReconnect,
     addSansPlayParserNode,
     addSandhiSplitterNode,
     addSandhiJoinerNode,
@@ -86,6 +89,7 @@ export default function SanscriptPlayGraph() {
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onConnect={onConnect}
+      // onReconnect={onReconnect}
       nodeOrigin={nodeOrigin}
       connectionLineStyle={connectionLineStyle}
       defaultEdgeOptions={defaultEdgeOptions}
@@ -94,17 +98,37 @@ export default function SanscriptPlayGraph() {
     >
       <Panel position="top-left">
         <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={() => addSansPlayParserNode({})}>
-            Parser
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => addSansPlayParserNode({})}
+            title="Parser"
+          >
+            <BrainCircuitIcon />
           </Button>
-          <Button variant="outline" onClick={() => addSandhiSplitterNode({})}>
-            Splitter
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => addSandhiSplitterNode({})}
+            title="Splitter"
+          >
+            <SplitIcon />
           </Button>
-          <Button variant="outline" onClick={() => addSandhiJoinerNode({})}>
-            Joiner
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => addSandhiJoinerNode({})}
+            title="Joiner"
+          >
+            <MergeIcon />
           </Button>
-          <Button variant="outline" onClick={() => addWordTaggerNode({})}>
-            WordTags
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => addWordTaggerNode({})}
+            title="Word Tagger"
+          >
+            <TagIcon />
           </Button>
         </div>
       </Panel>
