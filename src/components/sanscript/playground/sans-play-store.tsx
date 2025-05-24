@@ -17,6 +17,38 @@ import { defaultParserNodeData } from "./sans-play-parser-node";
 import { defaultJoinerNodeData } from "./sans-play-joiner-node";
 import { defaultWordTaggerNodeData } from "./sans-play-word-tagger-node";
 
+export type NodeType =
+  | "sentenceParse"
+  | "sandhiSplit"
+  | "sandhiJoin"
+  | "wordTagger"
+  | "sansPlay";
+
+interface NodeTypeConfig {
+  type: NodeType;
+  defaultData: any;
+}
+
+// Node type configurations map
+const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
+  parser: {
+    type: "sentenceParse",
+    defaultData: defaultParserNodeData,
+  },
+  splitter: {
+    type: "sandhiSplit",
+    defaultData: defaultSplitterNodeData,
+  },
+  joiner: {
+    type: "sandhiJoin",
+    defaultData: defaultJoinerNodeData,
+  },
+  wordTagger: {
+    type: "wordTagger",
+    defaultData: defaultWordTaggerNodeData,
+  },
+};
+
 export type RFState = {
   nodes: Node[];
   edges: Edge[];
@@ -27,6 +59,10 @@ export type RFState = {
   addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
   removeChildNodes: (nodeId: string) => void;
+  addTypedNode: (
+    nodeTypeKey: string,
+    params: { parentId?: string; position?: XYPosition },
+  ) => void;
   addSansPlayParserNode: ({
     parentId,
     position,
@@ -59,40 +95,28 @@ export type RFState = {
 
 const useSansPlayStore = create<RFState>((set, get) => ({
   nodes: [
-    // {
-    //   id: nanoid(),
-    //   type: "textInput",
-    //   data: { text: "देवदत्तः" },
-    //   position: { x: -300, y: -360 },
-    // },
-    // {
-    //   id: nanoid(),
-    //   type: "textInput",
-    //   data: { text: "ग्रामं गच्छति" },
-    //   position: { x: -300, y: -300 },
-    // },
     {
       id: nanoid(),
       type: "sentenceParse",
-      data: { ...defaultParserNodeData },
+      data: defaultParserNodeData,
       position: { x: 0, y: -500 },
     },
     {
       id: nanoid(),
       type: "sandhiSplit",
-      data: { ...defaultSplitterNodeData },
+      data: defaultSplitterNodeData,
       position: { x: 0, y: -300 },
     },
     {
       id: nanoid(),
       type: "sandhiJoin",
-      data: { ...defaultJoinerNodeData },
+      data: defaultJoinerNodeData,
       position: { x: 0, y: -100 },
     },
     {
       id: nanoid(),
       type: "wordTagger",
-      data: { ...defaultWordTaggerNodeData },
+      data: defaultWordTaggerNodeData,
       position: { x: 0, y: 100 },
     },
   ],
@@ -118,6 +142,51 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       edges: applyEdgeChanges(changes, get().edges),
     });
   },
+  // Generic method for adding typed nodes
+  addTypedNode: (
+    nodeTypeKey: string,
+    { parentId, position }: { parentId?: string; position?: XYPosition },
+  ) => {
+    const config = nodeTypeConfigs[nodeTypeKey];
+    if (!config) {
+      console.error(
+        `Node type configuration not found for key: ${nodeTypeKey}`,
+      );
+      return;
+    }
+
+    const newNode = {
+      id: nanoid(),
+      type: config.type,
+      data: config.defaultData, // No need to spread as this is already an object reference
+      position: position || { x: 0, y: 0 },
+      parentId,
+    };
+
+    // Only create edge if parentId is provided
+    const newEdges = parentId
+      ? [
+          {
+            id: nanoid(),
+            source: parentId,
+            target: newNode.id,
+            type: "smoothstep",
+          },
+        ]
+      : [];
+
+    // Layout elements
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      [...get().nodes, newNode],
+      [...get().edges, ...newEdges],
+    );
+
+    // Update state once with all changes
+    set({
+      nodes: layoutedNodes,
+      edges: layoutedEdges,
+    });
+  },
   removeChildNodes: (nodeId: string) => {
     const { nodes, edges } = get();
     const updatedGraph = removeChildrenFromGraph(nodeId, { nodes, edges });
@@ -126,153 +195,26 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       edges: updatedGraph.edges,
     });
   },
-  addWordTaggerNode: ({
-    parentId,
-    position,
-  }: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => {
-    // find the parent node
-    const parentNode = parentId
-      ? get().nodes.find((node) => node.id === parentId)
-      : undefined;
-
-    const newNode = {
-      id: nanoid(),
-      type: "wordTagger",
-      data: { ...defaultWordTaggerNodeData },
-      position: position || { x: 0, y: 0 },
-      parentId,
-    };
-
-    const newEdge = {
-      id: nanoid(),
-      source: parentId || "",
-      target: newNode.id,
-      type: "smoothstep",
-    };
-
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      parentId ? [...get().edges, newEdge] : [...get().edges],
-    );
-
-    set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
-    });
+  addWordTaggerNode: (params: { parentId?: string; position?: XYPosition }) => {
+    get().addTypedNode("wordTagger", params);
   },
-  addSandhiJoinerNode: ({
-    parentId,
-    position,
-  }: {
+  addSandhiJoinerNode: (params: {
     parentId?: string;
     position?: XYPosition;
   }) => {
-    // find the parent node
-    const parentNode = parentId
-      ? get().nodes.find((node) => node.id === parentId)
-      : undefined;
-
-    const newNode = {
-      id: nanoid(),
-      type: "sandhiJoin",
-      data: { ...defaultJoinerNodeData },
-      position: position || { x: 0, y: 0 },
-      parentId,
-    };
-
-    const newEdge = {
-      id: nanoid(),
-      source: parentId || "",
-      target: newNode.id,
-      type: "smoothstep",
-    };
-
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      parentId ? [...get().edges, newEdge] : [...get().edges],
-    );
-
-    set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
-    });
+    get().addTypedNode("joiner", params);
   },
-  addSandhiSplitterNode: ({
-    parentId,
-    position,
-  }: {
+  addSandhiSplitterNode: (params: {
     parentId?: string;
     position?: XYPosition;
   }) => {
-    // find the parent node
-    const parentNode = parentId
-      ? get().nodes.find((node) => node.id === parentId)
-      : undefined;
-
-    const newNode = {
-      id: nanoid(),
-      type: "sandhiSplit",
-      data: { ...defaultSplitterNodeData },
-      position: position || { x: 0, y: 0 },
-      parentId,
-    };
-
-    const newEdge = {
-      id: nanoid(),
-      source: parentId || "",
-      target: newNode.id,
-      type: "smoothstep",
-    };
-
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      parentId ? [...get().edges, newEdge] : [...get().edges],
-    );
-
-    set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
-    });
+    get().addTypedNode("splitter", params);
   },
-  addSansPlayParserNode: ({
-    parentId,
-    position,
-  }: {
+  addSansPlayParserNode: (params: {
     parentId?: string;
     position?: XYPosition;
   }) => {
-    // find the parent node
-    const parentNode = parentId
-      ? get().nodes.find((node) => node.id === parentId)
-      : undefined;
-
-    const newNode = {
-      id: nanoid(),
-      type: "sentenceParse",
-      data: { ...defaultParserNodeData },
-      position: position || { x: 0, y: 0 },
-      parentId,
-    };
-
-    const newEdge = {
-      id: nanoid(),
-      source: parentId || "",
-      target: newNode.id,
-      type: "smoothstep",
-    };
-
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      parentId ? [...get().edges, newEdge] : [...get().edges],
-    );
-
-    set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
-    });
+    get().addTypedNode("parser", params);
   },
   addChildNode: (parentNode: Node, position: XYPosition) => {
     const newNode = {

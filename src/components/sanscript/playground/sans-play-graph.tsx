@@ -15,6 +15,7 @@ import SansPlayNode from "./sans-play-node";
 import SansPlayEdge from "./sans-play-edge";
 import useStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
+import { useMemo } from "react";
 import SansPlayParserNode from "./sans-play-parser-node";
 import TextInputNode from "@/components/graph/TextInputNode";
 import SansPlayDeletableEdge from "./sans-play-deletable-edge";
@@ -28,9 +29,6 @@ const selector = (state: RFState) => ({
   onNodesChange: state.onNodesChange,
   onEdgesChange: state.onEdgesChange,
   onConnect: state.onConnect,
-  addChildNode: state.addChildNode,
-  addChildNodes: state.addChildNodes,
-  removeChildNodes: state.removeChildNodes,
   addSansPlayParserNode: state.addSansPlayParserNode,
   addSandhiSplitterNode: state.addSandhiSplitterNode,
   addSandhiJoinerNode: state.addSandhiJoinerNode,
@@ -43,20 +41,6 @@ const connectionLineStyle = {
   strokeWidth: 2,
 };
 const defaultEdgeOptions = { style: connectionLineStyle, type: "sansPlay" };
-
-const nodeTypes = {
-  sansPlay: SansPlayNode,
-  sentenceParse: SansPlayParserNode,
-  sandhiSplit: SansPlaySplitterNode,
-  sandhiJoin: SansPlayJoinerNode,
-  wordTagger: SansPlayWordTaggerNode,
-  textInput: TextInputNode,
-};
-
-const edgeTypes = {
-  sansPlay: SansPlayEdge,
-  sansPlayDeletable: SansPlayDeletableEdge,
-};
 
 export default function SanscriptPlayGraph() {
   const {
@@ -71,6 +55,28 @@ export default function SanscriptPlayGraph() {
     addWordTaggerNode,
   } = useStore(useShallow(selector));
 
+  // Memoize node types to prevent unnecessary re-renders
+  const nodeTypes = useMemo(
+    () => ({
+      sansPlay: SansPlayNode,
+      sentenceParse: SansPlayParserNode,
+      sandhiSplit: SansPlaySplitterNode,
+      sandhiJoin: SansPlayJoinerNode,
+      wordTagger: SansPlayWordTaggerNode,
+      textInput: TextInputNode,
+    }),
+    [],
+  );
+
+  // Memoize edge types to prevent unnecessary re-renders
+  const edgeTypes = useMemo(
+    () => ({
+      sansPlay: SansPlayEdge,
+      sansPlayDeletable: SansPlayDeletableEdge,
+    }),
+    [],
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -80,15 +86,12 @@ export default function SanscriptPlayGraph() {
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
       onConnect={onConnect}
-      // onConnectStart={onConnectStart}
-      // onConnectEnd={onConnectEnd}
       nodeOrigin={nodeOrigin}
       connectionLineStyle={connectionLineStyle}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineType={ConnectionLineType.SmoothStep}
       fitView
     >
-      {/* <Controls showInteractive={false} /> */}
       <Panel position="top-left">
         <div className="flex items-center space-x-2">
           <Button variant="outline" onClick={() => addSansPlayParserNode({})}>

@@ -29,7 +29,7 @@ export function getLayoutedElements(
   nodes: Node[],
   edges: Edge[],
   direction = "TB",
-  nodeWidth = 72,
+  nodeWidth = 172,
   nodeHeight = 36,
 ): { nodes: Node[]; edges: Edge[] } {
   // Skip layout if no nodes to position
