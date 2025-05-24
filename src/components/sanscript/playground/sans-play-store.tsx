@@ -14,6 +14,8 @@ import { nanoid } from "nanoid/non-secure";
 import { getLayoutedElements, removeChildrenFromGraph } from "./utils";
 import { defaultSplitterNodeData } from "./sans-play-splitter-node";
 import { defaultParserNodeData } from "./sans-play-parser-node";
+import { defaultJoinerNodeData } from "./sans-play-joiner-node";
+import { defaultWordTaggerNodeData } from "./sans-play-word-tagger-node";
 
 export type RFState = {
   nodes: Node[];
@@ -39,38 +41,64 @@ export type RFState = {
     parentId?: string;
     position?: XYPosition;
   }) => void;
+  addSandhiJoinerNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => void;
+  addWordTaggerNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => void;
 };
 
 const useSansPlayStore = create<RFState>((set, get) => ({
   nodes: [
-    {
-      id: nanoid(),
-      type: "textInput",
-      data: { text: "देवदत्तः" },
-      position: { x: -300, y: 60 },
-    },
-    {
-      id: nanoid(),
-      type: "textInput",
-      data: { text: "ग्रामं गच्छति" },
-      position: { x: -300, y: -60 },
-    },
+    // {
+    //   id: nanoid(),
+    //   type: "textInput",
+    //   data: { text: "देवदत्तः" },
+    //   position: { x: -300, y: -360 },
+    // },
+    // {
+    //   id: nanoid(),
+    //   type: "textInput",
+    //   data: { text: "ग्रामं गच्छति" },
+    //   position: { x: -300, y: -300 },
+    // },
     {
       id: nanoid(),
       type: "sentenceParse",
       data: { ...defaultParserNodeData },
-      position: { x: 0, y: 0 },
+      position: { x: 0, y: -500 },
     },
     {
       id: nanoid(),
       type: "sandhiSplit",
       data: { ...defaultSplitterNodeData },
-      position: { x: 0, y: 0 },
+      position: { x: 0, y: -300 },
+    },
+    {
+      id: nanoid(),
+      type: "sandhiJoin",
+      data: { ...defaultJoinerNodeData },
+      position: { x: 0, y: -100 },
+    },
+    {
+      id: nanoid(),
+      type: "wordTagger",
+      data: { ...defaultWordTaggerNodeData },
+      position: { x: 0, y: 100 },
     },
   ],
   edges: [],
   onConnect: (params: any) => {
-    console.log("onConnect", params);
+    // console.log("onConnect", params);
     const newEdge = {
       id: nanoid(),
       ...params,
@@ -96,6 +124,80 @@ const useSansPlayStore = create<RFState>((set, get) => ({
     set({
       nodes: updatedGraph.nodes,
       edges: updatedGraph.edges,
+    });
+  },
+  addWordTaggerNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => {
+    // find the parent node
+    const parentNode = parentId
+      ? get().nodes.find((node) => node.id === parentId)
+      : undefined;
+
+    const newNode = {
+      id: nanoid(),
+      type: "wordTagger",
+      data: { ...defaultWordTaggerNodeData },
+      position: position || { x: 0, y: 0 },
+      parentId,
+    };
+
+    const newEdge = {
+      id: nanoid(),
+      source: parentId || "",
+      target: newNode.id,
+      type: "smoothstep",
+    };
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      [...get().nodes, newNode],
+      parentId ? [...get().edges, newEdge] : [...get().edges],
+    );
+
+    set({
+      nodes: layoutedNodes,
+      edges: layoutedEdges,
+    });
+  },
+  addSandhiJoinerNode: ({
+    parentId,
+    position,
+  }: {
+    parentId?: string;
+    position?: XYPosition;
+  }) => {
+    // find the parent node
+    const parentNode = parentId
+      ? get().nodes.find((node) => node.id === parentId)
+      : undefined;
+
+    const newNode = {
+      id: nanoid(),
+      type: "sandhiJoin",
+      data: { ...defaultJoinerNodeData },
+      position: position || { x: 0, y: 0 },
+      parentId,
+    };
+
+    const newEdge = {
+      id: nanoid(),
+      source: parentId || "",
+      target: newNode.id,
+      type: "smoothstep",
+    };
+
+    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+      [...get().nodes, newNode],
+      parentId ? [...get().edges, newEdge] : [...get().edges],
+    );
+
+    set({
+      nodes: layoutedNodes,
+      edges: layoutedEdges,
     });
   },
   addSandhiSplitterNode: ({

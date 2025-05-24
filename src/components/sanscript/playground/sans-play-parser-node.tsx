@@ -37,7 +37,8 @@ export type SansPlayParserData = {
 };
 
 export const defaultParserNodeData: SansPlayParserData = {
-  text: "vāgvidāṃ varam",
+  text: "",
+  // text: "vāgvidāṃ varam",
   schemeFrom: TransliterationScheme.IAST,
   schemeTo: TransliterationScheme.IAST,
   preSegmented: false,
@@ -50,7 +51,7 @@ const selector = (state: RFState) => ({
 });
 
 function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
-  const { updateNodeData } = useReactFlow();
+  const { updateNodeData, deleteElements } = useReactFlow();
   const { parse, isLoading, error } = useSentenceParse();
   const { addChildNodes, removeChildNodes } = useSansPlayStore(
     useShallow(selector),
@@ -87,6 +88,10 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
     [id, updateNodeData, data.text],
   );
 
+  const onDelete = useCallback(() => {
+    deleteElements({ nodes: [{ id }] });
+  }, [id, deleteElements]);
+
   return (
     <>
       <div className="shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground relative">
@@ -98,6 +103,9 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
         <div className="flex bg-muted text-sidebar-foreground px-2 rounded-t-md flex-row justify-between items-center">
           <div className="text-sm">Parser</div>
           <div className="flex flex-row justify-end gap-1">
+            <Button variant="ghost" size="icon" onClick={onDelete}>
+              <Icons.trash className="size-3 text-destructive" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={onClear}>
               <Icons.clear className="size-3" />
             </Button>

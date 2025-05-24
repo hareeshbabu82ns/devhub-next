@@ -1,18 +1,30 @@
 import { useDebounce } from "@/hooks/use-debounce";
 import {
+  Connection,
+  Edge,
   Handle,
+  HandleProps,
+  HandleType,
   Position,
   useNodeConnections,
   useNodesData,
 } from "@xyflow/react";
-import { memo, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 
 function TextInputHandle({
   id,
   onChange,
-}: {
+  delimiter = " ",
+  type = "target",
+  position = Position.Left,
+  limit = -1,
+}: Omit<HandleProps, "onChange" | "type" | "position"> & {
   id: string;
   onChange: (value: string) => void;
+  delimiter?: string;
+  type?: HandleType;
+  position?: Position;
+  limit?: number;
 }) {
   const connections = useNodeConnections({
     handleType: "target",
@@ -30,6 +42,29 @@ function TextInputHandle({
 
   const [textValue, setTextValue] = useState<string>("");
 
+  // const isValidConnection = useCallback(
+  //   (edge: Edge | Connection) => {
+  //     console.log("isValidConnection", edge);
+  //     const sourceNode = connectedNodesData.find(
+  //       (node) => node.id === edge.source,
+  //     );
+  //     if (!sourceNode) return false;
+
+  //     // Check if the source node is a valid type
+  //     const isValidType =
+  //       sourceNode.type === "sansPlay" || sourceNode.type === "textInput";
+
+  //     // Check if the limit is reached
+  //     const currentConnections = connections.filter(
+  //       (conn) => conn.targetHandle === id,
+  //     );
+  //     const isLimitReached = limit > 0 && currentConnections.length >= limit;
+
+  //     return isValidType && !isLimitReached;
+  //   },
+  //   [connectedNodesData, connections, id, limit],
+  // );
+
   // Get the combined text value from all connected nodes
   useEffect(() => {
     if (connectedNodesData && connectedNodesData.length > 0) {
@@ -40,7 +75,7 @@ function TextInputHandle({
             : (nodeData?.data?.text as string) || "",
         )
         .filter(Boolean)
-        .join(" ");
+        .join(delimiter);
 
       if (combinedText !== textValue) {
         setTextValue(combinedText);
@@ -59,7 +94,13 @@ function TextInputHandle({
   }, [debouncedText, onChange]);
 
   return (
-    <Handle type="target" position={Position.Left} id={id} className="handle" />
+    <Handle
+      type={type}
+      position={position}
+      id={id}
+      className="handle"
+      // isValidConnection={isValidConnection}
+    />
   );
 }
 

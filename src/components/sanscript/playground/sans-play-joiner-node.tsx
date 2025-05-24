@@ -12,8 +12,11 @@ import { TransliterationScheme } from "@/types/sanscript";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
-import { useSandhiSplits, useSentenceParse } from "@/hooks/use-sanskrit-utils";
-import { transformSandhiSplitsToGraphData } from "./sandhi-utils";
+import { useSandhiJoins } from "@/hooks/use-sanskrit-utils";
+import {
+  transformSandhiJoinsToGraphData,
+  transformSandhiSplitsToGraphData,
+} from "./sandhi-utils";
 import useSansPlayStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
 import { cn } from "@/lib/utils";
@@ -26,19 +29,17 @@ import {
 } from "@/components/ui/select";
 import TextInputHandle from "@/components/graph/TextInputHandle";
 
-export type SansPlaySplitterData = {
+export type SansPlayJoinerData = {
   text: string;
   schemeFrom: TransliterationScheme;
   schemeTo: TransliterationScheme;
-  limit: number;
 };
 
-export const defaultSplitterNodeData: SansPlaySplitterData = {
+export const defaultJoinerNodeData: SansPlayJoinerData = {
   text: "",
-  // text: "తపఃస్వాధ్యాయనిరతం తపస్వీ వాగ్విదాం వరమ్",
+  // text: "tapaH, svADyAya, niratam",
   schemeFrom: TransliterationScheme.TELUGU,
   schemeTo: TransliterationScheme.IAST,
-  limit: 1,
 };
 
 const selector = (state: RFState) => ({
@@ -46,12 +47,9 @@ const selector = (state: RFState) => ({
   removeChildNodes: state.removeChildNodes,
 });
 
-function SansPlaySplitterNode({
-  id,
-  data,
-}: NodeProps<Node<SansPlaySplitterData>>) {
+function SansPlayJoinerNode({ id, data }: NodeProps<Node<SansPlayJoinerData>>) {
   const { updateNodeData, deleteElements } = useReactFlow();
-  const { split, isLoading, error } = useSandhiSplits();
+  const { join, isLoading, error } = useSandhiJoins();
   const { addChildNodes, removeChildNodes } = useSansPlayStore(
     useShallow(selector),
   );
@@ -59,20 +57,23 @@ function SansPlaySplitterNode({
   const onParse = useCallback(() => {
     async function parseAction() {
       removeChildNodes(id);
-      split(data, {
-        onSuccess: (data) => {
-          // console.log(data);
-          const { nodes: newNodes, edges: newEdges } =
-            transformSandhiSplitsToGraphData(id, data);
-          addChildNodes(id, newNodes, newEdges);
+      join(
+        { words: data.text.split(",").map((word) => word.trim()), ...data },
+        {
+          onSuccess: (data) => {
+            // console.log(data);
+            const { nodes: newNodes, edges: newEdges } =
+              transformSandhiJoinsToGraphData(id, data);
+            addChildNodes(id, newNodes, newEdges);
+          },
+          onError: (error) => {
+            console.error(error);
+          },
         },
-        onError: (error) => {
-          console.error(error);
-        },
-      });
+      );
     }
     return parseAction();
-  }, [id, data, split, addChildNodes, removeChildNodes]);
+  }, [id, data, join, addChildNodes, removeChildNodes]);
 
   const onClear = useCallback(() => {
     removeChildNodes(id);
@@ -100,7 +101,7 @@ function SansPlaySplitterNode({
           </div>
         )}
         <div className="flex bg-muted text-sidebar-foreground px-2 rounded-t-md flex-row justify-between items-center">
-          <div className="text-sm">Splitter</div>
+          <div className="text-sm">Joiner</div>
           <div className="flex flex-row justify-end gap-1">
             <Button variant="ghost" size="icon" onClick={onDelete}>
               <Icons.trash className="size-3 text-destructive" />
@@ -118,7 +119,7 @@ function SansPlaySplitterNode({
             <Input
               onChange={(evt) => updateNodeData(id, { text: evt.target.value })}
               value={data.text}
-              placeholder="sentence to split..."
+              placeholder="words to join..."
               type="search"
               autoFocus
               autoComplete="off"
@@ -167,29 +168,13 @@ function SansPlaySplitterNode({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex justify-center items-center gap-2">
-                {data.limit}
-                <Input
-                  id="limit"
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={data.limit}
-                  className="nodrag"
-                  onChange={(e) =>
-                    updateNodeData(id, { limit: Number(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
           </div>
         </div>
       </div>
-      <TextInputHandle id="text" onChange={onTargetChange} />
+      <TextInputHandle id="text" onChange={onTargetChange} delimiter="," />
       <Handle type="source" position={Position.Right} />
     </>
   );
 }
 
-export default SansPlaySplitterNode;
+export default SansPlayJoinerNode;

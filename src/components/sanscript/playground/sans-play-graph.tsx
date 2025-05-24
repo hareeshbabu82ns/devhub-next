@@ -19,6 +19,8 @@ import SansPlayParserNode from "./sans-play-parser-node";
 import TextInputNode from "@/components/graph/TextInputNode";
 import SansPlayDeletableEdge from "./sans-play-deletable-edge";
 import SansPlaySplitterNode from "./sans-play-splitter-node";
+import SansPlayJoinerNode from "./sans-play-joiner-node";
+import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -31,6 +33,8 @@ const selector = (state: RFState) => ({
   removeChildNodes: state.removeChildNodes,
   addSansPlayParserNode: state.addSansPlayParserNode,
   addSandhiSplitterNode: state.addSandhiSplitterNode,
+  addSandhiJoinerNode: state.addSandhiJoinerNode,
+  addWordTaggerNode: state.addWordTaggerNode,
 });
 
 const nodeOrigin: NodeOrigin = [0.5, 0.5];
@@ -44,6 +48,8 @@ const nodeTypes = {
   sansPlay: SansPlayNode,
   sentenceParse: SansPlayParserNode,
   sandhiSplit: SansPlaySplitterNode,
+  sandhiJoin: SansPlayJoinerNode,
+  wordTagger: SansPlayWordTaggerNode,
   textInput: TextInputNode,
 };
 
@@ -59,9 +65,10 @@ export default function SanscriptPlayGraph() {
     onNodesChange,
     onEdgesChange,
     onConnect,
-    removeChildNodes,
     addSansPlayParserNode,
     addSandhiSplitterNode,
+    addSandhiJoinerNode,
+    addWordTaggerNode,
   } = useStore(useShallow(selector));
 
   return (
@@ -89,6 +96,12 @@ export default function SanscriptPlayGraph() {
           </Button>
           <Button variant="outline" onClick={() => addSandhiSplitterNode({})}>
             Splitter
+          </Button>
+          <Button variant="outline" onClick={() => addSandhiJoinerNode({})}>
+            Joiner
+          </Button>
+          <Button variant="outline" onClick={() => addWordTaggerNode({})}>
+            WordTags
           </Button>
         </div>
       </Panel>
