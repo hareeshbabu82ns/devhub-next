@@ -15,7 +15,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { SentenceParseGraphView } from "./sentence-parse-graph";
 import {
   useSandhiSplits,
   useSandhiJoins,
@@ -27,7 +26,7 @@ import MindMapGraph from "../mindmap/mind-map-graph";
 import SanscriptPlayGraph from "./playground/sans-play-graph";
 
 export default function SanscriptUtils() {
-  const [ activeTab, setActiveTab ] = useState( "playground" );
+  const [activeTab, setActiveTab] = useState("playground");
 
   return (
     <div className="flex-1 flex flex-col gap-4 flex-grow p-1">
@@ -70,20 +69,20 @@ export default function SanscriptUtils() {
 }
 
 function SandhiSplitsTab() {
-  const [ text, setText ] = useState( "" );
-  const [ schemeFrom, setSchemeFrom ] = useState<TransliterationScheme>(
-    TransliterationScheme.DEVANAGARI
+  const [text, setText] = useState("");
+  const [schemeFrom, setSchemeFrom] = useState<TransliterationScheme>(
+    TransliterationScheme.DEVANAGARI,
   );
-  const [ schemeTo, setSchemeTo ] = useState<TransliterationScheme>(
-    TransliterationScheme.IAST
+  const [schemeTo, setSchemeTo] = useState<TransliterationScheme>(
+    TransliterationScheme.IAST,
   );
-  const [ limit, setLimit ] = useState( 2 );
+  const [limit, setLimit] = useState(2);
 
   const { split, splits, isLoading, error } = useSandhiSplits();
 
-  const handleSubmit = ( e: React.FormEvent ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    split( { text, schemeFrom, schemeTo, limit } );
+    split({ text, schemeFrom, schemeTo, limit });
   };
 
   return (
@@ -98,7 +97,7 @@ function SandhiSplitsTab() {
             <Input
               id="text"
               value={text}
-              onChange={( e ) => setText( e.target.value )}
+              onChange={(e) => setText(e.target.value)}
               placeholder="Enter Sanskrit text to split"
               required
             />
@@ -109,17 +108,19 @@ function SandhiSplitsTab() {
               <Label htmlFor="schemeFrom">From Scheme</Label>
               <Select
                 value={schemeFrom}
-                onValueChange={( val ) => setSchemeFrom( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeFrom(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -128,17 +129,19 @@ function SandhiSplitsTab() {
               <Label htmlFor="schemeTo">To Scheme</Label>
               <Select
                 value={schemeTo}
-                onValueChange={( val ) => setSchemeTo( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeTo(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -152,7 +155,7 @@ function SandhiSplitsTab() {
                   min="1"
                   max="10"
                   value={limit}
-                  onChange={( e ) => setLimit( Number( e.target.value ) )}
+                  onChange={(e) => setLimit(Number(e.target.value))}
                 />
               </div>
             </div>
@@ -170,14 +173,11 @@ function SandhiSplitsTab() {
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">Results:</h3>
               <div className="space-y-2">
-                {splits.map( ( splitResult, index ) => (
-                  <div
-                    key={index}
-                    className="p-3 bg-muted rounded-md"
-                  >
-                    {splitResult.join( " " )}
+                {splits.map((splitResult, index) => (
+                  <div key={index} className="p-3 bg-muted rounded-md">
+                    {splitResult.join(" ")}
                   </div>
-                ) )}
+                ))}
               </div>
             </div>
           )}
@@ -188,25 +188,25 @@ function SandhiSplitsTab() {
 }
 
 function SandhiJoinsTab() {
-  const [ wordInput, setWordInput ] = useState( "" );
-  const [ schemeFrom, setSchemeFrom ] = useState<TransliterationScheme>(
-    TransliterationScheme.IAST
+  const [wordInput, setWordInput] = useState("");
+  const [schemeFrom, setSchemeFrom] = useState<TransliterationScheme>(
+    TransliterationScheme.IAST,
   );
-  const [ schemeTo, setSchemeTo ] = useState<TransliterationScheme>(
-    TransliterationScheme.TELUGU
+  const [schemeTo, setSchemeTo] = useState<TransliterationScheme>(
+    TransliterationScheme.TELUGU,
   );
 
   const { join, joins, isLoading, error } = useSandhiJoins();
 
-  const handleSubmit = ( e: React.FormEvent ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const words = wordInput
-      .split( "," )
-      .map( ( word ) => word.trim() )
-      .filter( Boolean );
+      .split(",")
+      .map((word) => word.trim())
+      .filter(Boolean);
 
-    if ( words.length > 0 ) {
-      join( { words, schemeFrom, schemeTo } );
+    if (words.length > 0) {
+      join({ words, schemeFrom, schemeTo });
     }
   };
 
@@ -222,7 +222,7 @@ function SandhiJoinsTab() {
             <Input
               id="words"
               value={wordInput}
-              onChange={( e ) => setWordInput( e.target.value )}
+              onChange={(e) => setWordInput(e.target.value)}
               placeholder="Enter comma-separated Sanskrit words"
               required
             />
@@ -233,17 +233,19 @@ function SandhiJoinsTab() {
               <Label htmlFor="schemeFrom">From Scheme</Label>
               <Select
                 value={schemeFrom}
-                onValueChange={( val ) => setSchemeFrom( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeFrom(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -252,17 +254,19 @@ function SandhiJoinsTab() {
               <Label htmlFor="schemeTo">To Scheme</Label>
               <Select
                 value={schemeTo}
-                onValueChange={( val ) => setSchemeTo( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeTo(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -280,11 +284,11 @@ function SandhiJoinsTab() {
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">Results:</h3>
               <div className="space-y-2">
-                {joins.map( ( joinedText, index ) => (
+                {joins.map((joinedText, index) => (
                   <div key={index} className="p-3 bg-muted rounded-md">
                     {joinedText}
                   </div>
-                ) )}
+                ))}
               </div>
             </div>
           )}
@@ -295,19 +299,19 @@ function SandhiJoinsTab() {
 }
 
 function LanguageTagsTab() {
-  const [ text, setText ] = useState( "" );
-  const [ schemeFrom, setSchemeFrom ] = useState<TransliterationScheme>(
-    TransliterationScheme.IAST
+  const [text, setText] = useState("");
+  const [schemeFrom, setSchemeFrom] = useState<TransliterationScheme>(
+    TransliterationScheme.IAST,
   );
-  const [ schemeTo, setSchemeTo ] = useState<TransliterationScheme>(
-    TransliterationScheme.TELUGU
+  const [schemeTo, setSchemeTo] = useState<TransliterationScheme>(
+    TransliterationScheme.TELUGU,
   );
 
   const { getTags, tags, isLoading, error } = useLanguageTags();
 
-  const handleSubmit = ( e: React.FormEvent ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    getTags( { text, schemeFrom, schemeTo } );
+    getTags({ text, schemeFrom, schemeTo });
   };
 
   return (
@@ -322,7 +326,7 @@ function LanguageTagsTab() {
             <Input
               id="text"
               value={text}
-              onChange={( e ) => setText( e.target.value )}
+              onChange={(e) => setText(e.target.value)}
               placeholder="Enter a Sanskrit word to analyze"
               required
             />
@@ -333,17 +337,19 @@ function LanguageTagsTab() {
               <Label htmlFor="schemeFrom">From Scheme</Label>
               <Select
                 value={schemeFrom}
-                onValueChange={( val ) => setSchemeFrom( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeFrom(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -352,17 +358,19 @@ function LanguageTagsTab() {
               <Label htmlFor="schemeTo">To Scheme</Label>
               <Select
                 value={schemeTo}
-                onValueChange={( val ) => setSchemeTo( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeTo(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -380,7 +388,7 @@ function LanguageTagsTab() {
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">Results:</h3>
               <div className="space-y-4">
-                {tags.map( ( tag, index ) => (
+                {tags.map((tag, index) => (
                   <div
                     key={index}
                     className="p-3 bg-muted rounded-md space-y-2"
@@ -388,10 +396,10 @@ function LanguageTagsTab() {
                     <div className="font-medium">Word: {tag.word}</div>
                     <div>
                       <span className="font-medium">Tags:</span>{" "}
-                      {tag.tags.join( ", " )}
+                      {tag.tags.join(", ")}
                     </div>
                   </div>
-                ) )}
+                ))}
               </div>
             </div>
           )}
@@ -403,33 +411,40 @@ function LanguageTagsTab() {
 
 function SentenceParseTab() {
   // Example from documentation: "vāgvidāṃ varam"
-  const [ text, setText ] = useState( "vāgvidāṃ varam" );
-  const [ schemeFrom, setSchemeFrom ] = useState<TransliterationScheme>(
-    TransliterationScheme.IAST
+  const [text, setText] = useState("");
+  const [schemeFrom, setSchemeFrom] = useState<TransliterationScheme>(
+    TransliterationScheme.IAST,
   );
-  const [ schemeTo, setSchemeTo ] = useState<TransliterationScheme>(
-    TransliterationScheme.TELUGU
+  const [schemeTo, setSchemeTo] = useState<TransliterationScheme>(
+    TransliterationScheme.TELUGU,
   );
-  const [ limit, setLimit ] = useState( 2 );
-  const [ preSegmented, setPreSegmented ] = useState( false );
-  const [ showGraph, setShowGraph ] = useState( true );
-  const [ selectedResultIndex, setSelectedResultIndex ] = useState( 0 );
+  const [limit, setLimit] = useState(2);
+  const [preSegmented, setPreSegmented] = useState(false);
+  const [selectedResultIndex, setSelectedResultIndex] = useState(0);
 
   const { parse, parseResults, isLoading, error } = useSentenceParse();
 
-  const handleSubmit = ( e: React.FormEvent ) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    parse( { text, schemeFrom, schemeTo, limit, preSegmented } );
+    parse({ text, schemeFrom, schemeTo, limit, preSegmented });
     // Reset to first result when submitting a new query
-    setSelectedResultIndex( 0 );
+    setSelectedResultIndex(0);
   };
 
   // Auto-submit the example when component mounts
-  useEffect( () => {
-    if ( text && parseResults.length === 0 ) {
-      parse( { text, schemeFrom, schemeTo, limit, preSegmented } );
+  useEffect(() => {
+    if (text && parseResults.length === 0) {
+      parse({ text, schemeFrom, schemeTo, limit, preSegmented });
     }
-  }, [ parse, text, schemeFrom, schemeTo, limit, preSegmented, parseResults.length ] );
+  }, [
+    parse,
+    text,
+    schemeFrom,
+    schemeTo,
+    limit,
+    preSegmented,
+    parseResults.length,
+  ]);
 
   return (
     <Card className="flex-1">
@@ -443,7 +458,7 @@ function SentenceParseTab() {
             <Input
               id="text"
               value={text}
-              onChange={( e ) => setText( e.target.value )}
+              onChange={(e) => setText(e.target.value)}
               placeholder="Enter a Sanskrit sentence to parse"
               required
             />
@@ -454,17 +469,19 @@ function SentenceParseTab() {
               <Label htmlFor="schemeFrom">From Scheme</Label>
               <Select
                 value={schemeFrom}
-                onValueChange={( val ) => setSchemeFrom( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeFrom(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -473,17 +490,19 @@ function SentenceParseTab() {
               <Label htmlFor="schemeTo">To Scheme</Label>
               <Select
                 value={schemeTo}
-                onValueChange={( val ) => setSchemeTo( val as TransliterationScheme )}
+                onValueChange={(val) =>
+                  setSchemeTo(val as TransliterationScheme)
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select scheme" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values( TransliterationScheme ).map( ( scheme ) => (
+                  {Object.values(TransliterationScheme).map((scheme) => (
                     <SelectItem key={scheme} value={scheme}>
                       {scheme}
                     </SelectItem>
-                  ) )}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -498,7 +517,7 @@ function SentenceParseTab() {
                 min="1"
                 max="10"
                 value={limit}
-                onChange={( e ) => setLimit( Number( e.target.value ) )}
+                onChange={(e) => setLimit(Number(e.target.value))}
               />
             </div>
 
@@ -506,7 +525,7 @@ function SentenceParseTab() {
               <Checkbox
                 id="preSegmented"
                 checked={preSegmented}
-                onCheckedChange={( checked ) => setPreSegmented( !!checked )}
+                onCheckedChange={(checked) => setPreSegmented(!!checked)}
               />
               <Label htmlFor="preSegmented">Pre-segmented</Label>
             </div>
@@ -524,15 +543,6 @@ function SentenceParseTab() {
           <div className="flex-1 flex flex-col gap-4 overflow-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium">Results:</h3>
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="show-graph" className="text-sm">Text View</Label>
-                <Switch
-                  id="show-graph"
-                  checked={showGraph}
-                  onCheckedChange={setShowGraph}
-                />
-                <Label htmlFor="show-graph" className="text-sm">Graph View</Label>
-              </div>
             </div>
 
             {parseResults.length > 1 && (
@@ -540,36 +550,33 @@ function SentenceParseTab() {
                 <Label className="mb-1 block">Select Analysis:</Label>
                 <Select
                   value={selectedResultIndex.toString()}
-                  onValueChange={( value ) => setSelectedResultIndex( parseInt( value ) )}
+                  onValueChange={(value) =>
+                    setSelectedResultIndex(parseInt(value))
+                  }
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="Select analysis" />
                   </SelectTrigger>
                   <SelectContent>
-                    {parseResults.map( ( _, index ) => (
+                    {parseResults.map((_, index) => (
                       <SelectItem key={index} value={index.toString()}>
                         Analysis {index + 1}
                       </SelectItem>
-                    ) )}
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {showGraph ? (
-              <div className="flex-1 flex">
-                <SentenceParseGraphView
-                  parseResults={parseResults}
-                  selectedResultIndex={selectedResultIndex}
-                />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {parseResults.map( ( parseResult, resultIndex ) => (
+            <div className="space-y-6">
+              {parseResults.map(
+                (parseResult, resultIndex) =>
                   resultIndex === selectedResultIndex && (
                     <div key={resultIndex} className="space-y-4">
-                      <h4 className="font-medium">Analysis {resultIndex + 1}</h4>
-                      {parseResult.analysis.map( ( analysis, analysisIndex ) => (
+                      <h4 className="font-medium">
+                        Analysis {resultIndex + 1}
+                      </h4>
+                      {parseResult.analysis.map((analysis, analysisIndex) => (
                         <div
                           key={`analysis-${resultIndex}-${analysisIndex}`}
                           className="bg-muted p-4 rounded-md"
@@ -578,7 +585,7 @@ function SentenceParseTab() {
                             Graph {analysisIndex + 1}
                           </h5>
                           <div className="grid gap-2">
-                            {analysis.graph.map( ( graph, graphIndex ) => (
+                            {analysis.graph.map((graph, graphIndex) => (
                               <div
                                 key={`graph-${resultIndex}-${analysisIndex}-${graphIndex}`}
                                 className="border p-3 rounded-md"
@@ -593,26 +600,29 @@ function SentenceParseTab() {
                                 </div>
                                 <div>
                                   <span className="font-medium">Tags:</span>{" "}
-                                  {graph.node.tags.join( ", " )}
+                                  {graph.node.tags.join(", ")}
                                 </div>
                                 <div>
-                                  <span className="font-medium">Predecessor:</span>{" "}
-                                  {graph.predecessor ? graph.predecessor.pada : ""}
+                                  <span className="font-medium">
+                                    Predecessor:
+                                  </span>{" "}
+                                  {graph.predecessor
+                                    ? graph.predecessor.pada
+                                    : ""}
                                 </div>
                                 <div>
                                   <span className="font-medium">Relation:</span>{" "}
                                   {graph.relation ? graph.relation : ""}
                                 </div>
                               </div>
-                            ) )}
+                            ))}
                           </div>
                         </div>
-                      ) )}
+                      ))}
                     </div>
-                  )
-                ) )}
-              </div>
-            )}
+                  ),
+              )}
+            </div>
           </div>
         )}
       </CardContent>
