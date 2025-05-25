@@ -41,7 +41,15 @@ export function getLayoutedElements(
 
   // Set graph direction (TB = top-bottom, LR = left-right)
   const isHorizontal = direction === "LR";
-  dagreGraph.setGraph({ rankdir: direction });
+  dagreGraph.setGraph({
+    rankdir: direction,
+    align: "UL",
+    nodesep: 50,
+    edgesep: 10,
+    ranksep: 50,
+    acyclicer: "greedy",
+    ranker: "network-simplex",
+  });
 
   // Add nodes to the dagre graph with dimensions
   addNodesToDagreGraph(dagreGraph, nodes, nodeWidth, nodeHeight);
@@ -314,9 +322,25 @@ function processAnalysis(
 
       // Only add if not already in the graph (using Set for O(1) lookup)
       if (!existingNodeIds.has(nodeId)) {
-        graphData.nodes.push(
-          createGraphNode(item, nodeId, parseNode.id, analysisIndex),
-        );
+        const parentId = item.predecessor
+          ? `${parseNode.id}-${analysisIndex}-${item.predecessor.pada}`
+          : undefined;
+
+        const graphNode = createNode({
+          id: nodeId,
+          parentId,
+          // dragHandle:
+          //   item.node.tags && item.node.tags.length > 1
+          //     ? ".drag-handle__custom"
+          //     : undefined,
+          data: {
+            label: item.node.pada,
+            ...item,
+            subTitle: item.node.root,
+            tags: item.node.tags,
+          },
+        });
+        graphData.nodes.push(graphNode);
         existingNodeIds.add(nodeId);
       }
     }
@@ -328,43 +352,6 @@ function processAnalysis(
       addGraphEdges(item, analysisIndex, parseNode, graphData);
     }
   });
-}
-
-/**
- * Creates a node for a graph item.
- *
- * @param item - Graph item to create node for
- * @param nodeId - ID for the new node
- * @param parseNodeId - ID of parent parse node
- * @param analysisIndex - Index of the analysis
- * @returns Node object
- */
-function createGraphNode(
-  item: SentenceParseGraph,
-  nodeId: string,
-  parseNodeId: string,
-  analysisIndex: number,
-): Node {
-  const parentId = item.predecessor
-    ? `${parseNodeId}-${analysisIndex}-${item.predecessor.pada}`
-    : undefined;
-
-  return {
-    id: nodeId,
-    position: { x: 0, y: 0 },
-    // dragHandle:
-    //   item.node.tags && item.node.tags.length > 1
-    //     ? ".drag-handle__custom"
-    //     : undefined,
-    data: {
-      label: item.node.pada,
-      ...item,
-      subTitle: item.node.root,
-      tags: item.node.tags,
-    },
-    type: "sansPlay",
-    parentId,
-  } satisfies Node;
 }
 
 /**

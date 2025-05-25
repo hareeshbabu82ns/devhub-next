@@ -5,6 +5,7 @@ import {
   Background,
   ConnectionLineType,
   Controls,
+  MiniMap,
   NodeOrigin,
   Panel,
   ReactFlow,
@@ -136,6 +137,7 @@ export default function SanscriptPlayGraph() {
         style={{ backgroundColor: "white", color: "black" }}
         showInteractive={false}
       />
+      <MiniMap zoomable pannable />
       <Background />
     </ReactFlow>
   );
