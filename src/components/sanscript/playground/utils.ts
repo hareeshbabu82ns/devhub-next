@@ -8,6 +8,8 @@ import {
 } from "@/types/sanscript";
 import { Edge, MarkerType, Node, Position } from "@xyflow/react";
 import { nanoid } from "nanoid/non-secure";
+import { getHierarchicalLayout } from "./hierarchy-layout";
+import { getChildNodes } from "./hierarchy-utils";
 
 export interface GraphData {
   nodes: Node[];
@@ -31,9 +33,18 @@ export function getLayoutedElements(
   direction = "TB",
   nodeWidth = 172,
   nodeHeight = 70,
+  layoutStyle: "dagre" | "hierarchical" = "dagre",
 ): { nodes: Node[]; edges: Edge[] } {
   // Skip layout if no nodes to position
   if (nodes.length === 0) return { nodes, edges };
+
+  if (layoutStyle === "hierarchical") {
+    return getHierarchicalLayout({
+      nodes,
+      edges,
+      options: { nodeWidth, nodeHeight },
+    });
+  }
 
   // Create a fresh graph instance for each layout operation to prevent interference
   // between multiple calls to this function
@@ -45,10 +56,11 @@ export function getLayoutedElements(
     rankdir: direction,
     align: "UL",
     nodesep: 50,
-    edgesep: 10,
+    edgesep: 50,
     ranksep: 50,
-    acyclicer: "greedy",
-    ranker: "network-simplex",
+    // acyclicer: "greedy",
+    ranker: "tight-tree",
+    // ranker: "network-simplex",
   });
 
   // Add nodes to the dagre graph with dimensions
@@ -291,7 +303,7 @@ export function createNode({
 }): Node {
   return {
     id,
-    parentId,
+    // parentId,
     position: { x: 0, y: 0 },
     data: data,
     type: "sansPlay",
@@ -455,7 +467,7 @@ function organizeNodesHierarchically(graphData: GraphData): void {
 function ensureNodeParenting(graphData: GraphData, parseNode: Node): void {
   graphData.nodes.forEach((node) => {
     if (!node.parentId && node.id !== parseNode.id) {
-      node.parentId = parseNode.id;
+      // node.parentId = parseNode.id;
     }
   });
 }
@@ -519,7 +531,7 @@ export function connectOrphanNodesToParent(
 ): void {
   nodes.forEach((node) => {
     if (!node.parentId) {
-      node.parentId = parentId;
+      // node.parentId = parentId;
     }
   });
 }
@@ -557,6 +569,13 @@ export function removeChildrenFromGraph(
 
     // Process each direct child
     directChildren.forEach((child) => {
+      nodesToRemove.add(child.id);
+      // Recursively collect this child's descendants
+      collectDescendants(child.id);
+    });
+
+    // get child nodes based on edges
+    getChildNodes(pId, result.nodes, result.edges).forEach((child) => {
       nodesToRemove.add(child.id);
       // Recursively collect this child's descendants
       collectDescendants(child.id);

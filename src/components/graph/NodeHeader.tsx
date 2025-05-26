@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VariantProps } from "class-variance-authority";
 import { ButtonProps } from "@/lib/types";
+import useSansPlayStore from "../sanscript/playground/sans-play-store";
 
 /* NODE HEADER -------------------------------------------------------------- */
 
@@ -187,12 +188,13 @@ export const NodeHeaderDeleteAction = ({
 }) => {
   const id = useNodeId();
   const { setNodes, deleteElements } = useReactFlow();
-
+  const { removeChildNodes } = useSansPlayStore();
   const handleClick = useCallback(
     onClick ||
       (() => {
         if (id && deleteChildren) {
           deleteElements({ nodes: [{ id }] });
+          removeChildNodes(id);
         } else {
           setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
         }

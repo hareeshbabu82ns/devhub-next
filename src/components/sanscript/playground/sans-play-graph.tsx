@@ -24,6 +24,7 @@ import SansPlaySplitterNode from "./sans-play-splitter-node";
 import SansPlayJoinerNode from "./sans-play-joiner-node";
 import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
 import { BrainCircuitIcon, MergeIcon, SplitIcon, TagIcon } from "lucide-react";
+import DevTools from "@/components/graph/DevTools";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -38,6 +39,7 @@ const selector = (state: RFState) => ({
   addWordTaggerNode: state.addWordTaggerNode,
 });
 
+// const nodeOrigin: NodeOrigin = [0, 0];
 const nodeOrigin: NodeOrigin = [0.5, 0.5];
 const connectionLineStyle = {
   stroke: "var(--muted-foreground)",
@@ -133,6 +135,7 @@ export default function SanscriptPlayGraph() {
           </Button>
         </div>
       </Panel>
+      {/* <DevTools showChangeLogger={false} /> */}
       <Controls
         style={{ backgroundColor: "white", color: "black" }}
         showInteractive={false}

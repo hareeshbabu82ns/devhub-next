@@ -104,24 +104,24 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       data: defaultParserNodeData,
       position: { x: 0, y: -500 },
     },
-    {
-      id: nanoid(),
-      type: "sandhiSplit",
-      data: defaultSplitterNodeData,
-      position: { x: 0, y: -300 },
-    },
-    {
-      id: nanoid(),
-      type: "sandhiJoin",
-      data: defaultJoinerNodeData,
-      position: { x: 0, y: -100 },
-    },
-    {
-      id: nanoid(),
-      type: "wordTagger",
-      data: defaultWordTaggerNodeData,
-      position: { x: 0, y: 100 },
-    },
+    // {
+    //   id: nanoid(),
+    //   type: "sandhiSplit",
+    //   data: defaultSplitterNodeData,
+    //   position: { x: 0, y: -300 },
+    // },
+    // {
+    //   id: nanoid(),
+    //   type: "sandhiJoin",
+    //   data: defaultJoinerNodeData,
+    //   position: { x: 0, y: -100 },
+    // },
+    // {
+    //   id: nanoid(),
+    //   type: "wordTagger",
+    //   data: defaultWordTaggerNodeData,
+    //   position: { x: 0, y: 100 },
+    // },
   ],
   edges: [],
   onConnect: (params: any) => {
@@ -183,16 +183,21 @@ const useSansPlayStore = create<RFState>((set, get) => ({
         ]
       : [];
 
-    // Layout elements
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      [...get().edges, ...newEdges],
-    );
+    // // Layout elements
+    // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+    //   [...get().nodes, newNode],
+    //   [...get().edges, ...newEdges],
+    // );
 
-    // Update state once with all changes
+    // // Update state once with all changes
+    // set({
+    //   nodes: layoutedNodes,
+    //   edges: layoutedEdges,
+    // });
+
     set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
+      nodes: [...get().nodes, newNode],
+      edges: [...get().edges, ...newEdges],
     });
   },
   removeChildNodes: (nodeId: string) => {
@@ -240,14 +245,18 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       type: "smoothstep",
     };
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      [...get().nodes, newNode],
-      [...get().edges, newEdge],
-    );
+    // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+    //   [...get().nodes, newNode],
+    //   [...get().edges, newEdge],
+    // );
 
+    // set({
+    //   nodes: layoutedNodes,
+    //   edges: layoutedEdges,
+    // });
     set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
+      nodes: [...get().nodes, newNode],
+      edges: [...get().edges, newEdge],
     });
   },
   updateNodeLabel: (nodeId: string, label: string) => {
@@ -293,6 +302,10 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       nodes: layoutedNodes,
       edges: layoutedEdges,
     });
+    // set({
+    //   nodes: [...newNodes],
+    //   edges: [...newEdges],
+    // });
   },
 }));
 

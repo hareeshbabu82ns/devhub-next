@@ -52,7 +52,7 @@ export const defaultParserNodeData: SansPlayParserData = {
   schemeFrom: TransliterationScheme.IAST,
   schemeTo: TransliterationScheme.IAST,
   preSegmented: false,
-  limit: 1,
+  limit: 2,
 };
 
 const selector = (state: RFState) => ({
@@ -61,7 +61,7 @@ const selector = (state: RFState) => ({
 });
 
 function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
-  const { updateNodeData, deleteElements } = useReactFlow();
+  const { updateNodeData, fitView } = useReactFlow();
   const { parse, isLoading, error } = useSentenceParse();
   const { addChildNodes, removeChildNodes } = useSansPlayStore(
     useShallow(selector),
@@ -76,6 +76,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
           const { nodes: newNodes, edges: newEdges } =
             transformSentenceParseToGraphData(id, data);
           addChildNodes(id, newNodes, newEdges);
+          fitView();
         },
         onError: (error) => {
           console.error(error);
