@@ -45,6 +45,11 @@ const data = {
       icon: <Icons.assetsExplorer className="size-4 stroke-2 text-inherit" />,
     },
     {
+      title: "Scraper",
+      path: "/scraper",
+      icon: <Icons.scraper className="size-4 stroke-2 text-inherit" />,
+    },
+    {
       title: "Sanscript",
       path: "#",
       icon: <Icons.sanscript className="size-4 stroke-2 text-inherit" />,
@@ -53,12 +58,12 @@ const data = {
         {
           title: "Editor",
           path: "/sanscript?tab=editor",
-          activeSearchParams: { tab: "editor" }
+          activeSearchParams: { tab: "editor" },
         },
         {
           title: "Converter",
           path: "/sanscript?tab=transConv",
-          activeSearchParams: { tab: "transConv" }
+          activeSearchParams: { tab: "transConv" },
         },
       ],
     },
@@ -85,7 +90,7 @@ const data = {
   ],
 };
 
-export function AppSidebar( { ...props }: React.ComponentProps<typeof Sidebar> ) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

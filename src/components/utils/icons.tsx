@@ -49,6 +49,7 @@ import {
   Trash2 as Trash,
   Upload,
   User,
+  ServerCrash,
   Users2 as Users,
   X,
   Bookmark,
@@ -238,4 +239,5 @@ export const Icons = {
     </svg>
   ),
   check: Check,
+  scraper: ServerCrash,
 };
