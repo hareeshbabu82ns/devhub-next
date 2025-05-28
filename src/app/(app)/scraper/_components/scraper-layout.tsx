@@ -5,12 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Clock } from "lucide-react";
 import { ScraperRamayanam } from "./scraper-ramayanam";
 import { ScraperMahabharatam } from "./scraper-mahabharatam";
-import { ScraperCustom } from "./scraper-custom-enhanced";
+import { ScraperGeneric } from "./scraper-generic";
+import { GenericSampleScraper } from "./scraper-generic-sample";
 
 // Define the navigation items
 const navItems = [
@@ -40,8 +39,14 @@ const navItems = [
     status: "coming-soon",
   },
   {
-    id: "custom",
-    label: "Custom Scraper",
+    id: "generic",
+    label: "Generic Scraper",
+    group: "Tools",
+    status: "available",
+  },
+  {
+    id: "generic-sample",
+    label: "Generic Scraper (Sample)",
     group: "Tools",
     status: "available",
   },
@@ -70,8 +75,10 @@ export function ScraperLayout() {
         return <ScraperRamayanam />;
       case "mahabharatam":
         return <ScraperMahabharatam />;
-      case "custom":
-        return <ScraperCustom />;
+      case "generic":
+        return <ScraperGeneric />;
+      case "generic-sample":
+        return <GenericSampleScraper />;
       case "bhagavatam":
       case "vedas":
       case "upanishads":
@@ -107,9 +114,6 @@ export function ScraperLayout() {
     <div className="flex w-full h-[calc(100vh-10rem)] overflow-hidden">
       {/* Left side navigation menu */}
       <div className="w-64 border-r shrink-0">
-        <div className="p-4 border-b">
-          <h3 className="font-medium">Scraper Sources</h3>
-        </div>
         <ScrollArea className="h-[calc(100%-3.5rem)]">
           <div className="py-2">
             {/* Group navigation items by their group */}
@@ -156,19 +160,7 @@ export function ScraperLayout() {
       </div>
 
       {/* Right side content area */}
-      <div className="flex-1 overflow-hidden">
-        <Card className="border-0 rounded-none h-full flex flex-col">
-          <CardHeader className="border-b px-6">
-            <CardTitle className="text-xl">
-              {navItems.find((item) => item.id === activeSection)?.label ||
-                "Web Scraper"}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6 flex-1 overflow-auto">
-            {renderContent()}
-          </CardContent>
-        </Card>
-      </div>
+      <div className="flex-1 px-4 py-2">{renderContent()}</div>
     </div>
   );
 }

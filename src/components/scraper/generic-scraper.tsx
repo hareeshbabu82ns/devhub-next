@@ -26,12 +26,6 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import {
-  scrapeCustomUrl,
-  saveEditedJsonContent,
-  convertToEntityFormat,
-  uploadToEntityDatabase,
-} from "../_actions/scraper-actions";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -49,8 +43,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import config from "@/config";
 
-const formSchema = z.object({
+// Default form schema
+const defaultFormSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
   selectors: z
     .array(z.string().min(1, "Selector cannot be empty"))
@@ -61,9 +57,101 @@ const formSchema = z.object({
   parentId: z.string().optional(),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+// Function type definitions
+export type ScraperFunction = (
+  url: string,
+  selectors: string[],
+  outputPath: string,
+  refetch: boolean,
+) => Promise<{
+  success: boolean;
+  data: any;
+  folderPath: string;
+  htmlFilePath: string;
+  jsonFilePath: string;
+}>;
 
-export function ScraperCustom() {
+export type SaveJsonFunction = (
+  jsonFilePath: string,
+  content: any,
+) => Promise<{ success: boolean; message: string }>;
+
+export type ConvertFunction = (
+  jsonFilePath: string,
+  entityType: string,
+  parentId?: string,
+) => Promise<{
+  success: boolean;
+  entities: any[];
+  count: number;
+  message: string;
+  previewFilePath: string;
+}>;
+
+export type UploadFunction = (
+  jsonFilePath: string,
+  entityType: string,
+  parentId?: string,
+) => Promise<{
+  success: boolean;
+  message: string;
+  count: number;
+}>;
+
+// Props interface for the generic scraper component
+export interface GenericScraperProps {
+  formSchema?: z.ZodType<any, any>;
+  defaultValues?: any;
+  title?: string;
+  description?: string;
+  scraperFunction?: ScraperFunction;
+  saveJsonFunction?: SaveJsonFunction;
+  convertFunction?: ConvertFunction;
+  uploadFunction?: UploadFunction;
+  additionalFields?: React.ReactNode;
+  onSuccess?: (data: any) => void;
+  onError?: (error: Error) => void;
+}
+
+// Function to generate safe file name from URL
+const getSafePathFromUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    const pageName =
+      urlObj.hostname + urlObj.pathname.replace(/[^a-z0-9]/gi, "_");
+    const timestamp = new Date()
+      .toISOString()
+      .replace(/[-:T.]/g, "")
+      .slice(0, 14); // yyyyMMddHHmmss
+    const folderName = `${pageName}`;
+    // const folderName = `${pageName}_${timestamp}`;
+    return `${config.dataFolder}/scrape/${folderName}/extracted_${timestamp}.json`;
+  } catch (error) {
+    // If URL is invalid, return default path
+    return `${config.dataFolder}/scrape/output.json`;
+  }
+};
+
+export function GenericScraper({
+  formSchema = defaultFormSchema,
+  defaultValues = {
+    url: "",
+    selectors: [".content", "h1", "p"],
+    outputPath: `${config.dataFolder}/scrape/output.json`,
+    refetch: false,
+    entityType: "verse",
+    parentId: "",
+  },
+  title = "Generic Web Scraper",
+  description = "Extract content from any website using CSS selectors, edit the JSON, and convert to database entities",
+  scraperFunction,
+  saveJsonFunction,
+  convertFunction,
+  uploadFunction,
+  additionalFields,
+  onSuccess,
+  onError,
+}: GenericScraperProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSavingJson, setIsSavingJson] = useState(false);
@@ -96,40 +184,15 @@ export function ScraperCustom() {
   const [editedJsonContent, setEditedJsonContent] = useState("");
   const [entityPreviewContent, setEntityPreviewContent] = useState("");
 
-  // Function to generate safe file name from URL
-  const getSafePathFromUrl = (url: string): string => {
-    try {
-      const urlObj = new URL(url);
-      const pageName =
-        urlObj.hostname + urlObj.pathname.replace(/[^a-z0-9]/gi, "_");
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[-:T.]/g, "")
-        .slice(0, 14); // yyyyMMddHHmmss
-      const folderName = `${pageName}_${timestamp}`;
-      return `./data/custom/${folderName}/extracted.json`;
-    } catch (error) {
-      // If URL is invalid, return default path
-      return "./data/custom/output.json";
-    }
-  };
-
-  const form = useForm<FormValues>({
+  const form = useForm({
     resolver: zodResolver(formSchema) as any,
-    defaultValues: {
-      url: "",
-      selectors: [".content", "h1", "p"],
-      outputPath: "./data/custom/output.json",
-      refetch: false,
-      entityType: "verse",
-      parentId: "",
-    },
+    defaultValues,
   });
 
   // Watch for URL changes and update the output path
   const watchedUrl = form.watch("url");
 
-  React.useEffect(() => {
+  useEffect(() => {
     // Only update if the URL is valid
     if (watchedUrl && watchedUrl.startsWith("http")) {
       const newPath = getSafePathFromUrl(watchedUrl);
@@ -156,11 +219,11 @@ export function ScraperCustom() {
     const currentSelectors = form.getValues().selectors;
     form.setValue(
       "selectors",
-      currentSelectors.filter((_, i) => i !== index),
+      currentSelectors.filter((_: any, i: number) => i !== index),
     );
   };
 
-  async function onScrape(values: FormValues) {
+  async function onScrape(values: any) {
     setIsLoading(true);
     setStatus(null);
     setUploadStatus(null);
@@ -168,7 +231,12 @@ export function ScraperCustom() {
     setConvertStatus(null);
 
     try {
-      const result = await scrapeCustomUrl(
+      // Use the provided scraper function or throw an error if none is available
+      if (!scraperFunction) {
+        throw new Error("No scraper function provided");
+      }
+
+      const result = await scraperFunction(
         values.url,
         values.selectors,
         values.outputPath,
@@ -183,19 +251,28 @@ export function ScraperCustom() {
         htmlFilePath: result.htmlFilePath,
         jsonFilePath: result.jsonFilePath,
       });
+
+      if (onSuccess) {
+        onSuccess(result);
+      }
     } catch (error) {
       setStatus({
         type: "error",
         message:
           error instanceof Error ? error.message : "Failed to scrape URL",
       });
+
+      if (onError && error instanceof Error) {
+        onError(error);
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
   async function onSaveEditedJson() {
-    if (!status?.jsonFilePath || !editedJsonContent) return;
+    if (!status?.jsonFilePath || !editedJsonContent || !saveJsonFunction)
+      return;
 
     setIsSavingJson(true);
     setSaveJsonStatus(null);
@@ -204,10 +281,7 @@ export function ScraperCustom() {
       // Parse the edited JSON to validate it
       const parsedJson = JSON.parse(editedJsonContent);
 
-      const result = await saveEditedJsonContent(
-        status.jsonFilePath,
-        parsedJson,
-      );
+      const result = await saveJsonFunction(status.jsonFilePath, parsedJson);
 
       // Update the status data with the edited content
       setStatus({
@@ -233,7 +307,7 @@ export function ScraperCustom() {
   }
 
   async function onConvertToEntityFormat() {
-    if (!status?.jsonFilePath) return;
+    if (!status?.jsonFilePath || !convertFunction) return;
 
     setIsConvertingToEntity(true);
     setConvertStatus(null);
@@ -242,7 +316,7 @@ export function ScraperCustom() {
       const entityType = form.getValues().entityType;
       const parentId = form.getValues().parentId;
 
-      const result = await convertToEntityFormat(
+      const result = await convertFunction(
         status.jsonFilePath,
         entityType,
         parentId || undefined,
@@ -278,7 +352,7 @@ export function ScraperCustom() {
   }
 
   async function onUploadEntityPreviewToDatabase() {
-    if (!convertStatus?.previewFilePath) return;
+    if (!convertStatus?.previewFilePath || !uploadFunction) return;
 
     setIsUploading(true);
     setUploadStatus(null);
@@ -287,10 +361,9 @@ export function ScraperCustom() {
       // First, ensure we save any edits to the entity preview
       try {
         const parsedContent = JSON.parse(entityPreviewContent);
-        await saveEditedJsonContent(
-          convertStatus.previewFilePath,
-          parsedContent,
-        );
+        if (saveJsonFunction) {
+          await saveJsonFunction(convertStatus.previewFilePath, parsedContent);
+        }
       } catch (error) {
         throw new Error(
           `Invalid entity preview JSON: ${error instanceof Error ? error.message : String(error)}`,
@@ -300,7 +373,7 @@ export function ScraperCustom() {
       const entityType = form.getValues().entityType;
       const parentId = form.getValues().parentId;
 
-      const result = await uploadToEntityDatabase(
+      const result = await uploadFunction(
         convertStatus.previewFilePath,
         entityType,
         parentId || undefined,
@@ -327,11 +400,8 @@ export function ScraperCustom() {
   return (
     <div className="space-y-6">
       <div className="prose mb-4">
-        <h3>Custom Web Scraper</h3>
-        <p className="text-muted-foreground">
-          Extract content from any website using CSS selectors, edit the JSON,
-          and convert to database entities
-        </p>
+        <h3>{title}</h3>
+        <p className="text-muted-foreground">{description}</p>
       </div>
 
       <div className="border rounded-md p-4">
@@ -387,24 +457,26 @@ export function ScraperCustom() {
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {form.watch("selectors").map((selector, index) => (
-                        <Badge
-                          key={`${selector}-${index}`}
-                          variant="secondary"
-                          className="flex items-center gap-1 py-1 px-3"
-                        >
-                          {selector}
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-4 w-4 p-0 ml-1"
-                            onClick={() => removeSelector(index)}
+                      {form
+                        .watch("selectors")
+                        .map((selector: string, index: number) => (
+                          <Badge
+                            key={`${selector}-${index}`}
+                            variant="secondary"
+                            className="flex items-center gap-1 py-1 px-3"
                           >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </Badge>
-                      ))}
+                            {selector}
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-4 w-4 p-0 ml-1"
+                              onClick={() => removeSelector(index)}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </Badge>
+                        ))}
                     </div>
                   </div>
                   <FormDescription>
@@ -424,7 +496,7 @@ export function ScraperCustom() {
                     <FormLabel>Output Path</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="./data/custom/output.json"
+                        placeholder={`${config.dataFolder}/scrape/output.json`}
                         {...field}
                       />
                     </FormControl>
@@ -499,6 +571,9 @@ export function ScraperCustom() {
                 />
               </div>
             </div>
+
+            {/* Render any additional fields */}
+            {additionalFields}
           </div>
         </Form>
       </div>
@@ -507,7 +582,7 @@ export function ScraperCustom() {
         <Button
           variant="default"
           onClick={form.handleSubmit(onScrape as any)}
-          disabled={isLoading}
+          disabled={isLoading || !scraperFunction}
           className="gap-2"
         >
           {isLoading ? (
@@ -643,7 +718,7 @@ export function ScraperCustom() {
                 <div className="flex gap-3 mt-2">
                   <Button
                     onClick={onSaveEditedJson}
-                    disabled={isSavingJson}
+                    disabled={isSavingJson || !saveJsonFunction}
                     variant="outline"
                     className="gap-2"
                   >
@@ -662,7 +737,7 @@ export function ScraperCustom() {
 
                   <Button
                     onClick={onConvertToEntityFormat}
-                    disabled={isConvertingToEntity}
+                    disabled={isConvertingToEntity || !convertFunction}
                     variant="default"
                     className="gap-2"
                   >
@@ -717,7 +792,8 @@ export function ScraperCustom() {
                 <div className="flex gap-3 mt-2">
                   <Button
                     onClick={async () => {
-                      if (!convertStatus?.previewFilePath) return;
+                      if (!convertStatus?.previewFilePath || !saveJsonFunction)
+                        return;
                       setIsSavingJson(true);
 
                       try {
@@ -725,7 +801,7 @@ export function ScraperCustom() {
                         const parsedContent = JSON.parse(entityPreviewContent);
 
                         // Save the edited entity preview content
-                        const result = await saveEditedJsonContent(
+                        const result = await saveJsonFunction(
                           convertStatus.previewFilePath,
                           parsedContent,
                         );
@@ -752,7 +828,7 @@ export function ScraperCustom() {
                         setIsSavingJson(false);
                       }
                     }}
-                    disabled={isSavingJson}
+                    disabled={isSavingJson || !saveJsonFunction}
                     variant="outline"
                     className="gap-2"
                   >
@@ -771,7 +847,7 @@ export function ScraperCustom() {
 
                   <Button
                     onClick={onUploadEntityPreviewToDatabase}
-                    disabled={isUploading}
+                    disabled={isUploading || !uploadFunction}
                     variant="default"
                     className="gap-2"
                   >

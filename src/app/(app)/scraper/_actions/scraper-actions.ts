@@ -20,22 +20,22 @@ import * as cheerio from "cheerio";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { Prisma } from "@/app/generated/prisma";
+import config from "@/config";
 
 const execAsync = promisify(exec);
 
 // Ramayanam scraper actions
 export async function scrapeRamayanam(
   baseUrl: string,
-  startSarga?: string,
-  endSarga?: string,
+  startKandam?: number,
+  endKandam?: number,
 ) {
   try {
-    // await scrapeRamayanamPages(baseUrl, startSarga, endSarga);
-    await scrapeRamayanamPages();
+    await scrapeRamayanamPages(startKandam, endKandam);
+    // await scrapeRamayanamPages();
     return {
       success: true,
-      scrapedCount:
-        parseInt(endSarga || "0") - parseInt(startSarga || "0") + 1 || "all",
+      scrapedCount: (endKandam || 0) - (startKandam || 0) + 1 || "all",
     };
   } catch (error) {
     console.error("Error scraping Ramayanam:", error);
@@ -50,7 +50,7 @@ export async function processRamayanamToJSON() {
     await scrapeRayayanamPagesJSON();
 
     // Count the number of files processed
-    const extractDir = path.resolve("./data/ramayanam/extract");
+    const extractDir = path.resolve(`${config.dataFolder}/ramayanam/extract`);
     const files = await fs.readdir(extractDir);
     const jsonFiles = files.filter((file) => file.endsWith(".json"));
 
@@ -68,7 +68,9 @@ export async function createRamayanamEntities(parentId: string) {
     await createRamayanaEntityDB(parentId);
 
     // Get count of entities created (approximate)
-    const structurePath = path.resolve("./data/ramayanam/0_structure.json");
+    const structurePath = path.resolve(
+      `${config.dataFolder}/ramayanam/0_structure.json`,
+    );
     const structureData = await fs.readFile(structurePath, "utf-8");
     const structure = JSON.parse(structureData);
 
@@ -115,7 +117,9 @@ export async function processMahabharatamToJSON() {
     await scrapeMeaningPagesJSON();
 
     // Count the number of files processed
-    const extractDir = path.resolve("./data/mahabharatham/extract_meanings");
+    const extractDir = path.resolve(
+      `${config.dataFolder}/mahabharatham/extract_meanings`,
+    );
     const files = await fs.readdir(extractDir);
     const jsonFiles = files.filter((file) => file.endsWith(".json"));
 
@@ -133,7 +137,9 @@ export async function processMahabharatamSlokas() {
     await processSlokas();
 
     // Count the number of slokas processed
-    const extractDir = path.resolve("./data/mahabharatham/extract_slokas");
+    const extractDir = path.resolve(
+      `${config.dataFolder}/mahabharatham/extract_slokas`,
+    );
     const files = await fs.readdir(extractDir);
     const jsonFiles = files.filter((file) => file.endsWith(".json"));
 
@@ -151,7 +157,9 @@ export async function createMahabharatamEntities(parentId: string) {
     await createMahabharathaEntityDB(parentId);
 
     // Get count of entities created (approximate)
-    const structurePath = path.resolve("./data/mahabharatham/0_structure.json");
+    const structurePath = path.resolve(
+      `${config.dataFolder}/mahabharatham/0_structure.json`,
+    );
     const structureData = await fs.readFile(structurePath, "utf-8");
     const structure = JSON.parse(structureData);
 
@@ -187,15 +195,18 @@ export async function scrapeCustomUrl(
       .toISOString()
       .replace(/[-:T.]/g, "")
       .slice(0, 14); // yyyyMMddHHmmss
-    const folderName = `${pageName}_${timestamp}`;
-    const folderPath = path.resolve(`./data/custom/${folderName}`);
+    // // const folderName = `${pageName}_${timestamp}`;
+    const folderName = `${pageName}`;
+    const folderPath = path.resolve(
+      `${config.dataFolder}/scrape/${folderName}`,
+    );
 
     // Create the directory structure
     await fs.mkdir(folderPath, { recursive: true });
 
     // HTML file path
     const htmlFilePath = path.join(folderPath, "page.html");
-    const jsonFilePath = path.join(folderPath, "extracted.json");
+    const jsonFilePath = path.join(folderPath, `extracted_${timestamp}.json`);
 
     // Fetch and save HTML content
     let htmlContent;

@@ -24,9 +24,9 @@ import {
 
 const formSchema = z.object({
   baseUrl: z.string().url("Please enter a valid URL"),
-  startSarga: z.string().optional(),
-  endSarga: z.string().optional(),
-  entityParentId: z.string().optional(),
+  startKandam: z.number().min(1).max(7).optional(),
+  endKandam: z.number().min(0).max(7).optional(),
+  entityParentId: z.string().min(1, "Parent Entity ID is required"),
 });
 
 export function ScraperRamayanam() {
@@ -39,9 +39,9 @@ export function ScraperRamayanam() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      baseUrl: "https://example.com/ramayanam",
-      startSarga: "",
-      endSarga: "",
+      baseUrl: "https://sacred-texts.com/hin/rys/",
+      startKandam: 1,
+      endKandam: 0, // 0 means all
       entityParentId: "",
     },
   });
@@ -53,8 +53,8 @@ export function ScraperRamayanam() {
     try {
       const result = await scrapeRamayanam(
         values.baseUrl,
-        values.startSarga,
-        values.endSarga,
+        values.startKandam,
+        values.endKandam,
       );
       setStatus({
         type: "success",
@@ -133,6 +133,7 @@ export function ScraperRamayanam() {
             <FormField
               control={form.control}
               name="baseUrl"
+              disabled
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Base URL</FormLabel>
@@ -150,12 +151,17 @@ export function ScraperRamayanam() {
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="startSarga"
+                name="startKandam"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Sarga (Optional)</FormLabel>
+                    <FormLabel>Start Kandam (Optional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="1" {...field} />
+                      <Input
+                        type="number"
+                        placeholder="1"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -164,12 +170,17 @@ export function ScraperRamayanam() {
 
               <FormField
                 control={form.control}
-                name="endSarga"
+                name="endKandam"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Sarga (Optional)</FormLabel>
+                    <FormLabel>End Kandam (0 means all)</FormLabel>
                     <FormControl>
-                      <Input placeholder="10" {...field} />
+                      <Input
+                        type="number"
+                        placeholder="7"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

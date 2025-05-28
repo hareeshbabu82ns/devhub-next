@@ -1,5 +1,6 @@
 "use server";
 
+import config from "@/config";
 import { db } from "@/lib/db";
 import {
   createMahabharathaEntityDB,
@@ -78,7 +79,7 @@ export const updateAudioUrlsRamayanam = async (entityId: string) => {
   if (!entityId) return;
 
   const csvKeys = readFileSync(
-    path.resolve("./data/ramayanam_audio_src.csv"),
+    path.resolve(`${config.dataFolder}/ramayanam_audio_src.csv`),
     "utf-8",
   )
     .split("\n")

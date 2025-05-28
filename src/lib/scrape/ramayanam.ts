@@ -192,7 +192,16 @@ export async function createRamayanaEntityDB(parentId: string) {
 }
 
 // 2. Scrape the slokas of each chapter and put them in a json file
-export async function scrapeRayayanamPagesJSON(): Promise<void> {
+export async function scrapeRayayanamPagesJSON(
+  startKandam = 1,
+  endKandam = 0,
+): Promise<void> {
+  if (endKandam === 0 || endKandam > baseStructure.length) {
+    endKandam = baseStructure.length;
+  }
+  console.log(
+    `Scraping Ramayanam pages from Kandam ${startKandam} to ${endKandam}`,
+  );
   // const filePath = path.resolve(
   //   `${config.dataFolder}/ramayanam/0_structure.json`,
   // );
@@ -200,6 +209,13 @@ export async function scrapeRayayanamPagesJSON(): Promise<void> {
 
   let kandamIdx = 0;
   for (const kandam of baseStructure) {
+    if (kandamIdx < startKandam - 1) {
+      kandamIdx++;
+      continue;
+    }
+    if (kandamIdx >= endKandam) {
+      break;
+    }
     console.log(`Scraping: ${kandam.title}`);
     let chapterIdx = 0;
     for (const adhyayam of kandam.chapters) {
@@ -362,10 +378,20 @@ export async function scrapeRayayanamPagesJSON(): Promise<void> {
 }
 
 // 1. Scrape the structure of the book with links to each chapter
-export async function scrapeRamayanamPages(): Promise<void> {
+export async function scrapeRamayanamPages(
+  startKandam = 1,
+  endKandam = 0,
+): Promise<void> {
   const bookStructure: any = [];
+  if (endKandam === 0 || endKandam > baseStructure.length) {
+    endKandam = baseStructure.length;
+  }
+  console.log(
+    `Scraping Ramayanam pages from Kandam ${startKandam} to ${endKandam}`,
+  );
 
-  for (let kandamIdx = 0; kandamIdx < 7; kandamIdx++) {
+  for (let kandamIdx = startKandam - 1; kandamIdx < endKandam; kandamIdx++) {
+    // for (let kandamIdx = 0; kandamIdx < 7; kandamIdx++) {
     const paddedIdx = String(kandamIdx + 1).padStart(2, "0");
     const kandamUrl = `${baseUrl}/rysi${paddedIdx}.htm`;
     const res = await fetch(kandamUrl);

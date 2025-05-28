@@ -43,7 +43,7 @@ export function ScraperMahabharatam() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      baseUrl: "https://example.com/mahabharatam",
+      baseUrl: "https://sacred-texts.com/hin/mbs",
       startParva: "",
       endParva: "",
       entityParentId: "",
@@ -167,6 +167,7 @@ export function ScraperMahabharatam() {
                 <FormField
                   control={form.control}
                   name="baseUrl"
+                  disabled
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Base URL</FormLabel>
