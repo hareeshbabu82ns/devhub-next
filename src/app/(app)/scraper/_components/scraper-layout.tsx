@@ -160,7 +160,7 @@ export function ScraperLayout() {
       </div>
 
       {/* Right side content area */}
-      <div className="flex-1 px-4 py-2">{renderContent()}</div>
+      <div className="flex-1 px-4 py-2 flex">{renderContent()}</div>
     </div>
   );
 }
