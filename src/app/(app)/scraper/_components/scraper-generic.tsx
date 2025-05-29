@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+// Import the refactored component instead of the original
 import { GenericScraper } from "@/components/scraper/generic-scraper";
 import {
   scrapeCustomUrl,

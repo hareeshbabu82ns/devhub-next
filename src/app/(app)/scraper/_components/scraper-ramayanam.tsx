@@ -119,7 +119,7 @@ export function ScraperRamayanam() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 flex-1 flex flex-col">
       <div className="prose mb-4">
         <h3>Ramayanam Scraper</h3>
         <p className="text-muted-foreground">
