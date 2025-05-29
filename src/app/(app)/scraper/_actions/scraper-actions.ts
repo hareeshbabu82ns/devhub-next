@@ -21,6 +21,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { Prisma } from "@/app/generated/prisma";
 import config from "@/config";
+import { getSafePathFromUrl } from "@/lib/utils";
 
 const execAsync = promisify(exec);
 
@@ -183,30 +184,16 @@ export async function createMahabharatamEntities(parentId: string) {
 export async function scrapeCustomUrl(
   url: string,
   selectors: string[],
-  outputPath: string,
   refetch: boolean = false,
 ) {
   try {
-    // Create a safe folder name from the URL
-    const urlObj = new URL(url);
-    const pageName =
-      urlObj.hostname + urlObj.pathname.replace(/[^a-z0-9]/gi, "_");
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[-:T.]/g, "")
-      .slice(0, 14); // yyyyMMddHHmmss
-    // // const folderName = `${pageName}_${timestamp}`;
-    const folderName = `${pageName}`;
-    const folderPath = path.resolve(
-      `${config.dataFolder}/scrape/${folderName}`,
-    );
-
-    // Create the directory structure
+    const {
+      folderPath: folderPathStr,
+      htmlFilePath,
+      jsonFilePath,
+    } = getSafePathFromUrl(url);
+    const folderPath = path.resolve(folderPathStr);
     await fs.mkdir(folderPath, { recursive: true });
-
-    // HTML file path
-    const htmlFilePath = path.join(folderPath, "page.html");
-    const jsonFilePath = path.join(folderPath, `extracted_${timestamp}.json`);
 
     // Fetch and save HTML content
     let htmlContent;
@@ -255,13 +242,6 @@ export async function scrapeCustomUrl(
 
     // Write the JSON data
     await fs.writeFile(jsonFilePath, JSON.stringify(outputData, null, 2));
-
-    // Also write to the user-specified output path if provided
-    if (outputPath) {
-      const customOutputDir = path.dirname(outputPath);
-      await fs.mkdir(customOutputDir, { recursive: true });
-      await fs.writeFile(outputPath, JSON.stringify(outputData, null, 2));
-    }
 
     return {
       success: true,

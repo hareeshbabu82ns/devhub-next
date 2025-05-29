@@ -31,9 +31,8 @@ const customFormSchema = z.object({
   selectors: z
     .array(z.string().min(1, "Selector cannot be empty"))
     .min(1, "At least one selector is required"),
-  outputPath: z.string().min(1, "Output path is required"),
   refetch: z.boolean().default(false),
-  entityType: z.string().default("verse"),
+  entityType: z.string().default("STHOTRAM"),
   parentId: z.string().optional(),
   language: z.string().default("en"),
   extractImages: z.boolean().default(false),
@@ -43,9 +42,8 @@ const customFormSchema = z.object({
 const customDefaultValues = {
   url: "",
   selectors: [".content", "h1", "p", ".article-body"],
-  outputPath: `${config.dataFolder}/scrape/output.json`,
   refetch: false,
-  entityType: "verse",
+  entityType: "STHOTRAM",
   parentId: "",
   language: "en",
   extractImages: false,
@@ -55,7 +53,6 @@ const customDefaultValues = {
 async function customScraperWithImages(
   url: string,
   selectors: string[],
-  outputPath: string,
   refetch: boolean = false,
 ) {
   // This is just a demonstration - in a real implementation,
@@ -63,7 +60,7 @@ async function customScraperWithImages(
   console.log("Custom scraper with image extraction enabled");
 
   // Call the original scraper function
-  return await scrapeCustomUrl(url, selectors, outputPath, refetch);
+  return await scrapeCustomUrl(url, selectors, refetch);
 }
 
 export function GenericSampleScraper() {
@@ -128,41 +125,31 @@ export function GenericSampleScraper() {
   };
 
   return (
-    <div className="container mx-auto py-6">
-      <h2 className="text-2xl font-bold mb-6">Custom Scraper Implementation</h2>
-
-      <GenericScraper
-        formSchema={customFormSchema}
-        defaultValues={customDefaultValues}
-        title="Enhanced Web Scraper"
-        description="Scrape content with advanced options including image extraction and language selection"
-        // Use a function that determines which scraper to use based on form values
-        scraperFunction={(url, selectors, outputPath, refetch) => {
-          const formValues = {
-            url,
-            selectors,
-            outputPath,
-            refetch,
-            extractImages: customDefaultValues.extractImages,
-          };
-          return scraperSelector(formValues)(
-            url,
-            selectors,
-            outputPath,
-            refetch,
-          );
-        }}
-        saveJsonFunction={saveEditedJsonContent}
-        convertFunction={convertToEntityFormat}
-        uploadFunction={uploadToEntityDatabase}
-        additionalFields={customFields}
-        onSuccess={(result) => {
-          console.log("Scraping completed successfully", result);
-        }}
-        onError={(error) => {
-          console.error("Scraping failed", error);
-        }}
-      />
-    </div>
+    <GenericScraper
+      formSchema={customFormSchema}
+      defaultValues={customDefaultValues}
+      title="Enhanced Web Scraper"
+      description="Scrape content with advanced options including image extraction and language selection"
+      // Use a function that determines which scraper to use based on form values
+      scraperFunction={(url, selectors, refetch) => {
+        const formValues = {
+          url,
+          selectors,
+          refetch,
+          extractImages: customDefaultValues.extractImages,
+        };
+        return scraperSelector(formValues)(url, selectors, refetch);
+      }}
+      saveJsonFunction={saveEditedJsonContent}
+      convertFunction={convertToEntityFormat}
+      uploadFunction={uploadToEntityDatabase}
+      additionalFields={customFields}
+      onSuccess={(result) => {
+        console.log("Scraping completed successfully", result);
+      }}
+      onError={(error) => {
+        console.error("Scraping failed", error);
+      }}
+    />
   );
 }

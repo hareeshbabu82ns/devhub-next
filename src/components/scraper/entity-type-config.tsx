@@ -24,7 +24,7 @@ export const EntityTypeConfig: React.FC = () => {
           <FormItem>
             <FormLabel>Entity Type</FormLabel>
             <FormControl>
-              <Input placeholder="verse" {...field} />
+              <Input placeholder="STHOTRAM" {...field} />
             </FormControl>
             <FormDescription>
               Specify the entity type for database upload

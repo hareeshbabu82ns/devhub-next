@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import config from "@/config";
+import { getSafePathFromUrl } from "@/lib/utils";
 
 // Enum for wizard steps
 export enum ScraperWizardStep {
@@ -17,7 +18,6 @@ export enum ScraperWizardStep {
 export type ScraperFunction = (
   url: string,
   selectors: string[],
-  outputPath: string,
   refetch: boolean,
 ) => Promise<{
   success: boolean;
@@ -60,29 +60,10 @@ export const defaultFormSchema = z.object({
   selectors: z
     .array(z.string().min(1, "Selector cannot be empty"))
     .min(1, "At least one selector is required"),
-  outputPath: z.string().min(1, "Output path is required"),
   refetch: z.boolean().default(false),
-  entityType: z.string().default("verse"),
+  entityType: z.string().default("STHOTRAM"),
   parentId: z.string().optional(),
 });
-
-// Function to generate safe file name from URL
-export const getSafePathFromUrl = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    const pageName =
-      urlObj.hostname + urlObj.pathname.replace(/[^a-z0-9]/gi, "_");
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[-:T.]/g, "")
-      .slice(0, 14); // yyyyMMddHHmmss
-    const folderName = `${pageName}`;
-    return `${config.dataFolder}/scrape/${folderName}/extracted_${timestamp}.json`;
-  } catch (error) {
-    // If URL is invalid, return default path
-    return `${config.dataFolder}/scrape/output.json`;
-  }
-};
 
 // Context type
 type ScraperContextType = {
@@ -209,7 +190,7 @@ export const ScraperProvider: React.FC<ScraperProviderProps> = ({
     selectors: [".content", "h1", "p"],
     outputPath: `${config.dataFolder}/scrape/output.json`,
     refetch: false,
-    entityType: "verse",
+    entityType: "STHOTRAM",
     parentId: "",
   },
   title = "Generic Web Scraper",
@@ -272,7 +253,7 @@ export const ScraperProvider: React.FC<ScraperProviderProps> = ({
     // Only update if the URL is valid
     if (watchedUrl && watchedUrl.startsWith("http")) {
       const newPath = getSafePathFromUrl(watchedUrl);
-      form.setValue("outputPath", newPath);
+      form.setValue("outputPath", newPath.jsonFilePath);
     }
   }, [watchedUrl, form]);
 
@@ -343,7 +324,6 @@ export const ScraperProvider: React.FC<ScraperProviderProps> = ({
       const result = await scraperFunction(
         values.url,
         values.selectors,
-        values.outputPath,
         values.refetch,
       );
 

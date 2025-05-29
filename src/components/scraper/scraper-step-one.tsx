@@ -24,14 +24,14 @@ export const ScraperStepOne: React.FC = () => {
 
   return (
     <>
-      <div className="border rounded-md p-4">
+      <div className="border rounded-md p-4 flex flex-col gap-4 @container">
         <Form {...form}>
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 @md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="url"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="col-span-1 md:col-span-2">
                   <FormLabel>Target URL</FormLabel>
                   <FormControl>
                     <Input
@@ -46,52 +46,63 @@ export const ScraperStepOne: React.FC = () => {
                 </FormItem>
               )}
             />
-
-            <SelectorList />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="outputPath"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Output Path</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="/data/scrape/output.json"
-                        {...field}
-                      />
-                    </FormControl>
+            <FormField
+              control={form.control}
+              name="refetch"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-8">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Refetch page</FormLabel>
                     <FormDescription>
-                      Specify where to save the scraped data (relative to
-                      project root)
+                      Refetch the page even if it exists locally
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
 
-              <FormField
-                control={form.control}
-                name="refetch"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-8">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Refetch page</FormLabel>
-                      <FormDescription>
-                        Refetch the page even if it exists locally
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
+          <SelectorList />
+
+          <div className="grid grid-cols-1 @md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="parentId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent ID</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter the parent ID" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the ID of the parent entity
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="entityType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Entity Type</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter the entity type" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Enter the type of the entity to scrape
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
         </Form>
       </div>

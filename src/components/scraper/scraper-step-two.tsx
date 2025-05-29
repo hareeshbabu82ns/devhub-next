@@ -65,7 +65,7 @@ export const ScraperStepTwo: React.FC = () => {
         </CardFooter>
       </Card>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 mb-4">
         <Button
           variant="outline"
           onClick={goToPreviousStep}

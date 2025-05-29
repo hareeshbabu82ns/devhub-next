@@ -15,7 +15,6 @@ import { ScraperStepTwo } from "./scraper-step-two";
 import { ScraperStepThree } from "./scraper-step-three";
 import { z } from "zod";
 import { useScraperContext } from "./scraper-context";
-import config from "@/config";
 
 // Props interface for the generic scraper component
 export interface GenericScraperProps {
@@ -64,9 +63,8 @@ export function GenericScraper({
   defaultValues = {
     url: "",
     selectors: [".content", "h1", "p"],
-    outputPath: `${config.dataFolder}/scrape/output.json`,
     refetch: false,
-    entityType: "verse",
+    entityType: "STHOTRAM",
     parentId: "",
   },
   title = "Generic Web Scraper",

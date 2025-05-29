@@ -372,7 +372,7 @@ devhub/
       const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: initialData || {
-          type: "verse",
+          type: "STHOTRAM",
           text: [{ language: "en", value: "" }],
           meaning: [{ language: "en", value: "" }],
           order: 0,
@@ -589,7 +589,7 @@ devhub/
     const form = useForm<EntityFormValues>({
       resolver: zodResolver(entityFormSchema),
       defaultValues: initialData || {
-        type: "verse",
+        type: "SHTOTRAM",
         text: [{ language: "en", value: "" }],
         meaning: [{ language: "en", value: "" }],
         order: 0,

@@ -10,6 +10,7 @@ import { ScraperRamayanam } from "./scraper-ramayanam";
 import { ScraperMahabharatam } from "./scraper-mahabharatam";
 import { ScraperGeneric } from "./scraper-generic";
 import { GenericSampleScraper } from "./scraper-generic-sample";
+import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
 
 // Define the navigation items
 const navItems = [
@@ -37,6 +38,12 @@ const navItems = [
     label: "Upanishads",
     group: "Sacred Texts",
     status: "coming-soon",
+  },
+  {
+    id: "sthotranidhi",
+    label: "Sthotranidhi",
+    group: "Others",
+    status: "available",
   },
   {
     id: "generic",
@@ -79,6 +86,8 @@ export function ScraperLayout() {
         return <ScraperGeneric />;
       case "generic-sample":
         return <GenericSampleScraper />;
+      case "sthotranidhi":
+        return <ScraperSthotranidhi />;
       case "bhagavatam":
       case "vedas":
       case "upanishads":
