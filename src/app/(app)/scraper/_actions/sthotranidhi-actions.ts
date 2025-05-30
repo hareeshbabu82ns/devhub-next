@@ -28,33 +28,34 @@ const pageLanguages = [
   },
 ];
 
-const filterLines = [
-  "Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English (IAST)",
-  "(నిత్య పారాయణ గ్రంథము)",
-];
-const filterLinesRegex = [
-  "^\\[గమనిక:.*\\]$",
-  "^గమనిక:.*పుస్తకములో కూడా ఉన్నది.$",
-  ".*కూడా ఉన్నది చూడండి.\\]$",
-  "^స్తోత్రనిధి →.*",
-  "^stōtranidhi →.*",
-  "^स्तोत्रनिधि →.*",
-  "^Notes & References:.*",
-  "^Click here to buy.*",
-  "^మరిన్ని.*చూడండి.$",
-  "^మా తదుపరి ప్రచురణ  :.*",
-  "^పైరసీ ప్రకటన :.*",
-  "^Chant other stotras in .*",
-  "^Did you see any mistake/variation.*",
-  "^See more .* for chanting.$",
-  "^See more .* for chanting.$",
-  "^इतर .* स्तोत्राणि पश्यतु ।$",
-];
+// const filterLines = [
+//   "Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English (IAST)",
+//   "(నిత్య పారాయణ గ్రంథము)",
+// ];
+// const filterLinesRegex = [
+//   "^\\[గమనిక:.*\\]$",
+//   "^గమనిక:.*పుస్తకములో కూడా ఉన్నది.$",
+//   ".*కూడా ఉన్నది చూడండి.\\]$",
+//   "^స్తోత్రనిధి →.*",
+//   "^stōtranidhi →.*",
+//   "^स्तोत्रनिधि →.*",
+//   "^Notes & References:.*",
+//   "^Click here to buy.*",
+//   "^మరిన్ని.*చూడండి.$",
+//   "^మా తదుపరి ప్రచురణ  :.*",
+//   "^పైరసీ ప్రకటన :.*",
+//   "^Chant other stotras in .*",
+//   "^Did you see any mistake/variation.*",
+//   "^See more .* for chanting.$",
+//   "^See more .* for chanting.$",
+//   "^इतर .* स्तोत्राणि पश्यतु ।$",
+// ];
 
 export async function scrapeSthotranidhi(
   url: string,
   selectors: string[],
   refetch: boolean = false,
+  linesToSkip: string[],
 ) {
   try {
     const languagePageUrls = await fetchLanguagePageUrls(url, refetch);
@@ -82,12 +83,10 @@ export async function scrapeSthotranidhi(
             item.content = item.content
               .filter((line) => {
                 return (
-                  !filterLines.some((filterLine) =>
-                    line.includes(filterLine),
-                  ) &&
-                  !filterLinesRegex.some((regex) =>
-                    new RegExp(regex).test(line),
-                  ) &&
+                  // !filterLines.some((filterLine) =>
+                  //   line.includes(filterLine),
+                  // ) &&
+                  !linesToSkip.some((regex) => new RegExp(regex).test(line)) &&
                   line.trim().length
                 );
               })

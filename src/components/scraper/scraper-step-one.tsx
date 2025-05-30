@@ -19,8 +19,15 @@ import { LoadingButtonContent } from "./scraper-ui-components";
 import { useScraperContext } from "./scraper-context";
 
 export const ScraperStepOne: React.FC = () => {
-  const { form, isLoading, status, onScrape, goToNextStep, scraperFunction } =
-    useScraperContext();
+  const {
+    form,
+    isLoading,
+    status,
+    additionalFields,
+    onScrape,
+    goToNextStep,
+    scraperFunction,
+  } = useScraperContext();
 
   return (
     <>
@@ -104,6 +111,8 @@ export const ScraperStepOne: React.FC = () => {
               )}
             />
           </div>
+
+          {additionalFields}
         </Form>
       </div>
 
