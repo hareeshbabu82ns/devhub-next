@@ -17,13 +17,13 @@ import { useParams, useRouter } from "next/navigation";
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
   model: TileModel;
-  onTileClicked?: ( entity: TileModel ) => void;
-  onDeleteClicked?: ( entity: TileModel ) => void;
-  onEditClicked?: ( model: TileModel ) => void;
-  onBookmarkClicked?: ( model: TileModel ) => void;
+  onTileClicked?: (entity: TileModel) => void;
+  onDeleteClicked?: (entity: TileModel) => void;
+  onEditClicked?: (model: TileModel) => void;
+  onBookmarkClicked?: (model: TileModel) => void;
 }
 
-export const ArtSlokamTile = ( {
+export const ArtSlokamTile = ({
   index = 0,
   model,
   className,
@@ -31,13 +31,13 @@ export const ArtSlokamTile = ( {
   onDeleteClicked,
   onTileClicked,
   onBookmarkClicked,
-}: ArtSlokamTileProps ) => {
+}: ArtSlokamTileProps) => {
   const router = useRouter();
   const params = useParams();
-  const { entityId } = params as { entityId: string; };
+  const { entityId } = params as { entityId: string };
   const textSize = useTextSizeAtomValue();
-  const [ , copyToClipboard ] = useCopyToClipboard();
-  const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
+  const [, copyToClipboard] = useCopyToClipboard();
+  const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   return (
     <div
@@ -47,10 +47,10 @@ export const ArtSlokamTile = ( {
         model.bookmarked ? "border-success/50" : "",
         className,
       )}
-      onClick={( e ) => {
-        if ( onTileClicked ) {
+      onClick={(e) => {
+        if (onTileClicked) {
           e.stopPropagation();
-          onTileClicked( model );
+          onTileClicked(model);
         }
       }}
     >
@@ -71,7 +71,7 @@ export const ArtSlokamTile = ( {
         <div
           className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest markdown-content`}
         >
-          <Markdown remarkPlugins={[ remarkGfm ]}>{model.title}</Markdown>
+          <Markdown remarkPlugins={[remarkGfm]}>{model.title}</Markdown>
         </div>
         <div className="flex items-center justify-between h-8">
           <div className="flex items-center gap-4">
@@ -81,15 +81,15 @@ export const ArtSlokamTile = ( {
                 type="button"
                 size="icon"
                 className="text-muted-foreground"
-                onClick={( e ) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   // // navigate to /<entityId>/child/<childId>
-                  router.push( `/entities/${entityId}/child/${model.id}` );
+                  router.push(`/entities/${entityId}/child/${model.id}`);
                 }}
               >
-                {( model.order ? model.order + 1 : index )
+                {(model.order ? model.order + 1 : index)
                   .toString()
-                  .padStart( 3, "0" )}
+                  .padStart(3, "0")}
               </Button>
               // <SlokamDisplayDlgTrigger
               //   key={model.id}
@@ -105,23 +105,26 @@ export const ArtSlokamTile = ( {
               </div>
             )}
           </div>
-          <div className={cn( "hidden group-hover:flex flex-row",
-            isTouchDevice && "flex",
-          )}>
+          <div
+            className={cn(
+              "hidden group-hover:flex flex-row",
+              isTouchDevice && "flex",
+            )}
+          >
             {model.audio && (
               <AudioPlayPauseButton
                 url={model.audio}
                 id={model.id}
-                title={`${String( index ).padStart( 3, "0" )}-${model.parentTitle || ""}-${model.subTitle}`}
+                title={`${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
               />
             )}
             <Button
               size="icon"
               type="button"
               variant="ghost"
-              onClick={( e ) => {
-                copyToClipboard( model.title );
-                toast.info( "Copied to clipboard" );
+              onClick={(e) => {
+                copyToClipboard(model.title);
+                toast.info("Copied to clipboard");
                 e.stopPropagation();
               }}
             >
@@ -132,8 +135,8 @@ export const ArtSlokamTile = ( {
                 size="icon"
                 type="button"
                 variant="ghost"
-                onClick={( e ) => {
-                  onBookmarkClicked( model );
+                onClick={(e) => {
+                  onBookmarkClicked(model);
                   e.stopPropagation();
                 }}
               >
@@ -149,8 +152,8 @@ export const ArtSlokamTile = ( {
                 size="icon"
                 type="button"
                 variant="ghost"
-                onClick={( e ) => {
-                  onEditClicked( model );
+                onClick={(e) => {
+                  onEditClicked(model);
                   e.stopPropagation();
                 }}
               >
@@ -163,8 +166,8 @@ export const ArtSlokamTile = ( {
                 type="button"
                 variant="ghost"
                 color="danger"
-                onClick={( e ) => {
-                  onDeleteClicked( model );
+                onClick={(e) => {
+                  onDeleteClicked(model);
                   e.stopPropagation();
                 }}
               >

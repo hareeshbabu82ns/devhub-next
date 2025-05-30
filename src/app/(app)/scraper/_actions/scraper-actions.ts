@@ -259,7 +259,7 @@ export async function scrapeCustomUrl(
 }
 
 // Helper function to check if file exists
-async function fileExists(filePath: string): Promise<boolean> {
+export async function fileExists(filePath: string): Promise<boolean> {
   try {
     await fs.access(filePath);
     return true;
@@ -270,62 +270,24 @@ async function fileExists(filePath: string): Promise<boolean> {
 
 // Function to upload the extracted data to the entity database
 export async function uploadToEntityDatabase(
-  jsonFilePath: string,
+  jsonEntityPreviewFilePath: string,
   entityType: string,
   parentId?: string,
 ) {
   try {
     // Read the JSON file
-    const jsonContent = await fs.readFile(jsonFilePath, "utf-8");
+    const jsonContent = await fs.readFile(jsonEntityPreviewFilePath, "utf-8");
     const extractedData = JSON.parse(jsonContent);
 
-    // Extract meaningful content from the results
-    const entities = [];
-
-    // Process each selector and its content
-    for (const result of extractedData.results) {
-      // Skip empty results
-      if (!result.content || result.content.length === 0) continue;
-
-      for (let i = 0; i < result.content.length; i++) {
-        const content = result.content[i];
-        // Skip empty content
-        if (!content.trim()) continue;
-
-        // Create entity
-        const entity: Prisma.EntityCreateInput = {
-          type: entityType,
-          text: [{ language: "en", value: content }],
-          meaning: [{ language: "en", value: "" }],
-          order: entities.length,
-          bookmarked: false,
-          notes: `Extracted from ${extractedData.url} using selector: ${result.selector}`,
-          parentsRel: parentId ? { connect: { id: parentId } } : undefined,
-        };
-
-        entities.push(entity);
-      }
-    }
-
     // Insert entities into the database
-    for (const entity of entities) {
-      await db.entity.create({
-        data: {
-          type: entity.type,
-          text: entity.text,
-          meaning: entity.meaning,
-          order: entity.order,
-          bookmarked: entity.bookmarked,
-          notes: entity.notes,
-          parentsRel: entity.parentsRel,
-        },
-      });
+    for (const entity of extractedData) {
+      await db.entity.create({ data: entity });
     }
 
     return {
       success: true,
-      count: entities.length,
-      message: `Successfully uploaded ${entities.length} entities to the database`,
+      count: extractedData.length,
+      message: `Successfully uploaded ${extractedData.length} entities to the database`,
     };
   } catch (error) {
     console.error("Error uploading to entity database:", error);

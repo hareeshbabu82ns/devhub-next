@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,6 +10,7 @@ import { ScraperMahabharatam } from "./scraper-mahabharatam";
 import { ScraperGeneric } from "./scraper-generic";
 import { GenericSampleScraper } from "./scraper-generic-sample";
 import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
+import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 
 // Define the navigation items
 const navItems = [
@@ -73,7 +73,48 @@ const navItems = [
 ];
 
 export function ScraperLayout() {
-  const [activeSection, setActiveSection] = useState("ramayanam");
+  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
+  const sectionParam = searchParams.get("section");
+
+  // Initialize state from URL parameter or default to "ramayanam"
+  // Find if the section from URL is valid and available
+  const isValidSection =
+    sectionParam &&
+    navItems.some(
+      (item) => item.id === sectionParam && item.status === "available",
+    );
+
+  // Use the valid section from URL or default to "ramayanam"
+  const [activeSection, setActiveSection] = useState(
+    isValidSection ? sectionParam : "ramayanam",
+  );
+
+  // Handle section change and update URL
+  const handleSectionChange = (sectionId: string) => {
+    if (sectionId !== activeSection) {
+      setActiveSection(sectionId);
+      updateSearchParams({ section: sectionId });
+    }
+  };
+
+  // Handle initial URL parameters on first load
+  useEffect(() => {
+    // Check if URL has a section parameter but our activeSection doesn't match it
+    if (sectionParam && sectionParam !== activeSection) {
+      // Only update if it's a valid, available section
+      const isValidSection = navItems.some(
+        (item) => item.id === sectionParam && item.status === "available",
+      );
+
+      if (isValidSection) {
+        setActiveSection(sectionParam);
+      } else if (activeSection !== "ramayanam") {
+        // If section param is invalid, default to ramayanam
+        updateSearchParams({ section: "ramayanam" });
+      }
+    }
+    // Only run this effect on first render and when sectionParam changes
+  }, [sectionParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Render the active content based on the selected section
   const renderContent = () => {
@@ -151,9 +192,11 @@ export function ScraperLayout() {
                       activeSection === item.id && "bg-muted font-medium",
                       item.status === "coming-soon" && "opacity-60",
                     )}
-                    onClick={() =>
-                      item.status === "available" && setActiveSection(item.id)
-                    }
+                    onClick={() => {
+                      if (item.status === "available") {
+                        handleSectionChange(item.id);
+                      }
+                    }}
                     disabled={item.status !== "available"}
                   >
                     <span>{item.label}</span>

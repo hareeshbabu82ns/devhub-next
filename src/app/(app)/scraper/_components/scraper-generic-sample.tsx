@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import config from "@/config";
 
 // Custom form schema with additional fields
 const customFormSchema = z.object({

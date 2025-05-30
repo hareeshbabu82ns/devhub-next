@@ -142,7 +142,8 @@ const traverseGraphDepthFirst = (
 
   // Position for first child should be directly below the parent
   let childStartX = parentNode.position.x;
-  let childStartY = parentNode.position.y + parentHeight + options.nodeSpacingY;
+  const childStartY =
+    parentNode.position.y + parentHeight + options.nodeSpacingY;
 
   // Keep track of the rightmost position to determine where to place the next row
   let rightmostX = childStartX;
