@@ -68,7 +68,7 @@ const BookmarkedEntitiesGrid = () => {
   const tiles = data.results.map((e) => {
     const parents = flattenEntityParents(e);
     const parentBreadcrumb = parents.map((e) => e.text).join(" > ");
-    const tile = mapEntityToTileModel(e);
+    const tile = mapEntityToTileModel(e, language);
     return {
       ...tile,
       subTitle: parentBreadcrumb,

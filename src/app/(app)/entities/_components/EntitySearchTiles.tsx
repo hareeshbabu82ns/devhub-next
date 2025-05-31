@@ -31,16 +31,16 @@ import { usePlaylistDispatchAtom } from "@/hooks/use-songs";
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
   forTypes?: EntityTypeEnum[];
-  onTileClicked?: ( entity: Entity ) => void;
-  onDeleteClicked?: ( entity: Entity ) => void;
-  onEditClicked?: ( model: Entity ) => void;
-  onBookmarkClicked?: ( model: Entity ) => void;
+  onTileClicked?: (entity: Entity) => void;
+  onDeleteClicked?: (entity: Entity) => void;
+  onEditClicked?: (model: Entity) => void;
+  onBookmarkClicked?: (model: Entity) => void;
   mode?: "search" | "browse";
   actionButtons?: React.ReactNode;
   actionPreButtons?: React.ReactNode;
 }
 
-const EntitySearchTiles = ( {
+const EntitySearchTiles = ({
   forEntity,
   forTypes,
   onTileClicked,
@@ -51,25 +51,20 @@ const EntitySearchTiles = ( {
   mode = "search",
   actionButtons,
   actionPreButtons,
-}: EntitySearchTilesProps ) => {
+}: EntitySearchTilesProps) => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
 
-  const searchParam = searchParams.get( "search" ) ?? "";
+  const searchParam = searchParams.get("search") ?? "";
 
-  const onSearchChange = ( value: string ) => {
-    updateSearchParams( { search: value.trim(), offset: "0" } );
+  const onSearchChange = (value: string) => {
+    updateSearchParams({ search: value.trim(), offset: "0" });
   };
 
-  const debouncedSetParams = useDebounceCallback( onSearchChange, 1000 );
+  const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
 
   return (
-    <div
-      className={cn(
-        "flex-1 flex flex-col",
-        className,
-      )}
-    >
+    <div className={cn("flex-1 flex flex-col", className)}>
       <div className="flex items-center justify-between gap-2">
         {actionPreButtons && (
           <div className="flex flex-row space-x-2">{actionPreButtons}</div>
@@ -105,7 +100,7 @@ const EntitySearchTiles = ( {
 
 export default EntitySearchTiles;
 
-function EntitySearchGrid( {
+function EntitySearchGrid({
   query,
   forEntity,
   forTypes,
@@ -117,24 +112,24 @@ function EntitySearchGrid( {
   query: string;
   forEntity?: TileModel;
   forTypes?: EntityTypeEnum[];
-  onClick?: ( entity: Entity ) => void;
-  onDeleteClicked?: ( entity: Entity ) => void;
-  onEditClicked?: ( model: Entity ) => void;
-  onBookmarkClicked?: ( model: Entity ) => void;
-} ) {
+  onClick?: (entity: Entity) => void;
+  onDeleteClicked?: (entity: Entity) => void;
+  onEditClicked?: (model: Entity) => void;
+  onBookmarkClicked?: (model: Entity) => void;
+}) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const dispatch = usePlaylistDispatchAtom();
 
-  const limit = parseInt( useQueryLimitAtomValue() );
-  const offset = parseInt( searchParams.get( "offset" ) || "0", 10 );
+  const limit = parseInt(useQueryLimitAtomValue());
+  const offset = parseInt(searchParams.get("offset") || "0", 10);
 
   const language = useLanguageAtomValue();
 
-  const { mutate: addAudioToPlaylist } = useMutation( {
-    mutationKey: [ "entityAudio", language, forEntity ],
+  const { mutate: addAudioToPlaylist } = useMutation({
+    mutationKey: ["entityAudio", language, forEntity],
     mutationFn: async () => {
-      if ( forEntity?.audio ) {
-        dispatch( {
+      if (forEntity?.audio) {
+        dispatch({
           type: "ADD_SONG",
           payload: {
             id: forEntity.id,
@@ -144,38 +139,38 @@ function EntitySearchGrid( {
             src: forEntity.audio,
             position: 0,
           } as Song,
-        } );
+        });
       }
-      const entities = await fetchAudioLinksIncludingChildren( {
+      const entities = await fetchAudioLinksIncludingChildren({
         id: forEntity?.id || "",
         language,
-      } );
+      });
       return entities.map(
-        ( e ) =>
-          ( {
+        (e) =>
+          ({
             id: e.id,
             title: e.text,
             album: "",
             artist: "",
             src: e.audio,
             position: 0,
-          } ) as Song,
+          }) as Song,
       );
     },
-    onSuccess: ( res ) => {
-      if ( res ) {
+    onSuccess: (res) => {
+      if (res) {
         // console.log(res);
-        res.forEach( ( song ) => {
-          dispatch( {
+        res.forEach((song) => {
+          dispatch({
             type: "ADD_SONG",
             payload: song,
-          } );
-        } );
+          });
+        });
       }
     },
-  } );
+  });
 
-  const { data, isFetching, isLoading, error, refetch } = useQuery( {
+  const { data, isFetching, isLoading, error, refetch } = useQuery({
     queryKey: [
       "entities",
       { forTypes, language, forEntity, offset, query, limit },
@@ -183,59 +178,60 @@ function EntitySearchGrid( {
     queryFn: async () => {
       const filters: ColumnFiltersState = [];
 
-      if ( forTypes )
-        filters.push( {
+      if (forTypes)
+        filters.push({
           id: "type",
-          value: forTypes.map( ( t ) => t.toString() ),
-        } );
-      if ( forEntity ) filters.push( { id: "parents", value: forEntity.id } );
+          value: forTypes.map((t) => t.toString()),
+        });
+      if (forEntity) filters.push({ id: "parents", value: forEntity.id });
 
-      const entities = await fetchEntities( {
+      const entities = await fetchEntities({
         query,
         language,
         pagination: { pageIndex: offset, pageSize: limit },
-        sorting: [ { id: "order", desc: false } ],
+        sorting: [{ id: "order", desc: false }],
         filters,
-      } );
+      });
       return entities;
     },
-  } );
+  });
 
-  if ( isFetching || isLoading ) return <Loader />;
-  if ( error ) return <SimpleAlert title={error.message} />;
-  if ( !data || !data.results ) return <SimpleAlert title={"no data found"} />;
+  if (isFetching || isLoading) return <Loader />;
+  if (error) return <SimpleAlert title={error.message} />;
+  if (!data || !data.results) return <SimpleAlert title={"no data found"} />;
 
   const children = data.results || [];
-  const entities: TileModel[] = children.map( mapEntityToTileModel ) || [];
+  const entities: TileModel[] =
+    children.map((e) => mapEntityToTileModel(e, language)) || [];
 
   const entitiesCount = data.total;
 
   const onTileClicked = onClick
-    ? ( tile: TileModel ) => onClick( mapTileModelToEntity( tile ) )
+    ? (tile: TileModel) => onClick(mapTileModelToEntity(tile))
     : undefined;
 
   const onEditClickedAction = onEditClicked
-    ? ( tile: TileModel ) => onEditClicked( mapTileModelToEntity( tile ) )
+    ? (tile: TileModel) => onEditClicked(mapTileModelToEntity(tile))
     : undefined;
 
   const onDeleteClickedAction = onDeleteClicked
-    ? ( tile: TileModel ) => onDeleteClicked( mapTileModelToEntity( tile ) )
+    ? (tile: TileModel) => onDeleteClicked(mapTileModelToEntity(tile))
     : undefined;
 
   const onBookmarkClickedAction = onBookmarkClicked
-    ? ( tile: TileModel ) => onBookmarkClicked( mapTileModelToEntity( tile ) )
+    ? (tile: TileModel) => onBookmarkClicked(mapTileModelToEntity(tile))
     : undefined;
 
-  const paginateOffsetAction = ( offset: number ) => {
-    updateSearchParams( { offset: offset.toString() } );
+  const paginateOffsetAction = (offset: number) => {
+    updateSearchParams({ offset: offset.toString() });
   };
 
   const paginateFwdAction = () => {
-    updateSearchParams( { offset: ( offset + 1 ).toString() } );
+    updateSearchParams({ offset: (offset + 1).toString() });
   };
 
   const paginateBackAction = () => {
-    updateSearchParams( { offset: ( offset - 1 ).toString() } );
+    updateSearchParams({ offset: (offset - 1).toString() });
   };
 
   return (
@@ -257,13 +253,13 @@ function EntitySearchGrid( {
         <div className="flex items-center gap-2">
           <Button
             onClick={() =>
-              addAudioToPlaylist( undefined, {
-                onSuccess: ( res ) => {
-                  if ( res.length > 0 || forEntity?.audio )
-                    toast.success( "Audio added to playlist" );
-                  else toast.error( "No audio found" );
+              addAudioToPlaylist(undefined, {
+                onSuccess: (res) => {
+                  if (res.length > 0 || forEntity?.audio)
+                    toast.success("Audio added to playlist");
+                  else toast.error("No audio found");
                 },
-              } )
+              })
             }
             type="button"
             variant="outline"
@@ -283,8 +279,8 @@ function EntitySearchGrid( {
       </div>
       <div className="flex-1">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
-          {entities.map( ( entity, i ) => {
-            if ( entity.type === "SLOKAM" )
+          {entities.map((entity, i) => {
+            if (entity.type === "SLOKAM")
               return (
                 <ArtSlokamTile
                   key={entity.id}
@@ -307,7 +303,7 @@ function EntitySearchGrid( {
                   onDeleteClicked={onDeleteClickedAction}
                 />
               );
-          } )}
+          })}
         </div>
       </div>
       <div className="flex justify-end mt-4">

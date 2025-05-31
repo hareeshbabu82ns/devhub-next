@@ -28,29 +28,6 @@ const pageLanguages = [
   },
 ];
 
-// const filterLines = [
-//   "Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English (IAST)",
-//   "(నిత్య పారాయణ గ్రంథము)",
-// ];
-// const filterLinesRegex = [
-//   "^\\[గమనిక:.*\\]$",
-//   "^గమనిక:.*పుస్తకములో కూడా ఉన్నది.$",
-//   ".*కూడా ఉన్నది చూడండి.\\]$",
-//   "^స్తోత్రనిధి →.*",
-//   "^stōtranidhi →.*",
-//   "^स्तोत्रनिधि →.*",
-//   "^Notes & References:.*",
-//   "^Click here to buy.*",
-//   "^మరిన్ని.*చూడండి.$",
-//   "^మా తదుపరి ప్రచురణ  :.*",
-//   "^పైరసీ ప్రకటన :.*",
-//   "^Chant other stotras in .*",
-//   "^Did you see any mistake/variation.*",
-//   "^See more .* for chanting.$",
-//   "^See more .* for chanting.$",
-//   "^इतर .* स्तोत्राणि पश्यतु ।$",
-// ];
-
 export async function scrapeSthotranidhi(
   url: string,
   selectors: string[],
@@ -287,10 +264,18 @@ export async function fetchLanguagePageUrls(
     const $ = cheerio.load(htmlContent);
 
     // Extract content based on selectors
-    if (!$(".sn_language_links").length) {
-      throw new Error("No language links found in the HTML content");
+    if (!$(".sn_language_links a").length) {
+      // throw new Error("No language links found in the HTML content");
+      return [
+        {
+          url,
+          pageLanguage: "Telugu",
+          language: "TEL",
+        },
+      ];
     }
     const elements = $(".sn_language_links a").toArray();
+    console.log(`Found ${elements.length} language links`);
     const pageUrls = elements.map((el) => {
       const url = $(el).attr("href") || "";
       if (!url) {

@@ -29,83 +29,84 @@ interface FormEntityRelationsProps {
   control: Control<any>;
 }
 
-const FormEntityRelations = ( {
+const FormEntityRelations = ({
   name,
   label,
   control,
   forTypes,
   onAddRelationClicked,
-}: FormEntityRelationsProps ) => {
+}: FormEntityRelationsProps) => {
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
   const language = useLanguageAtomValue();
-  const limit = parseInt( useQueryLimitAtomValue() );
-  const offset = parseInt( searchParams.offset || "0", 10 );
+  const limit = parseInt(useQueryLimitAtomValue());
+  const offset = parseInt(searchParams.offset || "0", 10);
 
-  const [ dlgOpen, setDlgOpen ] = useState( false );
+  const [dlgOpen, setDlgOpen] = useState(false);
   // const navigate = useNavigate();
 
-  const { field } = useController( {
+  const { field } = useController({
     name,
     control,
-  } );
+  });
 
   const relationCount = field.value?.length || 0;
   const ids =
     field.value
-      ?.map( ( rel: Entity ) => rel.id )
-      .slice( limit * offset, limit * offset + limit ) || [];
+      ?.map((rel: Entity) => rel.id)
+      .slice(limit * offset, limit * offset + limit) || [];
 
-  const { data, isFetching, isLoading, error } = useQuery( {
-    queryKey: [ "queryEntitiesByIDs", ids, language, limit ],
+  const { data, isFetching, isLoading, error } = useQuery({
+    queryKey: ["queryEntitiesByIDs", ids, language, limit],
     queryFn: async () => {
-      const entities = await findEntities( {
+      const entities = await findEntities({
         where: {
           id: {
             in: ids,
           },
         },
         language: language!,
-      } );
+      });
       return {
         entities,
       };
     },
-  } );
+  });
 
-  if ( isLoading || isFetching ) return <Loader />;
-  if ( error ) return <SimpleAlert title={error.message} />;
+  if (isLoading || isFetching) return <Loader />;
+  if (error) return <SimpleAlert title={error.message} />;
 
-  if ( !data || !data?.entities )
+  if (!data || !data?.entities)
     return <SimpleAlert title={"Error loading Entities Tile Data"} />;
 
-  const paginateOffsetAction = ( offset: number ) => {
-    updateSearchParams( { offset: offset.toString() } );
+  const paginateOffsetAction = (offset: number) => {
+    updateSearchParams({ offset: offset.toString() });
   };
 
   const onBackAction = () => {
-    updateSearchParams( { offset: ( offset - 1 ).toString() } );
+    updateSearchParams({ offset: (offset - 1).toString() });
   };
 
   const onFwdAction = () => {
-    updateSearchParams( { offset: ( offset + 1 ).toString() } );
+    updateSearchParams({ offset: (offset + 1).toString() });
   };
 
   return (
     <FormField
       control={control}
       name={name}
-      render={( { field } ) => {
-        const tiles: TileModel[] =
-          data!.entities.results.map( mapEntityToTileModel );
+      render={({ field }) => {
+        const tiles: TileModel[] = data!.entities.results.map((e) =>
+          mapEntityToTileModel(e, language),
+        );
 
-        const onEditClicked = ( tile: TileModel ) =>
-          router.push( `/entities/${tile.id}/edit` );
+        const onEditClicked = (tile: TileModel) =>
+          router.push(`/entities/${tile.id}/edit`);
 
-        const onDeleteClicked = ( tile: TileModel ) => {
+        const onDeleteClicked = (tile: TileModel) => {
           field.onChange(
-            field.value.filter( ( rel: Entity ) => rel.id !== tile.id ),
+            field.value.filter((rel: Entity) => rel.id !== tile.id),
           );
         };
         return (
@@ -118,10 +119,10 @@ const FormEntityRelations = ( {
                     <EntitySearchDlgTrigger
                       open={dlgOpen}
                       forTypes={forTypes}
-                      onOpenChange={( open ) => setDlgOpen( open )}
-                      onClick={( entity ) => {
-                        field.onChange( [ ...( field?.value || [] ), entity ] );
-                        setDlgOpen( false );
+                      onOpenChange={(open) => setDlgOpen(open)}
+                      onClick={(entity) => {
+                        field.onChange([...(field?.value || []), entity]);
+                        setDlgOpen(false);
                       }}
                     />
                     {onAddRelationClicked && (
@@ -147,8 +148,8 @@ const FormEntityRelations = ( {
               </div>
             </div>
             <div className="grid max-w-[26rem] sm:max-w-[52.5rem] grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mx-auto gap-6 lg:gap-y-8 xl:gap-x-8 lg:max-w-7xl mt-4 overflow-y-auto w-full p-1">
-              {tiles.map( ( tile: TileModel, i ) => {
-                if ( tile.type === "SLOKAM" )
+              {tiles.map((tile: TileModel, i) => {
+                if (tile.type === "SLOKAM")
                   return (
                     <ArtSlokamTile
                       key={tile.id}
@@ -168,7 +169,7 @@ const FormEntityRelations = ( {
                       onDeleteClicked={onDeleteClicked}
                     />
                   );
-              } )}
+              })}
             </div>
           </div>
         );

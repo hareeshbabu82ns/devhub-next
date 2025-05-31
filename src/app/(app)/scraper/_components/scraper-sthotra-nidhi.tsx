@@ -13,6 +13,7 @@ import {
 } from "../_actions/sthotranidhi-actions";
 import { FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 
 const customFormSchema = z.object({
   url: z.string().url("Please enter a valid URL"),
@@ -35,6 +36,7 @@ const customDefaultValues = {
   linesToSkip: [
     "^Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English \\(IAST\\)$",
     "^\\(నిత్య పారాయణ గ్రంథము\\)$",
+    "^\\(గమనిక:.*\\)$",
     "^\\[గమనిక:.*\\]$",
     "^గమనిక:.*పుస్తకములో కూడా ఉన్నది.$",
     ".*కూడా ఉన్నది చూడండి.\\]$",
@@ -98,10 +100,16 @@ export function ScraperSthotranidhi() {
       uploadFunction={uploadToEntityDatabase}
       additionalFields={customFields}
       onSuccess={(result) => {
-        console.log("Scraping completed successfully", result);
+        // console.log("Scraping completed successfully", result);
+        toast({ title: "Scraping completed successfully" });
       }}
       onError={(error) => {
         console.error("Scraping failed", error);
+        toast({
+          title: "Scraping failed",
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive",
+        });
       }}
     />
   );

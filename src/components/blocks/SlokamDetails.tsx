@@ -43,7 +43,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
   if (!slokam)
     return <SimpleAlert title={`No Slokam Found with id: ${slokamId}`} />;
 
-  const slokamTile: TileModel = mapEntityToTileModel(slokam);
+  const slokamTile: TileModel = mapEntityToTileModel(slokam, language);
 
   return (
     <div

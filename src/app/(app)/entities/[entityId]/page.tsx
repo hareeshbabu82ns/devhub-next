@@ -28,25 +28,25 @@ const Page = () => {
     data: entity,
     isLoading,
     isFetching,
-  } = useQuery( {
-    queryKey: [ "entity", entityId, language ],
-    queryFn: () => readEntity( entityId, language ),
+  } = useQuery({
+    queryKey: ["entity", entityId, language],
+    queryFn: () => readEntity(entityId, language),
     enabled: !!entityId,
-  } );
+  });
 
-  const { mutateAsync: onBookmarkClicked } = useMutation( {
-    mutationKey: [ "entityBookmark" ],
-    mutationFn: async ( entity: Entity ) => {
+  const { mutateAsync: onBookmarkClicked } = useMutation({
+    mutationKey: ["entityBookmark"],
+    mutationFn: async (entity: Entity) => {
       return await bookmarkEntity(
         entity.id,
         entity.bookmarked === undefined ? true : !entity.bookmarked,
       );
     },
-    onSuccess: ( res ) => {
-      if ( res?.bookmarked ) toast.success( "Bookmark added" );
-      else toast.success( "Bookmark removed" );
+    onSuccess: (res) => {
+      if (res?.bookmarked) toast.success("Bookmark added");
+      else toast.success("Bookmark removed");
     },
-  } );
+  });
 
   // const handleEntityFileUploadEvent = ( e: React.ChangeEvent<HTMLInputElement> ) => {
   //   const file = e.target.files?.[ 0 ];
@@ -56,23 +56,23 @@ const Page = () => {
   //   }
   // };
 
-  if ( isLoading || isFetching )
+  if (isLoading || isFetching)
     return <Loader className="min-h-[calc(100vh_-_theme(spacing.20))]" />;
-  if ( !entity ) return null;
+  if (!entity) return null;
 
-  const tile: TileModel = mapEntityToTileModel( entity );
+  const tile: TileModel = mapEntityToTileModel(entity, language);
 
-  const onTileClicked = ( tile: Entity ) =>
-    ENTITY_TYPES_CHILDREN[ tile.type ]?.length > 0 &&
-    router.push( `/entities/${tile.id}` );
+  const onTileClicked = (tile: Entity) =>
+    ENTITY_TYPES_CHILDREN[tile.type]?.length > 0 &&
+    router.push(`/entities/${tile.id}`);
 
   const onTileClickedAction =
-    tile?.type && ENTITY_TYPES_CHILDREN[ tile?.type ].every( ( t ) => t === "SLOKAM" )
+    tile?.type && ENTITY_TYPES_CHILDREN[tile?.type].every((t) => t === "SLOKAM")
       ? undefined
       : onTileClicked;
 
-  const onEditClicked = ( tile: Entity ) =>
-    router.push( `/entities/${tile.id}/edit` );
+  const onEditClicked = (tile: Entity) =>
+    router.push(`/entities/${tile.id}/edit`);
 
   const actionButtons = (
     <>
@@ -82,7 +82,7 @@ const Page = () => {
         type="button"
         variant="outline"
         title="Create Entity"
-        onClick={() => router.push( `/entities/new?parent=${entityId}` )}
+        onClick={() => router.push(`/entities/new?parent=${entityId}`)}
       >
         <Icons.add className="size-4" />
       </Button>
@@ -92,11 +92,11 @@ const Page = () => {
         variant="outline"
         title="Download Entity with Children"
         onClick={() => {
-          toast.promise( downloadEntityHierarchy( entityId ), {
+          toast.promise(downloadEntityHierarchy(entityId), {
             success: "Entity downloaded successfully!",
             error: "Download failed.",
-            loading: "Downloading..."
-          } );
+            loading: "Downloading...",
+          });
         }}
       >
         <Icons.download className="size-4" />
@@ -106,7 +106,7 @@ const Page = () => {
         type="button"
         variant="outline"
         title="Upload Entity"
-        onClick={() => document?.getElementById( 'upload-entity-file' )?.click()}
+        onClick={() => document?.getElementById("upload-entity-file")?.click()}
       >
         <Icons.upload className="size-4" />
       </Button>
@@ -114,13 +114,13 @@ const Page = () => {
         id="upload-entity-file"
         type="file"
         accept="application/json"
-        style={{ display: 'none' }}
-        onChange={async ( e ) => {
-          toast.promise( handleEntityFileUpload( e, entityId ), {
+        style={{ display: "none" }}
+        onChange={async (e) => {
+          toast.promise(handleEntityFileUpload(e, entityId), {
             success: "Entity uploaded successfully!",
             error: "Entity upload failed.",
-            loading: "Uploading..."
-          } );
+            loading: "Uploading...",
+          });
         }}
       />
     </>

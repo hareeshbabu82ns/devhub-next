@@ -1,6 +1,10 @@
 import { saveAs } from "file-saver";
 import { fetchEntityHierarchy, uploadEntityWithChildren } from "./actions";
-import { ENTITY_DEFAULT_IMAGE_THUMBNAIL, LANGUAGES } from "@/lib/constants";
+import {
+  ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+  ENTITY_TYPES_LANGUAGE_MAP,
+  LANGUAGES,
+} from "@/lib/constants";
 import {
   Entity,
   EntityTypeEnum,
@@ -46,13 +50,16 @@ export const mapTileModelToEntity = (t: TileModel) => {
   return item;
 };
 
-export const mapEntityToTileModel = (e: Entity | EntityWithRelations) => {
+export const mapEntityToTileModel = (
+  e: Entity | EntityWithRelations,
+  lang: string,
+) => {
   const item: TileModel = {
     id: e.id,
     type: e.type as EntityTypeEnum,
     title: e.text,
     // subTitle: e.meaning,
-    subTitle: e.type,
+    subTitle: ENTITY_TYPES_LANGUAGE_MAP[e.type][lang] || e.type,
     src: e.imageThumbnail || ENTITY_DEFAULT_IMAGE_THUMBNAIL,
     audio: e.audio,
     order: e.order,

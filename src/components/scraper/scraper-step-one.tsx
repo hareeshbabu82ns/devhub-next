@@ -17,6 +17,8 @@ import { SelectorList } from "./selector-list";
 import { StatusAlert } from "./scraper-ui-components";
 import { LoadingButtonContent } from "./scraper-ui-components";
 import { useScraperContext } from "./scraper-context";
+import FormSelect from "../inputs/FormSelect";
+import { ENTITY_TYPES_DDLB } from "@/lib/constants";
 
 export const ScraperStepOne: React.FC = () => {
   const {
@@ -94,21 +96,12 @@ export const ScraperStepOne: React.FC = () => {
                 </FormItem>
               )}
             />
-            <FormField
+            <FormSelect
               control={form.control}
               name="entityType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Entity Type</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter the entity type" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Enter the type of the entity to scrape
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Type"
+              description="Enter the type of the entity to scrape"
+              options={ENTITY_TYPES_DDLB}
             />
           </div>
 
