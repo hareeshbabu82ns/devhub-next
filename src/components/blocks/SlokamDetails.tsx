@@ -36,6 +36,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
       const slokam = await readEntity(slokamId, language!);
       return slokam;
     },
+    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
   });
 
   if (isLoading || isFetching) return <Loader />;

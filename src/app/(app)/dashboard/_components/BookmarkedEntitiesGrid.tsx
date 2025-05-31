@@ -59,6 +59,7 @@ const BookmarkedEntitiesGrid = () => {
       });
       return entities;
     },
+    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
   });
 
   if (isFetching || isLoading) return <Loader />;

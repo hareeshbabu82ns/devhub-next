@@ -675,6 +675,7 @@ devhub/
       queryKey: ["dictionary", "search", debouncedSearchTerm],
       queryFn: () => searchDictionaryWords(debouncedSearchTerm),
       enabled: debouncedSearchTerm.length > 1,
+      staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
     });
 
     return {

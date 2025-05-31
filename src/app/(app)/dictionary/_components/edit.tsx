@@ -27,7 +27,7 @@ const defaultValues: z.infer<typeof DictItemFormSchema> = {
   phonetic: "",
 };
 
-const mergeWithDefaultValues = ( data: Partial<DictionaryItem> ) => {
+const mergeWithDefaultValues = (data: Partial<DictionaryItem>) => {
   return {
     origin: data.origin || defaultValues.origin,
     wordIndex: data.wordIndex || defaultValues.wordIndex,
@@ -42,11 +42,11 @@ interface DictionaryItemEditProps {
   isNew?: boolean;
 }
 
-const DictionaryItemEdit = ( { isNew }: DictionaryItemEditProps ) => {
+const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [ refreshCount, setRefreshCount ] = useState( 0 );
+  const [refreshCount, setRefreshCount] = useState(0);
   const language = useLanguageAtomValue();
 
   const dictionaryId = params.dictionaryId as string;
@@ -57,94 +57,95 @@ const DictionaryItemEdit = ( { isNew }: DictionaryItemEditProps ) => {
     isFetching,
     refetch,
     error,
-  } = useQuery( {
-    queryKey: [ "dictItem", dictionaryId, language ],
-    queryFn: () => readDictItem( dictionaryId, language ),
+  } = useQuery({
+    queryKey: ["dictItem", dictionaryId, language],
+    queryFn: () => readDictItem(dictionaryId, language),
     enabled: !!dictionaryId,
-  } );
+    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+  });
 
   const {
     mutateAsync: createDictItemFn,
     isPending: createLoading,
     error: createDictItemError,
-  } = useMutation( {
-    mutationKey: [ "createDictItem" ],
-    mutationFn: async ( {
+  } = useMutation({
+    mutationKey: ["createDictItem"],
+    mutationFn: async ({
       data,
     }: {
       data: Prisma.DictionaryWordCreateInput;
-    } ) => {
-      const res = await createDictItem( { item: data } );
+    }) => {
+      const res = await createDictItem({ item: data });
       return res;
     },
-  } );
+  });
 
   const {
     mutateAsync: updateDictItemFn,
     isPending: updateLoading,
     error: updateDictItemError,
-  } = useMutation( {
-    mutationKey: [ "updateDictItem", dictionaryId ],
-    mutationFn: async ( {
+  } = useMutation({
+    mutationKey: ["updateDictItem", dictionaryId],
+    mutationFn: async ({
       data,
     }: {
       data: Prisma.DictionaryWordUpdateInput;
-    } ) => {
-      const res = await updateDictItem( dictionaryId!, { item: data } );
+    }) => {
+      const res = await updateDictItem(dictionaryId!, { item: data });
       return res;
     },
-  } );
+  });
 
   // const [deleteDictItem] = useMutation(MUTATION_DELETE_DICT_ITEM);
   const {
     mutateAsync: deleteDictItemFn,
     isPending: deleteLoading,
     error: deleteDictItemError,
-  } = useMutation( {
-    mutationKey: [ "deleteDictItem", dictionaryId ],
+  } = useMutation({
+    mutationKey: ["deleteDictItem", dictionaryId],
     mutationFn: async () => {
-      const res = await deleteDictItem( dictionaryId );
+      const res = await deleteDictItem(dictionaryId);
       return res;
     },
-  } );
+  });
 
   const onDelete = useMemo(
     () => async () => {
-      if ( !dictionaryId ) return;
-      await deleteDictItemFn( undefined, {
+      if (!dictionaryId) return;
+      await deleteDictItemFn(undefined, {
         onSuccess: () => {
-          toast.success( "DictItem Deleted Successfully" );
+          toast.success("DictItem Deleted Successfully");
           router.back();
         },
-        onError: ( error ) => {
-          toast.error( "Error deleting dictionary" );
+        onError: (error) => {
+          toast.error("Error deleting dictionary");
         },
-      } );
+      });
     },
-    [ dictionaryId ],
+    [dictionaryId],
   );
 
   const onSubmit = useMemo(
-    () => async ( data: Partial<z.infer<typeof DictItemFormSchema>> ) => {
-      if ( dictionaryId ) {
+    () => async (data: Partial<z.infer<typeof DictItemFormSchema>>) => {
+      if (dictionaryId) {
         const dataFinal: Prisma.DictionaryWordUpdateInput = {
           ...data,
         };
         await updateDictItemFn(
           { data: dataFinal },
           {
-            onSuccess: ( data ) => {
-              toast.success( "DictItem updated successfully" );
+            onSuccess: (data) => {
+              toast.success("DictItem updated successfully");
               refetch();
             },
-            onError: ( error ) => {
-              toast.error( "Error updating dictionary" );
+            onError: (error) => {
+              toast.error("Error updating dictionary");
             },
           },
         );
       } else {
-        if ( !data.phonetic || !data.word || !data.description ) {
-          toast.error( "Please fill all required fields" );
+        if (!data.phonetic || !data.word || !data.description) {
+          toast.error("Please fill all required fields");
           return;
         }
         const dataFinal: Prisma.DictionaryWordCreateInput = {
@@ -156,31 +157,31 @@ const DictionaryItemEdit = ( { isNew }: DictionaryItemEditProps ) => {
         const res = await createDictItemFn(
           { data: dataFinal },
           {
-            onSuccess: ( data ) => {
-              toast.success( "DictItem created successfully" );
-              if ( data?.id ) router.replace( `/dictionary/${data.id}/edit` );
+            onSuccess: (data) => {
+              toast.success("DictItem created successfully");
+              if (data?.id) router.replace(`/dictionary/${data.id}/edit`);
             },
-            onError: ( error ) => {
-              toast.error( "Error creating dictionary" );
+            onError: (error) => {
+              toast.error("Error creating dictionary");
             },
           },
         );
       }
     },
-    [ dictionaryId ],
+    [dictionaryId],
   );
 
-  if ( isLoading || isFetching ) return <Loader />;
-  if ( error ) return <SimpleAlert title={error.message} />;
+  if (isLoading || isFetching) return <Loader />;
+  if (error) return <SimpleAlert title={error.message} />;
 
-  if ( !isNew && !dictItem )
+  if (!isNew && !dictItem)
     return (
       <SimpleAlert
         title={`Dictionary Item not found with id: ${dictionaryId}`}
       />
     );
 
-  const item = isNew ? { ...defaultValues } : mergeWithDefaultValues( dictItem! );
+  const item = isNew ? { ...defaultValues } : mergeWithDefaultValues(dictItem!);
 
   return (
     <div className="space-y-2 flex flex-col flex-1">

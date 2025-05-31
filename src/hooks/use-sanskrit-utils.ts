@@ -91,6 +91,7 @@ export function useSandhiSplitsQuery(
     queryKey: ["sandhiSplits", text, schemeFrom, schemeTo, limit],
     queryFn: () => sandhiSplits({ text, schemeFrom, schemeTo, limit }),
     enabled: options.enabled && text.length > 0,
+    staleTime: 1000 * 60 * 15, // Keep fresh for 5 minutes
   });
 }
 
@@ -107,6 +108,7 @@ export function useSandhiJoinsQuery(
     queryKey: ["sandhiJoins", words, schemeFrom, schemeTo],
     queryFn: () => sandhiJoins({ words, schemeFrom, schemeTo }),
     enabled: options.enabled && words.length > 0,
+    staleTime: 1000 * 60 * 15, // Keep fresh for 5 minutes
   });
 }
 
@@ -123,6 +125,7 @@ export function useLanguageTagsQuery(
     queryKey: ["languageTags", text, schemeFrom, schemeTo],
     queryFn: () => languageTags({ text, schemeFrom, schemeTo }),
     enabled: options.enabled && text.length > 0,
+    staleTime: 1000 * 60 * 15, // Keep fresh for 5 minutes
   });
 }
 
@@ -149,5 +152,6 @@ export function useSentenceParseQuery(
     queryFn: () =>
       sentenceParse({ text, schemeFrom, schemeTo, limit, preSegmented }),
     enabled: options.enabled && text.length > 0,
+    staleTime: 1000 * 60 * 15, // Keep fresh for 5 minutes
   });
 }

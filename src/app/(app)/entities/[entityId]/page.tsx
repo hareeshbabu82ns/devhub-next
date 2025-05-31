@@ -32,6 +32,7 @@ const Page = () => {
     queryKey: ["entity", entityId, language],
     queryFn: () => readEntity(entityId, language),
     enabled: !!entityId,
+    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
   });
 
   const { mutateAsync: onBookmarkClicked } = useMutation({

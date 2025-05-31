@@ -27,20 +27,21 @@ import { Calendar } from "@/components/ui/calendar";
 // ];
 
 const PanchangamInfo = () => {
-  const [ date, setDate ] = React.useState<Date | undefined>( new Date() );
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
 
   const cityId = usePanchangamPlaceAtomValue();
 
-  const { data, isPending, isError, refetch } = useQuery( {
-    queryKey: [ "panchangam", cityId, date ],
+  const { data, isPending, isError, refetch } = useQuery({
+    queryKey: ["panchangam", cityId, date],
     queryFn: async () => {
-      const response = await getDayPanchangam( { place: cityId, date } );
+      const response = await getDayPanchangam({ place: cityId, date });
       return response;
     },
-  } );
+    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+  });
 
-  if ( isPending ) return <Loader />;
-  if ( isError ) return <SimpleAlert title="Error fetching panchangam" />;
+  if (isPending) return <Loader />;
+  if (isError) return <SimpleAlert title="Error fetching panchangam" />;
 
   const datePicker = (
     <Popover>
@@ -53,7 +54,7 @@ const PanchangamInfo = () => {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? format( date, "PP" ) : <span>Pick a date</span>}
+          {date ? format(date, "PP") : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">
@@ -93,7 +94,7 @@ const PanchangamInfo = () => {
             <div className="font-semibold">
               Date:{" "}
               <span className="text-warning">
-                {date ? format( date, "PPPP" ) : ""}
+                {date ? format(date, "PPPP") : ""}
               </span>
             </div>
             {/* <div className="font-semibold">Date: {data.consizeInfo.date}</div> */}
