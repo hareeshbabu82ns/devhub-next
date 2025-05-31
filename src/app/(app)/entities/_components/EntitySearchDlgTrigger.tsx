@@ -13,15 +13,15 @@ import { DialogProps } from "@radix-ui/react-dialog";
 
 interface EntitySearchDlgTriggerProps extends DialogProps {
   forTypes?: EntityTypeEnum[];
-  onClick?: ( entity: Entity ) => void | undefined;
-  onDeleteClicked?: ( entity: Entity ) => void | undefined;
+  onClick?: (entity: Entity) => void | undefined;
+  onDeleteClicked?: (entity: Entity) => void | undefined;
 }
-export default function EntitySearchDlgTrigger( {
+export default function EntitySearchDlgTrigger({
   forTypes,
   onClick,
   onDeleteClicked,
   ...rest
-}: EntitySearchDlgTriggerProps ) {
+}: EntitySearchDlgTriggerProps) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>

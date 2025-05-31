@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Form,
   FormControl,
@@ -18,7 +18,8 @@ import { StatusAlert } from "./scraper-ui-components";
 import { LoadingButtonContent } from "./scraper-ui-components";
 import { useScraperContext } from "./scraper-context";
 import FormSelect from "../inputs/FormSelect";
-import { ENTITY_TYPES_DDLB } from "@/lib/constants";
+import { ENTITY_TYPES_DDLB, ENTITY_TYPES_PARENTS } from "@/lib/constants";
+import EntitySearchDlgTrigger from "@/app/(app)/entities/_components/EntitySearchDlgTrigger";
 
 export const ScraperStepOne: React.FC = () => {
   const {
@@ -30,6 +31,9 @@ export const ScraperStepOne: React.FC = () => {
     goToNextStep,
     scraperFunction,
   } = useScraperContext();
+
+  const [dlgOpen, setDlgOpen] = useState(false);
+  const entityType = form.getValues().entityType;
 
   return (
     <>
@@ -86,9 +90,20 @@ export const ScraperStepOne: React.FC = () => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Parent ID</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter the parent ID" {...field} />
-                  </FormControl>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input placeholder="Enter the parent ID" {...field} />
+                    </FormControl>
+                    <EntitySearchDlgTrigger
+                      open={dlgOpen}
+                      forTypes={ENTITY_TYPES_PARENTS[entityType]}
+                      onOpenChange={(open) => setDlgOpen(open)}
+                      onClick={(entity) => {
+                        field.onChange(entity.id);
+                        setDlgOpen(false);
+                      }}
+                    />
+                  </div>
                   <FormDescription>
                     Enter the ID of the parent entity
                   </FormDescription>

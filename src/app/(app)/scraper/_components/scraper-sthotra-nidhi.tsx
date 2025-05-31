@@ -31,7 +31,7 @@ const customDefaultValues = {
   url: "https://stotranidhi.com/kanakadhara-stotram-in-telugu/",
   selectors: [".entry-title", ".entry-content p"],
   refetch: false,
-  parentId: "67097f78685941d233751dcb",
+  parentId: "",
   entityType: "STHOTRAM",
   linesToSkip: [
     "^Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English \\(IAST\\)$",
@@ -70,8 +70,6 @@ export function ScraperSthotranidhi() {
             <Textarea
               placeholder="Enter content lines to skip"
               value={field.value}
-              // onChange={field.onChange}
-              // value={linesToSkip.join("\n")}
               onChange={(e) => {
                 setLinesToSkip(
                   e.target.value

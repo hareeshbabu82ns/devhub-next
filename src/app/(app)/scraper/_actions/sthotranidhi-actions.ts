@@ -87,6 +87,13 @@ export async function scrapeSthotranidhi(
         console.error(`Failed to scrape ${url}:`);
       }
     }
+
+    // Write the scraped JSON data
+    await fs.writeFile(
+      results[0]?.jsonFilePath,
+      JSON.stringify(results, null, 2),
+    );
+
     return {
       success: true,
       data: results,
@@ -200,7 +207,7 @@ export async function convertSthotranidhiToEntityFormat(
   } catch (error) {
     console.error("Error converting to entity format:", error);
     throw new Error(
-      `Failed to convert to entity format: \n Try Saving first. \n ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to convert to entity format: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 }
