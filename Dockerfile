@@ -53,7 +53,7 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Install only the necessary dependencies
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat curl
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
