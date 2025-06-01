@@ -28,6 +28,7 @@ import {
 } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
+import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -151,7 +152,12 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
                 />
               </div>
               <div
-                className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar markdown-content`}
+                className={cn(
+                  LANGUAGE_FONT_FAMILY[
+                    language as keyof typeof LANGUAGE_FONT_FAMILY
+                  ],
+                  `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar markdown-content`,
+                )}
               >
                 <Markdown remarkPlugins={[remarkGfm]}>
                   {item.description}

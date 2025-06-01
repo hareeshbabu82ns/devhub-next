@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./fonts.css";
 
 @custom-variant dark (&:is(.dark *));
 @custom-variant light (&:is(:not(.dark) *));
@@ -736,4 +737,14 @@ button {
 
 .PhoneInputInput::placeholder {
   color: #1a1d21;
+}
+
+/* Telugu Font Utilities */
+.font-telugu {
+  font-family: var(--font-telugu);
+}
+
+/* Shobhika Font Utilities */
+.font-shobhika {
+  font-family: "Shobhika", serif;
 }

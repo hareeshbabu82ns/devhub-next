@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { ENTITY_DEFAULT_IMAGE_THUMBNAIL } from "@/lib/constants";
+import {
+  ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+  LANGUAGE_FONT_FAMILY,
+} from "@/lib/constants";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useCopyToClipboard } from "usehooks-ts";
@@ -10,7 +13,7 @@ import Image from "next/image";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
 import { toast } from "sonner";
-import { useTextSizeAtomValue } from "@/hooks/use-config";
+import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useParams, useRouter } from "next/navigation";
 
@@ -36,12 +39,14 @@ export const ArtSlokamTile = ({
   const params = useParams();
   const { entityId } = params as { entityId: string };
   const textSize = useTextSizeAtomValue();
+  const language = useLanguageAtomValue();
   const [, copyToClipboard] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   return (
     <div
       className={cn(
+        LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
         "group rounded-xl p-4 border dark:highlight-white/5 hover:bg-secondary/10 space-y-2 flex flex-row space-x-4",
         onTileClicked ? "cursor-pointer" : "",
         model.bookmarked ? "border-success/50" : "",

@@ -16,6 +16,7 @@ import { SearchIcon } from "lucide-react";
 import Sanscript from "@indic-transliteration/sanscript";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
 import SanscriptHelpTrigger from "@/components/sanscript/SanscriptHelpTrigger";
+import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 
 export interface WebIMEIdeProps extends React.ComponentProps<"input"> {
   containerClassName?: string;
@@ -25,7 +26,7 @@ export interface WebIMEIdeProps extends React.ComponentProps<"input"> {
   withLanguageSelector?: boolean;
   showHelpIcon?: boolean;
   valueAs?: string;
-  onTextChange?: ( value: string, language: string ) => void;
+  onTextChange?: (value: string, language: string) => void;
 }
 
 const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
@@ -44,59 +45,59 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     _fwdRef,
   ) => {
     const textSize = useTextSizeAtomValue();
-    const [ lang, setLang ] = useState<string>( language || "SAN" );
+    const [lang, setLang] = useState<string>(language || "SAN");
 
-    const onChangeHandler = ( event: React.ChangeEvent<HTMLInputElement> ) => {
-      if ( !onTextChange ) return;
+    const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
+      if (!onTextChange) return;
       const value = event.target ? event.target.value : "";
       const transOut =
         lang === valueAs
           ? value
           : Sanscript.t(
-            value,
-            LANGUAGE_TO_TRANSLITERATION_DDLB[ lang ].scheme,
-            valueAs,
-          );
-      onTextChange( transOut, lang );
+              value,
+              LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
+              valueAs,
+            );
+      onTextChange(transOut, lang);
     };
 
     const valuesCallbackIME = (
       text: string,
-      cb: ( result: Record<string, string>[] ) => void,
+      cb: (result: Record<string, string>[]) => void,
     ) => {
-      const transOut = transliterateText( {
+      const transOut = transliterateText({
         text,
-        toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[ lang ].scheme,
-      } );
-      const outputItrans = transOut.map( ( t ) => ( {
+        toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
+      });
+      const outputItrans = transOut.map((t) => ({
         key: text,
         value: t,
-      } ) );
+      }));
       //   // console.log(outputItrans);
       //   // setTimeout(() => cb(outputItrans), 1000);
-      cb( outputItrans );
+      cb(outputItrans);
     };
 
-    const textRef = useRef<HTMLInputElement>( null );
+    const textRef = useRef<HTMLInputElement>(null);
 
-    useEffect( () => {
-      if ( !textRef?.current ) return;
+    useEffect(() => {
+      if (!textRef?.current) return;
       const currentRef = textRef.current;
 
-      const ime = new WebIME( {
+      const ime = new WebIME({
         // values: debouncedValues,
         values: valuesCallbackIME,
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",
         containerClass: "bg-popover rounded-sm shadow-lg p-2 mt-4 z-50",
         itemClass: `text-${textSize} leading-loose tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
-        menuItemTemplate: ( item ) => ( item.original as { value: string } ).value,
-      } );
-      ime.attach( textRef.current as never );
+        menuItemTemplate: (item) => (item.original as { value: string }).value,
+      });
+      ime.attach(textRef.current as never);
 
-      return () => ime.detach( currentRef as never );
+      return () => ime.detach(currentRef as never);
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [ lang, textSize ] );
+    }, [lang, textSize]);
 
     const languageSelector = (
       <Select value={lang} onValueChange={setLang}>
@@ -105,11 +106,11 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            {Object.keys( LANGUAGE_TO_TRANSLITERATION_DDLB ).map( ( l: string ) => (
+            {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).map((l: string) => (
               <SelectItem key={l} value={l}>
-                {LANGUAGE_TO_TRANSLITERATION_DDLB[ l ].label}
+                {LANGUAGE_TO_TRANSLITERATION_DDLB[l].label}
               </SelectItem>
-            ) )}
+            ))}
           </SelectGroup>
         </SelectContent>
       </Select>
@@ -118,13 +119,14 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     const languageHelper = <SanscriptHelpTrigger language={lang} />;
 
     return (
-      <div className={cn( "relative flex flex-1", containerClassName )}>
+      <div className={cn("relative flex flex-1", containerClassName)}>
         {showSearchIcon && (
           <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
         )}
         <Input
           ref={textRef}
           className={cn(
+            LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
             `leading-loose tracking-widest`,
             showSearchIcon && "pl-8",
             withLanguageSelector && "pr-[110px]",

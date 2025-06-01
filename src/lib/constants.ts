@@ -271,6 +271,14 @@ export const ENTITY_TYPES_LANGUAGE_MAP: Record<
   },
 };
 
+export const LANGUAGE_FONT_FAMILY = {
+  SAN: "font-shobhika",
+  TEL: "font-telugu",
+  HIN: "font-shobhika",
+  ITRANS: "font-shobhika",
+  IAST: "font-shobhika",
+  SLP1: "font-shobhika",
+};
 export type LANGUAGES_TYPE =
   | "SAN"
   | "TEL"

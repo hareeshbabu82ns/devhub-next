@@ -19,7 +19,8 @@ import { Textarea } from "@/components/ui/textarea";
 import WebIMEIde from "./WebIMEIde";
 import { useState } from "react";
 import Sanscript from "@indic-transliteration/sanscript";
-import { useTextSizeAtomValue } from "@/hooks/use-config";
+import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
+import { cn } from "@/lib/utils";
 
 type SanscriptConvertorState = {
   fromScheme: string;
@@ -30,6 +31,7 @@ type SanscriptConvertorState = {
 
 const SanscriptConvertor = () => {
   const textSize = useTextSizeAtomValue();
+  const language = useLanguageAtomValue();
 
   const [state, setState] = useState<SanscriptConvertorState>({
     fromScheme: "ITRANS",
@@ -120,6 +122,11 @@ const SanscriptConvertor = () => {
               ) < 0 ? (
                 <Textarea
                   key={`textarea-${state.fromScheme}`}
+                  className={cn(
+                    ["TEL", "SAN", "IAST", "SLP1", "ITRANS"].includes(
+                      language,
+                    ) && "font-shobhika",
+                  )}
                   value={state.fromText}
                   onChange={(e) => setFormState({ fromText: e.target.value })}
                 />

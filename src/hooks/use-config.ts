@@ -1,4 +1,5 @@
 import {
+  LANGUAGE_FONT_FAMILY,
   LANGUAGE_MEANING_SELECT_KEY,
   LANGUAGE_SELECT_DEFAULT,
   LANGUAGE_SELECT_KEY,
@@ -55,6 +56,13 @@ export function useLanguageAtom() {
 }
 export function useLanguageAtomValue() {
   return useAtomValue(languageAtom);
+}
+export function useLanguageFontAtomValue() {
+  const language = useLanguageAtomValue();
+  return (
+    LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY] ||
+    undefined
+  );
 }
 export const languageMeaningAtom = atomWithStorage<string>(
   LANGUAGE_MEANING_SELECT_KEY,

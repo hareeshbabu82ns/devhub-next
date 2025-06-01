@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
-import { fontSans } from "@/lib/fonts";
+import { fontSans, fontSansTelugu } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/utils/providers";
@@ -25,16 +25,20 @@ export const metadata: Metadata = {
   // },
 };
 
-export default function RootLayout( {
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}> ) {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head />
       <body
-        className={cn( fontSans.variable, "antialiased font-sans min-h-screen bg-background text-foreground", )}
+        className={cn(
+          fontSans.variable,
+          fontSansTelugu.variable,
+          "antialiased font-sans min-h-screen bg-background text-foreground",
+        )}
       >
         <ThemeProvider
           attribute="class"
