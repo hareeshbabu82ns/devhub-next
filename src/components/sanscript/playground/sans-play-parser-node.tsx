@@ -47,8 +47,8 @@ export type SansPlayParserData = {
 };
 
 export const defaultParserNodeData: SansPlayParserData = {
-  // text: "",
-  text: "vāgvidāṃ varam",
+  text: "",
+  // text: "vāgvidāṃ varam",
   schemeFrom: TransliterationScheme.IAST,
   schemeTo: TransliterationScheme.IAST,
   preSegmented: false,

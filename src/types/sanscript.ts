@@ -1,3 +1,5 @@
+import { LANGUAGES_TYPE } from "@/lib/constants";
+
 // Enum for transliteration schemes
 export enum TransliterationScheme {
   DEVANAGARI = "DEVANAGARI",
@@ -10,6 +12,17 @@ export enum TransliterationScheme {
   HK = "HK",
   TAMIL = "TAMIL",
 }
+
+export const LANGUAGE_TRANS_SCHEME_MAP: Record<string, TransliterationScheme> =
+  {
+    SAN: TransliterationScheme.DEVANAGARI,
+    IAST: TransliterationScheme.IAST,
+    TEL: TransliterationScheme.TELUGU,
+    SLP1: TransliterationScheme.SLP1,
+    ITRANS: TransliterationScheme.ITRANS,
+    TAM: TransliterationScheme.TAMIL,
+    ENG: TransliterationScheme.IAST,
+  };
 
 // Common types used throughout the API
 export type LanguageTag = {

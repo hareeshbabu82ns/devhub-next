@@ -31,6 +31,12 @@ interface NodeTypeConfig {
   defaultData: any;
 }
 
+export interface TypedNodeParams {
+  parentId?: string;
+  position?: XYPosition;
+  data?: Record<string, any>;
+}
+
 // Node type configurations map
 const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
   parser: {
@@ -62,48 +68,21 @@ export type RFState = {
   addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
   removeChildNodes: (nodeId: string) => void;
-  addTypedNode: (
-    nodeTypeKey: string,
-    params: { parentId?: string; position?: XYPosition },
-  ) => void;
-  addSansPlayParserNode: ({
-    parentId,
-    position,
-  }: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => void;
-  addSandhiSplitterNode: ({
-    parentId,
-    position,
-  }: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => void;
-  addSandhiJoinerNode: ({
-    parentId,
-    position,
-  }: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => void;
-  addWordTaggerNode: ({
-    parentId,
-    position,
-  }: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => void;
+  addTypedNode: (nodeTypeKey: string, params: TypedNodeParams) => void;
+  addSansPlayParserNode: ({ parentId, position }: TypedNodeParams) => void;
+  addSandhiSplitterNode: ({ parentId, position }: TypedNodeParams) => void;
+  addSandhiJoinerNode: ({ parentId, position }: TypedNodeParams) => void;
+  addWordTaggerNode: ({ parentId, position }: TypedNodeParams) => void;
 };
 
 const useSansPlayStore = create<RFState>((set, get) => ({
   nodes: [
-    {
-      id: nanoid(),
-      type: "sentenceParse",
-      data: defaultParserNodeData,
-      position: { x: 0, y: -500 },
-    },
+    // {
+    //   id: nanoid(),
+    //   type: "sentenceParse",
+    //   data: defaultParserNodeData,
+    //   position: { x: 0, y: -500 },
+    // },
     // {
     //   id: nanoid(),
     //   type: "sandhiSplit",
@@ -153,7 +132,7 @@ const useSansPlayStore = create<RFState>((set, get) => ({
   // Generic method for adding typed nodes
   addTypedNode: (
     nodeTypeKey: string,
-    { parentId, position }: { parentId?: string; position?: XYPosition },
+    { parentId, position, data }: TypedNodeParams,
   ) => {
     const config = nodeTypeConfigs[nodeTypeKey];
     if (!config) {
@@ -166,7 +145,7 @@ const useSansPlayStore = create<RFState>((set, get) => ({
     const newNode = {
       id: nanoid(),
       type: config.type,
-      data: config.defaultData, // No need to spread as this is already an object reference
+      data: { ...config.defaultData, ...data },
       position: position || { x: 0, y: 0 },
       parentId,
     };
@@ -208,25 +187,16 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       edges: updatedGraph.edges,
     });
   },
-  addWordTaggerNode: (params: { parentId?: string; position?: XYPosition }) => {
+  addWordTaggerNode: (params: TypedNodeParams) => {
     get().addTypedNode("wordTagger", params);
   },
-  addSandhiJoinerNode: (params: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => {
+  addSandhiJoinerNode: (params: TypedNodeParams) => {
     get().addTypedNode("joiner", params);
   },
-  addSandhiSplitterNode: (params: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => {
+  addSandhiSplitterNode: (params: TypedNodeParams) => {
     get().addTypedNode("splitter", params);
   },
-  addSansPlayParserNode: (params: {
-    parentId?: string;
-    position?: XYPosition;
-  }) => {
+  addSansPlayParserNode: (params: TypedNodeParams) => {
     get().addTypedNode("parser", params);
   },
   addChildNode: (parentNode: Node, position: XYPosition) => {

@@ -43,8 +43,8 @@ export type SansPlayJoinerData = {
 };
 
 export const defaultJoinerNodeData: SansPlayJoinerData = {
-  // text: "",
-  text: "tapaH, svADyAya, niratam",
+  text: "",
+  // text: "tapaH, svADyAya, niratam",
   schemeFrom: TransliterationScheme.IAST,
   schemeTo: TransliterationScheme.IAST,
 };

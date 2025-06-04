@@ -28,13 +28,13 @@ const customFormSchema = z.object({
 
 // Enhanced default values
 const customDefaultValues = {
-  url: "https://stotranidhi.com/kanakadhara-stotram-in-telugu/",
+  url: "",
   selectors: [".entry-title", ".entry-content p"],
   refetch: false,
   parentId: "",
   entityType: "STHOTRAM",
   linesToSkip: [
-    "^Read in తెలుగు / ಕನ್ನಡ / தமிழ் / देवनागरी / English \\(IAST\\)$",
+    "^Read in తెలుగు.*",
     "^\\(నిత్య పారాయణ గ్రంథము\\)$",
     "^\\(గమనిక:.*\\)$",
     "^\\[గమనిక:.*\\]$",
@@ -44,14 +44,17 @@ const customDefaultValues = {
     "^stōtranidhi →.*",
     "^स्तोत्रनिधि →.*",
     "^Notes & References:.*",
+    "^See details.*Click here to buy$",
     "^Click here to buy.*",
-    "^మరిన్ని.*చూడండి.$",
+    "^మరిన్ని.*చూడండి\.$",
+    "^इतर.*पश्यतु ।$",
+    "^See more.*for chanting\.$",
     "^మా తదుపరి ప్రచురణ  :.*",
     "^పైరసీ ప్రకటన :.*",
-    "^Chant other stotras in .*",
+    "^Chant other stotras in.*",
     "^Did you see any mistake/variation.*",
-    "^See more .* for chanting.$",
-    "^See more .* for chanting.$",
+    "^See more .* for chanting\.$",
+    "^See more .* for chanting\.$",
     "^इतर .* स्तोत्राणि पश्यतु ।$",
   ].join("\n"),
 };

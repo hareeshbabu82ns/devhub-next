@@ -24,7 +24,9 @@ import SansPlaySplitterNode from "./sans-play-splitter-node";
 import SansPlayJoinerNode from "./sans-play-joiner-node";
 import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
 import { BrainCircuitIcon, MergeIcon, SplitIcon, TagIcon } from "lucide-react";
-import DevTools from "@/components/graph/DevTools";
+import { useLanguageAtomValue } from "@/hooks/use-config";
+import { LANGUAGE_TRANS_SCHEME_MAP } from "@/types/sanscript";
+// import DevTools from "@/components/graph/DevTools";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -60,6 +62,9 @@ export default function SanscriptPlayGraph() {
     addSandhiJoinerNode,
     addWordTaggerNode,
   } = useStore(useShallow(selector));
+
+  const language = useLanguageAtomValue();
+  const schemeLanguage = LANGUAGE_TRANS_SCHEME_MAP[language];
 
   // Memoize node types to prevent unnecessary re-renders
   const nodeTypes = useMemo(
@@ -104,7 +109,11 @@ export default function SanscriptPlayGraph() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => addSansPlayParserNode({})}
+            onClick={() =>
+              addSansPlayParserNode({
+                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+              })
+            }
             title="Parser"
           >
             <BrainCircuitIcon />
@@ -112,7 +121,11 @@ export default function SanscriptPlayGraph() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => addSandhiSplitterNode({})}
+            onClick={() =>
+              addSandhiSplitterNode({
+                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+              })
+            }
             title="Splitter"
           >
             <SplitIcon />
@@ -120,7 +133,11 @@ export default function SanscriptPlayGraph() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => addSandhiJoinerNode({})}
+            onClick={() =>
+              addSandhiJoinerNode({
+                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+              })
+            }
             title="Joiner"
           >
             <MergeIcon />
@@ -128,7 +145,11 @@ export default function SanscriptPlayGraph() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => addWordTaggerNode({})}
+            onClick={() =>
+              addWordTaggerNode({
+                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+              })
+            }
             title="Word Tagger"
           >
             <TagIcon />

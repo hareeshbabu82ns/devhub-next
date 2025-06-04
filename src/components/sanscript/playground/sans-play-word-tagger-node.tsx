@@ -43,10 +43,10 @@ export type SansPlayWordTaggerData = {
 };
 
 export const defaultWordTaggerNodeData: SansPlayWordTaggerData = {
-  // text: "",
-  text: "వాగ్విదాం",
-  schemeFrom: TransliterationScheme.TELUGU,
-  schemeTo: TransliterationScheme.TELUGU,
+  text: "",
+  // text: "వాగ్విదాం",
+  schemeFrom: TransliterationScheme.IAST,
+  schemeTo: TransliterationScheme.IAST,
 };
 
 const selector = (state: RFState) => ({
