@@ -98,6 +98,8 @@ interface SearchDictParams {
   language: string;
   limit: number;
   offset: number;
+  sortBy?: "wordIndex" | "phonetic" | "createdAt" | "updatedAt" | "relevance";
+  sortOrder?: "asc" | "desc";
 }
 
 export const searchDictionary = async ({
@@ -107,6 +109,8 @@ export const searchDictionary = async ({
   language,
   limit = 10,
   offset = 0,
+  sortBy = "wordIndex",
+  sortOrder = "asc",
 }: SearchDictParams) => {
   // console.log("searchDictionary", {
   //   dictFrom,
@@ -115,16 +119,44 @@ export const searchDictionary = async ({
   //   language,
   //   limit,
   //   offset,
+  //   sortBy,
+  //   sortOrder,
   // });
+
   if (dictFrom.length === 0 && queryText.length === 0) {
     return { results: [], total: 0 };
   }
 
+  // Optimize sorting to use appropriate indexes
+  const getSortConfig = (): Prisma.DictionaryWordOrderByWithRelationInput => {
+    const baseSort: Prisma.SortOrder =
+      sortOrder === "desc" ? Prisma.SortOrder.desc : Prisma.SortOrder.asc;
+
+    switch (sortBy) {
+      case "wordIndex":
+        return { wordIndex: baseSort };
+      case "phonetic":
+        return { phonetic: baseSort };
+      case "createdAt":
+        return { createdAt: baseSort };
+      case "updatedAt":
+        return { updatedAt: baseSort };
+      case "relevance":
+        // For relevance sorting with regex, fallback to wordIndex
+        return { wordIndex: Prisma.SortOrder.asc };
+      default:
+        return { wordIndex: Prisma.SortOrder.asc };
+    }
+  };
+
   if (queryOperation !== "FULL_TEXT_SEARCH") {
     const where: Prisma.DictionaryWordFindManyArgs["where"] = {};
+
+    // Build optimized where clause to use indexes efficiently
     if (dictFrom.length > 0) {
       where.origin = { in: dictFrom };
     }
+
     if (queryText.length > 0 && queryOperation === "REGEX") {
       where.OR = [
         {
@@ -132,38 +164,95 @@ export const searchDictionary = async ({
             some: { value: { contains: queryText, mode: "insensitive" } },
           },
         },
+        {
+          description: {
+            some: { value: { contains: queryText, mode: "insensitive" } },
+          },
+        },
+        {
+          phonetic: { contains: queryText, mode: "insensitive" },
+        },
       ];
     }
-    const count = await db.dictionaryWord.count({
-      where,
-    });
+
+    const orderBy = getSortConfig();
+
+    // Use optimized count query
+    const count = await db.dictionaryWord.count({ where });
+
+    // Use optimized find query with proper ordering to leverage indexes
     const res = await db.dictionaryWord.findMany({
       where,
       take: limit,
       skip: offset,
-      orderBy: { wordIndex: "asc" },
+      orderBy,
     });
 
-    const results: DictionaryItem[] = (res as any).map((i: any) =>
+    const results: DictionaryItem[] = res.map((i: any) =>
       mapDbToDictionary(i, language),
     );
+
     return { results, total: count };
   } else if (queryOperation === "FULL_TEXT_SEARCH") {
-    const filter: any = { $text: { $search: queryText } };
+    // Build optimized MongoDB aggregation pipeline for full-text search
+    const matchStage: any = { $text: { $search: queryText } };
+
     if (dictFrom.length > 0) {
-      filter.origin = { $in: dictFrom };
+      matchStage.origin = { $in: dictFrom };
     }
+
+    // Build sort stage based on sortBy parameter
+    let sortStage: any;
+    if (sortBy === "relevance") {
+      // Sort by text search score for relevance
+      sortStage = { $sort: { score: { $meta: "textScore" }, wordIndex: 1 } };
+    } else {
+      const sortField =
+        sortBy === "wordIndex"
+          ? "wordIndex"
+          : sortBy === "phonetic"
+            ? "phonetic"
+            : sortBy === "createdAt"
+              ? "createdAt"
+              : sortBy === "updatedAt"
+                ? "updatedAt"
+                : "wordIndex";
+
+      sortStage = { $sort: { [sortField]: sortOrder === "desc" ? -1 : 1 } };
+    }
+
+    // Optimized count aggregation
+    const countPipeline = [{ $match: matchStage }, { $count: "count" }];
+
     const countRes = await db.dictionaryWord.aggregateRaw({
-      pipeline: [{ $match: filter }, { $count: "count" }],
+      pipeline: countPipeline,
     });
-    const res = await db.dictionaryWord.findRaw({
-      filter,
-      options: { limit, skip: offset },
+
+    // Optimized search aggregation with pagination and sorting
+    const searchPipeline = [
+      { $match: matchStage },
+      ...(sortBy === "relevance"
+        ? [{ $addFields: { score: { $meta: "textScore" } } }]
+        : []),
+      sortStage,
+      { $skip: offset },
+      { $limit: limit },
+    ];
+
+    const res = await db.dictionaryWord.aggregateRaw({
+      pipeline: searchPipeline,
     });
 
     const results: DictionaryItem[] = (res as any).map((i: any) =>
       mapDbToDictionary(i, language),
     );
-    return { results, total: ((countRes[0] as any)?.count as number) || 0 };
+
+    return {
+      results,
+      total: ((countRes[0] as any)?.count as number) || 0,
+    };
   }
+
+  // Fallback empty result
+  return { results: [], total: 0 };
 };

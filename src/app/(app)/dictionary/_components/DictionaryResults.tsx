@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useReadLocalStorage } from "usehooks-ts";
+import { useReadLocalStorageHydrationSafe } from "@/hooks/use-hydration-safe-storage";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -39,7 +39,8 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   const localOrigins =
-    useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
+    useReadLocalStorageHydrationSafe<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) ||
+    [];
 
   const originParam = (
     searchParams.get("origin")?.split(",") ??
@@ -48,6 +49,8 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   ).filter((o) => o.trim().length > 0);
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
+  const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
+  const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
 
   const language = useLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
@@ -73,6 +76,8 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
       originParam,
       searchParam,
       ftsParam,
+      sortByParam,
+      sortOrderParam,
       language,
       limit,
       offset,
@@ -82,6 +87,8 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
         dictFrom: originParam,
         queryText: searchParam,
         queryOperation: ftsParam === "x" ? "FULL_TEXT_SEARCH" : "REGEX",
+        sortBy: sortByParam as any,
+        sortOrder: sortOrderParam as any,
         language,
         limit,
         offset,

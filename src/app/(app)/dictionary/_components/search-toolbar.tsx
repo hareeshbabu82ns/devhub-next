@@ -4,6 +4,8 @@ import {
   Settings2Icon as ExtraParamsIcon,
   BookPlusIcon as AddIcon,
   SearchIcon,
+  ArrowDownAZIcon,
+  ArrowDownUpIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -15,6 +17,17 @@ import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import {
+  DICTIONARY_SORT_OPTIONS,
+  DICTIONARY_SORT_ORDER_OPTIONS,
+} from "../utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -28,6 +41,8 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
 
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
+  const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
+  const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
 
   const onSearchChange = (value: string) => {
     updateSearchParams({ search: value, offset: "0" });
@@ -71,17 +86,64 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
         </div>
       </div>
       <CollapsibleContent>
-        <div className="border p-4 grid grid-cols-2 gap-2">
+        <div className="border p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <DictionariesMultiSelectChips />
+
           <div className="flex items-center space-x-2">
             <Switch
               id="fts"
               checked={ftsParam === "x"}
               onCheckedChange={(checked) => {
-                updateSearchParams({ fts: checked ? "x" : "" });
+                updateSearchParams({ fts: checked ? "x" : "", offset: "0" });
               }}
             />
             <Label htmlFor="fts">Full Text Search</Label>
+          </div>
+
+          <div className="flex flex-row gap-2 items-center">
+            <Label htmlFor="sortBy">
+              <ArrowDownAZIcon className="inline size-5" />
+            </Label>
+            <Select
+              value={sortByParam}
+              onValueChange={(value: string) => {
+                updateSearchParams({ sortBy: value, offset: "0" });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select sort field..." />
+              </SelectTrigger>
+              <SelectContent>
+                {DICTIONARY_SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-row gap-2 items-center">
+            <Label htmlFor="sortOrder">
+              <ArrowDownUpIcon className="inline size-5" />
+            </Label>
+            <Select
+              value={sortOrderParam}
+              onValueChange={(value: string) => {
+                updateSearchParams({ sortOrder: value, offset: "0" });
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select sort order..." />
+              </SelectTrigger>
+              <SelectContent>
+                {DICTIONARY_SORT_ORDER_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </CollapsibleContent>
