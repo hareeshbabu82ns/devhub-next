@@ -4,12 +4,52 @@ import { nanoid } from "nanoid/non-secure";
 import {
   connectOrphanNodesToParent,
   connectToParent,
+  consolidateParseResults,
   createEdge,
   createNode,
   GraphData,
   mergeGraphData,
+  processParseResult,
 } from "./utils";
-import { LanguageTag } from "@/types/sanscript";
+import {
+  LanguageTag,
+  SentenceParseAnalysis,
+  SentenceParseResult,
+} from "@/types/sanscript";
+
+function createSandhiParseResults(
+  splitResults: string[][],
+): SentenceParseResult[] {
+  const res: SentenceParseResult = {
+    analysis: [],
+  };
+  const analysis = splitResults.map((splitResult) => {
+    const analysis: SentenceParseAnalysis = {
+      graph: [],
+    };
+    splitResult.forEach((word, wordIndex) => {
+      analysis.graph.push({
+        node: {
+          pada: word,
+          root: "",
+          tags: [],
+        },
+        predecessor:
+          wordIndex === 0
+            ? undefined
+            : {
+                pada: splitResult[wordIndex - 1],
+                root: "",
+                tags: [],
+              },
+        relation: wordIndex.toString(),
+      });
+    });
+    return analysis;
+  });
+  res.analysis = analysis;
+  return [res];
+}
 
 /**
  * Transforms sandhi split results into a graph visualization.
@@ -23,6 +63,7 @@ import { LanguageTag } from "@/types/sanscript";
 export function transformSandhiSplitsToGraphData(
   parentId: string,
   splitResults: string[][],
+  consolidatedGraph = true,
 ): GraphData {
   // Initialize empty graph data structure
   const graphData: GraphData = {
@@ -33,13 +74,25 @@ export function transformSandhiSplitsToGraphData(
   // Generate a unique ID for this split group
   const splitId = nanoid();
 
-  // Process each split result and collect their graph representations
-  const graphDataList = splitResults.map((splitResult, splitIndex) =>
-    processSplitResult(splitResult, splitIndex, splitId, parentId),
-  );
+  if (consolidatedGraph) {
+    const consolidatedResults = [
+      consolidateParseResults(createSandhiParseResults(splitResults)),
+    ];
+    const graphDataList = consolidatedResults.map((parseResult, parseIndex) =>
+      processParseResult(parseResult, parseIndex, splitId, parentId),
+    );
 
-  // Merge all graph data into a single graph structure
-  mergeGraphData(graphData, graphDataList);
+    // Merge all graph data into a single graph structure
+    mergeGraphData(graphData, graphDataList);
+  } else {
+    // Process each split result and collect their graph representations
+    const graphDataList = splitResults.map((splitResult, splitIndex) =>
+      processSplitResult(splitResult, splitIndex, splitId, parentId),
+    );
+
+    // Merge all graph data into a single graph structure
+    mergeGraphData(graphData, graphDataList);
+  }
 
   // If a parent ID is provided, ensure all root nodes are connected to it
   if (parentId) {

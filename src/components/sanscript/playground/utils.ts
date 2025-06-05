@@ -181,6 +181,7 @@ function applyCalculatedPositions(
 export function transformSentenceParseToGraphData(
   parentId: string,
   parseResults: SentenceParseResult[],
+  consolidatedGraph = true,
 ): GraphData {
   // Initialize empty graph data structure
   const graphData: GraphData = {
@@ -188,11 +189,20 @@ export function transformSentenceParseToGraphData(
     edges: [],
   };
 
+  // console.log("Parse Results:", parseResults);
+  const consolidatedResults = consolidatedGraph
+    ? [consolidateParseResults(parseResults)]
+    : parseResults;
+  // console.log("Parse Results (consolidated):", consolidatedResults);
+
   // Generate a unique ID for this parse group
   const parseId = nanoid();
 
   // Process each parse result and collect their graph representations
-  const graphDataList = parseResults.map((parseResult, parseIndex) =>
+  // const graphDataList = parseResults.map((parseResult, parseIndex) =>
+  //   processParseResult(parseResult, parseIndex, parseId, parentId),
+  // );
+  const graphDataList = consolidatedResults.map((parseResult, parseIndex) =>
     processParseResult(parseResult, parseIndex, parseId, parentId),
   );
 
@@ -216,7 +226,7 @@ export function transformSentenceParseToGraphData(
  * @param parentId - Optional parent ID to connect to
  * @returns GraphData for this parse result
  */
-function processParseResult(
+export function processParseResult(
   parseResult: SentenceParseResult,
   parseIndex: number,
   parseId: string,
@@ -634,4 +644,182 @@ export function createEdge({
     type: "sansPlay",
     markerEnd: { type: MarkerType.ArrowClosed },
   } satisfies Edge;
+}
+
+/**
+ * Consolidates multiple SentenceParseResults into a single unique tree structure.
+ * Compares each graph item across all analyses and creates a unified representation
+ * preserving unique relationships while eliminating duplicates.
+ *
+ * @param parseResults - Array of parse results to consolidate
+ * @returns A single SentenceParseResult containing a unified tree structure
+ */
+export function consolidateParseResults(
+  parseResults: SentenceParseResult[],
+): SentenceParseResult {
+  // If no results or only one result, return as-is
+  if (!parseResults || parseResults.length === 0) {
+    return { analysis: [] };
+  }
+
+  if (parseResults.length === 1) {
+    return parseResults[0];
+  }
+
+  // Initialize the consolidated result
+  const consolidatedResult: SentenceParseResult = {
+    analysis: [],
+  };
+
+  // Create a map to track unique node combinations based on their relationships
+  const uniqueRelationMap = new Map<string, SentenceParseGraph>(); // Process each parse result
+  parseResults.forEach((parseResult) => {
+    // Skip results without analysis
+    if (!parseResult.analysis || parseResult.analysis.length === 0) {
+      return;
+    }
+
+    // Process each analysis in the result
+    parseResult.analysis.forEach((analysis) => {
+      // Skip analyses without graph data
+      if (!analysis.graph || analysis.graph.length === 0) {
+        return;
+      }
+
+      // Process each graph item
+      analysis.graph.forEach((graphItem) => {
+        // Create a unique key based on node pada, predecessor pada, and relation
+        // Also include node tags to distinguish different grammatical roles
+        const nodePada = graphItem.node.pada;
+        const nodeTags = graphItem.node.tags
+          ? graphItem.node.tags.join("_")
+          : "";
+        const predecessorPada = graphItem.predecessor
+          ? graphItem.predecessor.pada
+          : "ROOT";
+        const relation = graphItem.relation || "NONE";
+
+        // Create a unique relationship key that focuses on the grammatical relationship
+        const relationshipKey = `${nodePada}|${nodeTags}|${predecessorPada}|${relation}`;
+
+        // Check if this is a more comprehensive analysis of an existing relationship
+        if (
+          !uniqueRelationMap.has(relationshipKey) ||
+          // If the existing item has less tag information, replace it with this more detailed one
+          (uniqueRelationMap.get(relationshipKey)?.node.tags?.length || 0) <
+            (graphItem.node.tags?.length || 0)
+        ) {
+          uniqueRelationMap.set(relationshipKey, graphItem);
+        }
+      });
+    });
+  });
+
+  // Convert the unique relations back to a graph structure
+  const uniqueGraphItems = Array.from(uniqueRelationMap.values());
+
+  // Sort graph items to ensure predecessors come before their children
+  // This creates a more logical tree structure
+  const sortedGraphItems = sortGraphItemsHierarchically(uniqueGraphItems);
+
+  // Add the consolidated graph to the result
+  consolidatedResult.analysis = [{ graph: sortedGraphItems }];
+
+  return consolidatedResult;
+}
+
+/**
+ * Sorts graph items hierarchically to ensure a proper tree structure.
+ * Puts predecessors before their children.
+ *
+ * @param graphItems - Unsorted graph items
+ * @returns Sorted array of graph items
+ */
+function sortGraphItemsHierarchically(
+  graphItems: SentenceParseGraph[],
+): SentenceParseGraph[] {
+  // Create a map of nodes by their pada text for quick lookup
+  const nodeMap = new Map<string, SentenceParseGraph>();
+
+  // Track node relationships: pada -> predecessor pada with relation
+  const nodeRelationships = new Map<
+    string,
+    { predecessorPada: string; relation: string }[]
+  >();
+
+  // Track nodes without predecessors (root nodes)
+  const rootNodes: SentenceParseGraph[] = [];
+
+  // First pass: Identify root nodes and build node maps
+  graphItems.forEach((item) => {
+    const nodePada = item.node.pada;
+    nodeMap.set(nodePada, item);
+
+    // Track relationships for each node
+    if (item.predecessor) {
+      const predecessorPada = item.predecessor.pada;
+      const relation = item.relation || "NONE";
+
+      if (!nodeRelationships.has(nodePada)) {
+        nodeRelationships.set(nodePada, []);
+      }
+
+      nodeRelationships.get(nodePada)?.push({
+        predecessorPada,
+        relation,
+      });
+    } else {
+      rootNodes.push(item);
+    }
+  });
+
+  // Result array for sorted items
+  const sortedItems: SentenceParseGraph[] = [];
+
+  // Set to track visited nodes by pada
+  const visited = new Set<string>();
+
+  // Recursive function to traverse the graph depth-first
+  const visitNode = (item: SentenceParseGraph) => {
+    const nodePada = item.node.pada;
+
+    // Skip if already visited
+    if (visited.has(nodePada)) {
+      return;
+    }
+
+    // If this node has a predecessor, visit the predecessor first
+    if (item.predecessor) {
+      const predecessorPada = item.predecessor.pada;
+      const predecessorItem = nodeMap.get(predecessorPada);
+      if (predecessorItem && !visited.has(predecessorPada)) {
+        visitNode(predecessorItem);
+      }
+    }
+
+    // Mark as visited and add to result
+    visited.add(nodePada);
+    sortedItems.push(item);
+
+    // Find and visit all children of this node
+    graphItems.forEach((childItem) => {
+      if (childItem.predecessor && childItem.predecessor.pada === nodePada) {
+        if (!visited.has(childItem.node.pada)) {
+          visitNode(childItem);
+        }
+      }
+    });
+  };
+
+  // Start traversal from root nodes
+  rootNodes.forEach(visitNode);
+
+  // Handle any nodes not visited (might be in a cycle or orphaned)
+  graphItems.forEach((item) => {
+    if (!visited.has(item.node.pada)) {
+      visitNode(item);
+    }
+  });
+
+  return sortedItems;
 }
