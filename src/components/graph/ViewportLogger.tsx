@@ -9,7 +9,7 @@ export default function ViewportLogger() {
   );
 
   return (
-    <Panel position="bottom-left" className="pl-10">
+    <Panel position="bottom-left" className="pl-15 text-muted-foreground">
       {viewport}
     </Panel>
   );

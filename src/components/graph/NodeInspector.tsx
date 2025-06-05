@@ -66,7 +66,7 @@ function NodeInfo({
 
   return (
     <div
-      className="react-flow__devtools-nodeinfo"
+      className="react-flow__devtools-nodeinfo text-muted-foreground"
       style={{
         position: "absolute",
         transform: `translate(${absPosition.x}px, ${absPosition.y + height}px)`,

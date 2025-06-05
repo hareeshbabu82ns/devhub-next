@@ -26,7 +26,7 @@ import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
 import { BrainCircuitIcon, MergeIcon, SplitIcon, TagIcon } from "lucide-react";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import { LANGUAGE_TRANS_SCHEME_MAP } from "@/types/sanscript";
-// import DevTools from "@/components/graph/DevTools";
+import DevTools from "@/components/graph/DevTools";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -88,6 +88,59 @@ export default function SanscriptPlayGraph() {
     [],
   );
 
+  const flowPanel = (
+    <Panel position="top-left" className="flex items-center space-x-2">
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() =>
+          addSansPlayParserNode({
+            data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+          })
+        }
+        title="Parser"
+      >
+        <BrainCircuitIcon />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() =>
+          addSandhiSplitterNode({
+            data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+          })
+        }
+        title="Splitter"
+      >
+        <SplitIcon />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() =>
+          addSandhiJoinerNode({
+            data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+          })
+        }
+        title="Joiner"
+      >
+        <MergeIcon />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() =>
+          addWordTaggerNode({
+            data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
+          })
+        }
+        title="Word Tagger"
+      >
+        <TagIcon />
+      </Button>
+    </Panel>
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -102,61 +155,15 @@ export default function SanscriptPlayGraph() {
       connectionLineStyle={connectionLineStyle}
       defaultEdgeOptions={defaultEdgeOptions}
       connectionLineType={ConnectionLineType.SmoothStep}
+      maxZoom={4}
       fitView
     >
-      <Panel position="top-left">
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              addSansPlayParserNode({
-                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
-              })
-            }
-            title="Parser"
-          >
-            <BrainCircuitIcon />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              addSandhiSplitterNode({
-                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
-              })
-            }
-            title="Splitter"
-          >
-            <SplitIcon />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              addSandhiJoinerNode({
-                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
-              })
-            }
-            title="Joiner"
-          >
-            <MergeIcon />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() =>
-              addWordTaggerNode({
-                data: { schemeFrom: schemeLanguage, schemeTo: schemeLanguage },
-              })
-            }
-            title="Word Tagger"
-          >
-            <TagIcon />
-          </Button>
-        </div>
-      </Panel>
-      {/* <DevTools showChangeLogger={false} /> */}
+      {flowPanel}
+      <DevTools
+        showChangeLogger={false}
+        showNodeInspector={false}
+        showViewportLogger={false}
+      />
       <Controls
         style={{ backgroundColor: "white", color: "black" }}
         showInteractive={false}

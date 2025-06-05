@@ -14,6 +14,7 @@ import ViewportLogger from "./ViewportLogger";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 import { getLayoutedElements } from "../sanscript/playground/utils";
+import { LogsIcon, MaximizeIcon, PlusIcon, WorkflowIcon } from "lucide-react";
 
 export default function DevTools({
   showChangeLogger = true,
@@ -55,21 +56,21 @@ export default function DevTools({
           active={nodeInspectorActive}
           title="Toggle Node Inspector"
         >
-          Node Inspector
+          <WorkflowIcon className="size-4" />
         </DevToolButton>
         <DevToolButton
           setActive={setChangeLoggerActive}
           active={changeLoggerActive}
-          title="Toggle Change Logger"
+          title="Change Logger"
         >
-          Change Logger
+          <LogsIcon className="size-4" />
         </DevToolButton>
         <DevToolButton
           setActive={setViewportLoggerActive}
           active={viewportLoggerActive}
-          title="Toggle Viewport Logger"
+          title="Viewport Logger"
         >
-          Viewport Logger
+          <PlusIcon className="size-4" />
         </DevToolButton>
         <DevToolButton
           setActive={() => {
@@ -78,7 +79,7 @@ export default function DevTools({
           active={false}
           title="ReLayout"
         >
-          ReLayout
+          <MaximizeIcon className="size-4" />
         </DevToolButton>
       </Panel>
       {changeLoggerActive && <ChangeLogger />}
@@ -102,8 +103,9 @@ function DevToolButton({
     <Button
       variant="outline"
       size="sm"
+      type="button"
       onClick={() => setActive((a) => !a)}
-      className={cn(active ? "bg-accent/90" : "")}
+      className={cn(active ? "!border-secondary" : "")}
       {...rest}
     >
       {children}
