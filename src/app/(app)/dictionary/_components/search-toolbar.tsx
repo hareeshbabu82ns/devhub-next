@@ -6,6 +6,7 @@ import {
   SearchIcon,
   ArrowDownAZIcon,
   ArrowDownUpIcon,
+  DownloadIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -17,6 +18,11 @@ import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import { useReadLocalStorageHydrationSafe } from "@/hooks/use-hydration-safe-storage";
+import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
+import { useMutation } from "@tanstack/react-query";
+import { downloadDictionary } from "../download-actions";
+import { toast } from "sonner";
 import {
   DICTIONARY_SORT_OPTIONS,
   DICTIONARY_SORT_ORDER_OPTIONS,
@@ -28,6 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -39,6 +51,16 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
 
   const language = useLanguageAtomValue();
 
+  const localOrigins =
+    useReadLocalStorageHydrationSafe<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) ||
+    [];
+
+  const originParam = (
+    searchParams.get("origin")?.split(",") ??
+    localOrigins ??
+    []
+  ).filter((o) => o.trim().length > 0);
+
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
   const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
@@ -49,6 +71,45 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   };
 
   const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
+
+  // Download mutation
+  const downloadMutation = useMutation({
+    mutationFn: downloadDictionary,
+    onSuccess: (data) => {
+      if (data.status === "success") {
+        // Create download URL and trigger download
+        const downloadUrl = `/api/dictionary/download?filepath=${encodeURIComponent(data.data.filepath)}&filename=${encodeURIComponent(data.data.filename)}`;
+
+        // Create a temporary link and trigger download
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = data.data.filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success("Dictionary export downloaded successfully!");
+      } else {
+        toast.error(data.error);
+      }
+    },
+    onError: (error: Error) => {
+      console.error("Download error:", error);
+      toast.error("Failed to download dictionary export");
+    },
+  });
+
+  const handleDownload = (format: "txt" | "csv" | "json" | "all" = "all") => {
+    downloadMutation.mutate({
+      dictFrom: originParam,
+      queryText: searchParam,
+      queryOperation: ftsParam === "x" ? "FULL_TEXT_SEARCH" : "REGEX",
+      sortBy: sortByParam as any,
+      sortOrder: sortOrderParam as any,
+      language,
+      format,
+    });
+  };
 
   return (
     <Collapsible className="flex flex-col">
@@ -73,7 +134,46 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
           </Button>
         </CollapsibleTrigger>
 
-        <div>
+        <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                disabled={downloadMutation.isPending}
+                variant="outline"
+                size="icon"
+                title="Download dictionary export"
+              >
+                <DownloadIcon className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => handleDownload("all")}
+                disabled={downloadMutation.isPending}
+              >
+                All Formats (ZIP)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownload("txt")}
+                disabled={downloadMutation.isPending}
+              >
+                Text Format
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownload("csv")}
+                disabled={downloadMutation.isPending}
+              >
+                CSV Format
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDownload("json")}
+                disabled={downloadMutation.isPending}
+              >
+                JSON Format
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           {!asBrowse && (
             <Button
               variant="outline"
