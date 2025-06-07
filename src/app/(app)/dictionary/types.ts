@@ -10,6 +10,7 @@ export type DictionaryItem = {
   descriptionData: LanguageValueInput[];
   attributes: AttributeValueInput[];
   phonetic: string;
+  sourceData?: Record<string, any>;
 };
 
 export type DictionaryItemResults = {

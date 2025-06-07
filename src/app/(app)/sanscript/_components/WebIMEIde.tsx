@@ -48,6 +48,13 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
     const [lang, setLang] = useState<string>(language || "SAN");
     const [infoOpen, setInfoOpen] = useState(false);
 
+    // Sync internal language state with prop changes (important for hydration)
+    useEffect(() => {
+      if (language && language !== lang) {
+        setLang(language);
+      }
+    }, [language, lang]);
+
     const valuesCallbackIME = (
       text: string,
       cb: (result: Record<string, string>[]) => void,

@@ -88,11 +88,8 @@ export const DICTIONARY_ORIGINS = [
 ] as const;
 
 export const DICTIONARY_SORT_OPTIONS = [
+  { label: "Word (A-Z)", value: "word.value" },
   { label: "Word Index (A-Z)", value: "wordIndex" },
-  { label: "Phonetic (A-Z)", value: "phonetic" },
-  { label: "Newest First", value: "createdAt" },
-  { label: "Recently Updated", value: "updatedAt" },
-  { label: "Relevance", value: "relevance" },
 ] as Option[];
 
 export const DICTIONARY_SORT_ORDER_OPTIONS = [

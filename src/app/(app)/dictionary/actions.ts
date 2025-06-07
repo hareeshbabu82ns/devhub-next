@@ -98,7 +98,13 @@ interface SearchDictParams {
   language: string;
   limit: number;
   offset: number;
-  sortBy?: "wordIndex" | "phonetic" | "createdAt" | "updatedAt" | "relevance";
+  sortBy?:
+    | "word.value"
+    | "wordIndex"
+    | "phonetic"
+    | "createdAt"
+    | "updatedAt"
+    | "relevance";
   sortOrder?: "asc" | "desc";
 }
 
@@ -109,7 +115,7 @@ export const searchDictionary = async ({
   language,
   limit = 10,
   offset = 0,
-  sortBy = "wordIndex",
+  sortBy = "word.value",
   sortOrder = "asc",
 }: SearchDictParams) => {
   // console.log("searchDictionary", {
@@ -133,17 +139,10 @@ export const searchDictionary = async ({
       sortOrder === "desc" ? Prisma.SortOrder.desc : Prisma.SortOrder.asc;
 
     switch (sortBy) {
+      case "word.value":
+        return { phonetic: baseSort };
       case "wordIndex":
         return { wordIndex: baseSort };
-      case "phonetic":
-        return { phonetic: baseSort };
-      case "createdAt":
-        return { createdAt: baseSort };
-      case "updatedAt":
-        return { updatedAt: baseSort };
-      case "relevance":
-        // For relevance sorting with regex, fallback to wordIndex
-        return { wordIndex: Prisma.SortOrder.asc };
       default:
         return { wordIndex: Prisma.SortOrder.asc };
     }
@@ -158,21 +157,9 @@ export const searchDictionary = async ({
     }
 
     if (queryText.length > 0 && queryOperation === "REGEX") {
-      where.OR = [
-        {
-          word: {
-            some: { value: { contains: queryText, mode: "insensitive" } },
-          },
-        },
-        {
-          description: {
-            some: { value: { contains: queryText, mode: "insensitive" } },
-          },
-        },
-        {
-          phonetic: { contains: queryText, mode: "insensitive" },
-        },
-      ];
+      where.word = {
+        some: { value: { contains: queryText, mode: "insensitive" } },
+      };
     }
 
     const orderBy = getSortConfig();
@@ -186,6 +173,15 @@ export const searchDictionary = async ({
       take: limit,
       skip: offset,
       orderBy,
+      select: {
+        id: true,
+        origin: true,
+        wordIndex: true,
+        word: true,
+        description: true,
+        phonetic: true,
+        sourceData: false,
+      },
     });
 
     const results: DictionaryItem[] = res.map((i: any) =>

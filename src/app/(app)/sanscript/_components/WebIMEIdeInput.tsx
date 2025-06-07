@@ -47,6 +47,13 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     const textSize = useTextSizeAtomValue();
     const [lang, setLang] = useState<string>(language || "SAN");
 
+    // Sync internal language state with prop changes (important for hydration)
+    useEffect(() => {
+      if (language && language !== lang) {
+        setLang(language);
+      }
+    }, [language, lang]);
+
     const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!onTextChange) return;
       const value = event.target ? event.target.value : "";

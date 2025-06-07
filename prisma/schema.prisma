@@ -179,26 +179,21 @@ model DictionaryWord {
   description LanguageValueType[]
   attributes  AttributeValueType[]
   phonetic    String
+  sourceData  Json?                @db.Json
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
   @@unique([wordIndex, origin])
   // Optimized indexes for search operations
   @@index([origin, wordIndex(sort: Asc)], map: "origin_wordIndex_asc_idx")
-  @@index([origin, phonetic], map: "origin_phonetic_idx")
-  @@index([phonetic], map: "phonetic_idx")
+  @@index([origin, wordIndex(sort: Desc)], map: "origin_wordIndex_desc_idx")
+  @@index([origin, word], map: "origin_word_idx")
   @@index([wordIndex(sort: Asc)], map: "wordIndex_asc_idx")
   @@index([wordIndex(sort: Desc)], map: "wordIndex_desc_idx")
-  @@index([createdAt(sort: Desc)], map: "createdAt_desc_idx")
-  @@index([createdAt(sort: Asc)], map: "createdAt_asc_idx")
-  @@index([updatedAt(sort: Desc)], map: "updatedAt_desc_idx")
-  @@index([updatedAt(sort: Asc)], map: "updatedAt_asc_idx")
-  @@index([origin, createdAt(sort: Desc)], map: "origin_createdAt_desc_idx")
-  @@index([origin, updatedAt(sort: Desc)], map: "origin_updatedAt_desc_idx")
   // Combined indexes for efficient filtering and sorting
   @@index([origin, wordIndex(sort: Asc), phonetic], map: "origin_wordIndex_asc_phonetic_idx")
   @@index([origin, wordIndex(sort: Desc), phonetic], map: "origin_wordIndex_desc_phonetic_idx")
-  @@fulltext([word, description, phonetic])
+  @@fulltext([phonetic])
   @@map("DictWords")
 }
 
