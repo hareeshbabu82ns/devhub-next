@@ -4,6 +4,7 @@ import { DictionaryItem } from "./types";
 export const DICTIONARY_ORIGINS_DDLB = [
   { label: "Dhatu Pata", value: "DHATU_PATA" },
   { label: "English to Telugu", value: "ENG2TEL" },
+  { label: "English to English", value: "ENG2ENG" },
 
   { label: "Abhidhānaratnamālā of Halāyudha San-San", value: "ARMH" },
   { label: "Vacaspatyam San-San", value: "VCP" },
@@ -64,6 +65,7 @@ export const DICTIONARY_ORIGINS = [
   "CAE",
   "DHATU_PATA",
   "ENG2TEL",
+  "ENG2ENG",
   "GST",
   "IEG",
   "INM",
