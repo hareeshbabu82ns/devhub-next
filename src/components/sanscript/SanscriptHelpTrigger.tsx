@@ -1,7 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { DialogProps } from "@radix-ui/react-dialog";
 import SanscriptHelp from "./SanscriptHelp";
 import { InfoIcon } from "lucide-react";
@@ -10,10 +15,10 @@ interface SanscriptHelpTriggerProps extends DialogProps {
   language: string;
 }
 
-export default function SanscriptHelpTrigger( {
+export default function SanscriptHelpTrigger({
   language,
   ...rest
-}: SanscriptHelpTriggerProps ) {
+}: SanscriptHelpTriggerProps) {
   return (
     <Dialog {...rest}>
       <DialogTrigger asChild>
@@ -22,6 +27,7 @@ export default function SanscriptHelpTrigger( {
           type="button"
           size="icon"
           className="text-muted-foreground"
+          title="Key Helper (CTRL + I)"
         >
           <InfoIcon className="size-4" />
         </Button>

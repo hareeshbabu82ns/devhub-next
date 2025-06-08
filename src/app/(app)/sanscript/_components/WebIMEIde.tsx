@@ -77,45 +77,6 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
       if (e.ctrlKey && e.key === "i") {
         setInfoOpen(true);
       }
-      // const target = e.target as HTMLTextAreaElement;
-      // if (target.selectionStart !== target.selectionEnd) return;
-      // const cursorPos = target.selectionStart;
-
-      // if (e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
-      //   e.preventDefault();
-
-      //   // get current word
-      //   const {
-      //     word: wordAtCursor,
-      //     start,
-      //     end,
-      //   } = getWordAtCursor(target.value, cursorPos);
-
-      //   const transOut =
-      //     e.key === "ArrowUp"
-      //       ? Sanscript.t(
-      //           wordAtCursor,
-      //           "itrans_dravidian",
-      //           LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme
-      //         )
-      //       : Sanscript.t(
-      //           wordAtCursor,
-      //           LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
-      //           "itrans_dravidian"
-      //         );
-
-      //   if (wordAtCursor.trim().length > 0 && wordAtCursor !== transOut) {
-      //     // console.log(`new range: (${start}, ${end})`, wordAtCursor, transOut);
-
-      //     // replace word at cursor with transliteration
-      //     replaceWordAtCursor({
-      //       textArea: target,
-      //       word: transOut,
-      //       start: start,
-      //       end: end,
-      //     });
-      //   }
-      // }
     };
 
     const textRef = useRef<HTMLTextAreaElement>(null);
@@ -125,7 +86,6 @@ const WebIMEIde = React.forwardRef<HTMLTextAreaElement, WebIMEIdeProps>(
       const currentRef = textRef.current;
 
       const ime = new WebIME({
-        // values: debouncedValues,
         values: valuesCallbackIME,
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",

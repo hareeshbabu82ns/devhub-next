@@ -21,14 +21,29 @@ import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 export interface WebIMEIdeProps extends React.ComponentProps<"input"> {
   containerClassName?: string;
   label?: string;
+  /** Language for input transliteration. Use "NONE" to disable transliteration and show text suggestions. */
   language?: string;
   showSearchIcon?: boolean;
   withLanguageSelector?: boolean;
   showHelpIcon?: boolean;
+  /** Target transliteration scheme for output */
   valueAs?: string;
+  /** Callback when text changes, includes the processed text and selected language */
   onTextChange?: (value: string, language: string) => void;
 }
 
+/**
+ * WebIMEIdeInput - Enhanced input component with transliteration support
+ *
+ * Features:
+ * - Supports multiple transliteration schemes (Sanskrit, Telugu, etc.)
+ * - "None" option for no transliteration with helpful text suggestions
+ * - Popup suggestions for common Sanskrit/religious terms
+ * - Language selector dropdown
+ * - Help icon for transliteration guidance
+ * - Smart onTextChange behavior: doesn't trigger during dropdown navigation,
+ *   only when user types or makes final selection
+ */
 const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
   (
     {
@@ -45,33 +60,104 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
     _fwdRef,
   ) => {
     const textSize = useTextSizeAtomValue();
-    const [lang, setLang] = useState<string>(language || "SAN");
+    const [lang, setLang] = useState<string>(language || "NONE");
+    const [isDropdownActive, setIsDropdownActive] = useState<boolean>(false);
+    const [userHasSelectedLanguage, setUserHasSelectedLanguage] =
+      useState<boolean>(false);
+    const currentValueRef = useRef<string>("");
+    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Sync internal language state with prop changes (important for hydration)
+    // Only update if the language prop actually changes and user hasn't manually selected a language
     useEffect(() => {
-      if (language && language !== lang) {
+      if (
+        language !== undefined &&
+        language !== lang &&
+        !userHasSelectedLanguage
+      ) {
         setLang(language);
       }
-    }, [language, lang]);
+    }, [language, userHasSelectedLanguage]); // Added userHasSelectedLanguage to dependencies
 
     const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!onTextChange) return;
+
       const value = event.target ? event.target.value : "";
-      const transOut =
-        lang === valueAs
-          ? value
-          : Sanscript.t(
-              value,
-              LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
-              valueAs,
-            );
-      onTextChange(transOut, lang);
+      currentValueRef.current = value; // Store the current value
+
+      // If language is "NONE", no WebIME is active, so trigger onTextChange immediately
+      if (lang === "NONE") {
+        onTextChange(value, lang);
+        return;
+      }
+
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+
+      // For other languages with WebIME, use a delay to check if dropdown appears
+      timeoutRef.current = setTimeout(() => {
+        // Check multiple ways that WebIME dropdown might be visible
+        const tributeContainer = document.querySelector(
+          ".tribute-container",
+        ) as HTMLElement;
+        const popoverElements = document.querySelectorAll(
+          '[class*="bg-popover"]',
+        );
+
+        // Check if any WebIME-related elements are visible
+        let isDropdownVisible = false;
+
+        if (tributeContainer) {
+          isDropdownVisible =
+            tributeContainer.style.display !== "none" &&
+            tributeContainer.offsetHeight > 0 &&
+            tributeContainer.offsetWidth > 0;
+        }
+
+        // Also check for any popover-style elements that might be the WebIME dropdown
+        if (!isDropdownVisible) {
+          for (const el of popoverElements) {
+            const htmlEl = el as HTMLElement;
+            if (htmlEl.offsetHeight > 0 && htmlEl.offsetWidth > 0) {
+              isDropdownVisible = true;
+              break;
+            }
+          }
+        }
+
+        // Don't trigger onTextChange when dropdown is active OR visible in DOM
+        if (isDropdownActive || isDropdownVisible) {
+          return;
+        }
+
+        // Use the stored value to prevent race conditions
+        const currentValue = currentValueRef.current;
+
+        const transOut =
+          lang === valueAs
+            ? currentValue
+            : Sanscript.t(
+                currentValue,
+                LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
+                valueAs,
+              );
+        onTextChange(transOut, lang);
+
+        timeoutRef.current = null; // Clear the ref after execution
+      }, 150); // Increased delay to 150ms to allow WebIME processing
     };
 
     const valuesCallbackIME = (
       text: string,
       cb: (result: Record<string, string>[]) => void,
     ) => {
+      if (lang === "NONE") {
+        cb([]);
+        return;
+      }
+
       const transOut = transliterateText({
         text,
         toScheme: LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
@@ -80,8 +166,6 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         key: text,
         value: t,
       }));
-      //   // console.log(outputItrans);
-      //   // setTimeout(() => cb(outputItrans), 1000);
       cb(outputItrans);
     };
 
@@ -91,8 +175,18 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
       if (!textRef?.current) return;
       const currentRef = textRef.current;
 
+      // Don't create WebIME instance for "NONE" language - just use normal input
+      if (lang === "NONE") {
+        return () => {
+          // Clean up any pending timeout
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+        };
+      }
+
       const ime = new WebIME({
-        // values: debouncedValues,
         values: valuesCallbackIME,
         loadingItemTemplate:
           "<span class='p-2 px-4 text-muted-foreground'>Loading...</span>",
@@ -100,14 +194,81 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         itemClass: `text-${textSize} leading-loose tracking-widest flex flex-row gap-2 p-2 px-4 cursor-default`,
         menuItemTemplate: (item) => (item.original as { value: string }).value,
       });
+
+      // Event handler functions
+      const handleTributeReplaced = (e: any) => {
+        setIsDropdownActive(false);
+        // Handle selection - trigger onTextChange with the selected value
+        if (onTextChange && e.detail?.item?.original?.value) {
+          const selectedValue = e.detail.item.original.value;
+
+          // For transliteration languages, apply transliteration if needed
+          const transOut =
+            lang === valueAs
+              ? selectedValue
+              : Sanscript.t(
+                  selectedValue,
+                  LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
+                  valueAs,
+                );
+          onTextChange(transOut, lang);
+        }
+      };
+
+      const handleTributeActiveTrue = () => {
+        setIsDropdownActive(true);
+      };
+
+      const handleTributeActiveFalse = () => {
+        setIsDropdownActive(false);
+      };
+
+      // Listen for tribute events - note the correct event names
+      currentRef.addEventListener("tribute-replaced", handleTributeReplaced);
+      currentRef.addEventListener(
+        "tribute-active-true",
+        handleTributeActiveTrue,
+      );
+      currentRef.addEventListener(
+        "tribute-active-false",
+        handleTributeActiveFalse,
+      );
+
       ime.attach(textRef.current as never);
 
-      return () => ime.detach(currentRef as never);
+      return () => {
+        ime.detach(currentRef as never);
+        // Clean up event listeners
+        currentRef.removeEventListener(
+          "tribute-replaced",
+          handleTributeReplaced,
+        );
+        currentRef.removeEventListener(
+          "tribute-active-true",
+          handleTributeActiveTrue,
+        );
+        currentRef.removeEventListener(
+          "tribute-active-false",
+          handleTributeActiveFalse,
+        );
+
+        // Clean up any pending timeout
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lang, textSize]);
+    }, [lang, textSize, onTextChange, valueAs]);
 
     const languageSelector = (
-      <Select value={lang} onValueChange={setLang}>
+      <Select
+        value={lang}
+        onValueChange={(newLang) => {
+          setLang(newLang);
+          setUserHasSelectedLanguage(true); // Mark that user has manually selected a language
+        }}
+      >
         <SelectTrigger className="border-0 border-l-2 absolute right-0 top-0 h-8 w-[100px]">
           <SelectValue placeholder="Input Language..." />
         </SelectTrigger>
@@ -133,7 +294,9 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         <Input
           ref={textRef}
           className={cn(
-            LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
+            // Apply font family only for supported languages, not for "NONE"
+            lang !== "NONE" &&
+              LANGUAGE_FONT_FAMILY[lang as keyof typeof LANGUAGE_FONT_FAMILY],
             `leading-loose tracking-widest`,
             showSearchIcon && "pl-8",
             withLanguageSelector && "pr-[110px]",

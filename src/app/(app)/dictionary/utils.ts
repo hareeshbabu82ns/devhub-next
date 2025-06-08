@@ -90,6 +90,7 @@ export const DICTIONARY_ORIGINS = [
 export const DICTIONARY_SORT_OPTIONS = [
   { label: "Word (A-Z)", value: "word.value" },
   { label: "Word Index (A-Z)", value: "wordIndex" },
+  { label: "Relevance", value: "relevance" },
 ] as Option[];
 
 export const DICTIONARY_SORT_ORDER_OPTIONS = [

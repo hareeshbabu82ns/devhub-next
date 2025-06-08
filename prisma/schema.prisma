@@ -184,16 +184,13 @@ model DictionaryWord {
   updatedAt   DateTime             @updatedAt
 
   @@unique([wordIndex, origin])
-  // Optimized indexes for search operations
+  // Core indexes optimized for different search patterns
   @@index([origin, wordIndex(sort: Asc)], map: "origin_wordIndex_asc_idx")
   @@index([origin, wordIndex(sort: Desc)], map: "origin_wordIndex_desc_idx")
+  @@index([origin, phonetic], map: "origin_phonetic_idx")
   @@index([origin, word], map: "origin_word_idx")
-  @@index([wordIndex(sort: Asc)], map: "wordIndex_asc_idx")
-  @@index([wordIndex(sort: Desc)], map: "wordIndex_desc_idx")
-  // Combined indexes for efficient filtering and sorting
-  @@index([origin, wordIndex(sort: Asc), phonetic], map: "origin_wordIndex_asc_phonetic_idx")
-  @@index([origin, wordIndex(sort: Desc), phonetic], map: "origin_wordIndex_desc_phonetic_idx")
-  @@fulltext([phonetic])
+  // Combined full-text search index for both phonetic and word content
+  @@fulltext([phonetic, word], map: "phonetic_word_text_idx")
   @@map("DictWords")
 }
 
