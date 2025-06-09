@@ -25,76 +25,117 @@ import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import { DictItemFormSchema } from "@/lib/validations/dictionary";
 import FormInputText from "@/components/inputs/FormInputText";
+import { useTextSizeAtomValue } from "@/hooks/use-config";
+import { cn } from "@/lib/utils";
 
 interface DictionaryItemFormProps {
   itemId?: string;
   data: z.infer<typeof DictItemFormSchema>;
   updating?: boolean;
   onRefresh?: () => void;
-  onSubmit?: ( data: Partial<z.infer<typeof DictItemFormSchema>> ) => void;
+  onSubmit?: (data: Partial<z.infer<typeof DictItemFormSchema>>) => void;
   onDelete?: () => void;
 }
 
-const DictionaryItemForm = ( {
+const DictionaryItemForm = ({
   itemId,
   data,
   updating = false,
   onSubmit: onFormSubmit,
   onRefresh,
   onDelete,
-}: DictionaryItemFormProps ) => {
+}: DictionaryItemFormProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  const currentTab = searchParams.get( "tab" ) || "details";
+  const currentTab = searchParams.get("tab") || "details";
+  const textSize = useTextSizeAtomValue();
 
   // Create a type-safe version of the form values
   type DictionaryFormValues = z.infer<typeof DictItemFormSchema>;
 
-  const form = useForm<DictionaryFormValues>( {
-    resolver: zodResolver( DictItemFormSchema ) as unknown as Resolver<DictionaryFormValues>,
+  const form = useForm<DictionaryFormValues>({
+    resolver: zodResolver(
+      DictItemFormSchema,
+    ) as unknown as Resolver<DictionaryFormValues>,
     defaultValues: {
       ...data,
-      phonetic: data.phonetic || '' // Ensure phonetic is never undefined
+      phonetic: data.phonetic || "", // Ensure phonetic is never undefined
+      sourceData: (() => {
+        // Handle sourceData conversion properly to avoid double JSON stringification
+        if (!data.sourceData) return "";
+        if (typeof data.sourceData === "string") {
+          // If it's already a string, try to parse and reformat it, or use as-is if invalid JSON
+          try {
+            const parsed = JSON.parse(data.sourceData);
+            return JSON.stringify(parsed, null, 2);
+          } catch {
+            // If parsing fails, it's likely already a formatted string, use as-is
+            return data.sourceData;
+          }
+        } else {
+          // If it's an object, stringify it
+          return JSON.stringify(data.sourceData, null, 2);
+        }
+      })(),
     },
-  } );
+  });
 
   const {
     reset,
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  useEffect( () => {
-    const keys = Object.keys( errors ) as Array<keyof typeof errors>;
-    if ( keys.length === 0 ) return;
-    console.error( "Form errors:", errors );
-    toast( {
+  useEffect(() => {
+    const keys = Object.keys(errors) as Array<keyof typeof errors>;
+    if (keys.length === 0) return;
+    console.error("Form errors:", errors);
+    toast({
       title: "Form errors:",
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">
             {keys
-              .map( ( key ) => `${key as string}: ${errors[ key ]?.message}` )
-              .join( "\n" )}
+              .map((key) => `${key as string}: ${errors[key]?.message}`)
+              .join("\n")}
           </code>
         </pre>
       ),
       variant: "destructive",
-    } );
-  }, [ errors ] );
+    });
+  }, [errors]);
 
-  function onSubmit( data: z.infer<typeof DictItemFormSchema> ) {
+  function onSubmit(data: z.infer<typeof DictItemFormSchema>) {
     const changeData: Partial<z.infer<typeof DictItemFormSchema>> = {};
 
     changeData.origin = data.origin;
-    if ( !itemId || dirtyFields.word ) changeData.word = data.word;
-    if ( !itemId || dirtyFields.wordIndex ) changeData.wordIndex = data.wordIndex;
-    if ( !itemId || dirtyFields.description )
+    if (!itemId || dirtyFields.word) changeData.word = data.word;
+    if (!itemId || dirtyFields.wordIndex) changeData.wordIndex = data.wordIndex;
+    if (!itemId || dirtyFields.description)
       changeData.description = data.description;
-    if ( !itemId || dirtyFields.attributes )
+    if (!itemId || dirtyFields.attributes)
       changeData.attributes = data.attributes;
-    if ( !itemId || dirtyFields.phonetic ) changeData.phonetic = data.phonetic;
+    if (!itemId || dirtyFields.phonetic) changeData.phonetic = data.phonetic;
+    if (!itemId || dirtyFields.sourceData) {
+      // Convert string back to JSON for saving
+      try {
+        if (data.sourceData && data.sourceData.trim()) {
+          changeData.sourceData = JSON.parse(data.sourceData);
+        } else {
+          changeData.sourceData = undefined;
+        }
+      } catch (error) {
+        console.error("Invalid JSON in sourceData:", error);
+        toast({
+          title: "Invalid JSON Format",
+          description:
+            "The Source Data field contains invalid JSON. Please check the syntax and try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
 
-    onFormSubmit?.( changeData );
+    onFormSubmit?.(changeData);
   }
 
   const detailElements = (
@@ -115,12 +156,19 @@ const DictionaryItemForm = ( {
           label="Word Index"
         />
       </div>
+      {/* Source Data */}
+      <FormInputTextArea
+        control={form.control}
+        name="sourceData"
+        label="Source Data"
+        className={cn("font-mono leading-relaxed", `text-${textSize}`)}
+      />
       {/* Phonetic */}
       <FormInputTextArea
         control={form.control}
         name="phonetic"
         label="Phonetic"
-        className="max-h-56"
+        className={cn("font-mono leading-relaxed", `text-${textSize}`)}
       />
     </div>
   );
@@ -170,13 +218,13 @@ const DictionaryItemForm = ( {
     </div>
   );
 
-  const onTabValueChanged = ( value: string ) =>
-    updateSearchParams( { tab: value } );
+  const onTabValueChanged = (value: string) =>
+    updateSearchParams({ tab: value });
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit( onSubmit )}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col space-y-4 flex-1"
       >
         <Tabs

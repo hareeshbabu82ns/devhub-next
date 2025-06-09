@@ -113,6 +113,7 @@ export const mapDbToDictionary = (
     wordIndex: e.wordIndex,
     phonetic: e.phonetic,
     attributes: e.attributes,
+    sourceData: e.sourceData,
     word: "",
     description: "",
     wordData: e.id

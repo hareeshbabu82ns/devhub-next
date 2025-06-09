@@ -25,6 +25,7 @@ const defaultValues: z.infer<typeof DictItemFormSchema> = {
   description: [],
   attributes: [],
   phonetic: "",
+  sourceData: "{}",
 };
 
 const mergeWithDefaultValues = (data: Partial<DictionaryItem>) => {
@@ -35,6 +36,23 @@ const mergeWithDefaultValues = (data: Partial<DictionaryItem>) => {
     description: data.descriptionData || defaultValues.description,
     attributes: data.attributes || defaultValues.attributes,
     phonetic: data.phonetic || defaultValues.phonetic,
+    sourceData: (() => {
+      // Handle sourceData conversion properly to avoid double JSON stringification
+      if (!data.sourceData) return "";
+      if (typeof data.sourceData === "string") {
+        // If it's already a string, try to parse and reformat it, or use as-is if invalid JSON
+        try {
+          const parsed = JSON.parse(data.sourceData);
+          return JSON.stringify(parsed, null, 2);
+        } catch {
+          // If parsing fails, it's likely already a formatted string, use as-is
+          return data.sourceData;
+        }
+      } else {
+        // If it's an object, stringify it
+        return JSON.stringify(data.sourceData, null, 2);
+      }
+    })(),
   } as z.infer<typeof DictItemFormSchema>;
 };
 
