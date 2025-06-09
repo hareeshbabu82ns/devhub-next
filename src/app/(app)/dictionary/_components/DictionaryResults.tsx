@@ -54,21 +54,9 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
 
   const language = useLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
-
   const limit = parseInt(useQueryLimitAtomValue());
-  const offset = parseInt(searchParams.get("offset") || "0", 10);
-
-  const paginateOffsetAction = (offset: number) => {
-    updateSearchParams({ offset: offset.toString() });
-  };
-
-  const paginateFwdAction = () => {
-    updateSearchParams({ offset: (offset + 1).toString() });
-  };
-
-  const paginateBackAction = () => {
-    updateSearchParams({ offset: (offset - 1).toString() });
-  };
+  const page = parseInt(searchParams.get("offset") || "0", 10);
+  const currentPage = page + 1;
 
   const { data, isFetching, isLoading, isError, error, refetch } = useQuery({
     queryKey: [
@@ -80,7 +68,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
       sortOrderParam,
       language,
       limit,
-      offset,
+      page,
     ],
     queryFn: async () => {
       const response = await searchDictionary({
@@ -91,7 +79,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
         sortOrder: sortOrderParam as any,
         language,
         limit,
-        offset,
+        offset: page * limit,
       });
       return response;
     },
@@ -99,8 +87,23 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
       originParam.length > 0 ||
       (originParam.length > 0 && searchParam.length > 0) ||
       (searchParam.length > 0 && ftsParam === "x"),
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: 1000 * 60 * 60, // Keep fresh for 60 minutes
   });
+
+  const paginatePageChangeAction = (page: number) => {
+    const newPage = page - 1;
+    updateSearchParams({ offset: newPage.toString() });
+  };
+
+  const paginateFwdAction = () => {
+    const newPage = page + 1;
+    updateSearchParams({ offset: newPage.toString() });
+  };
+
+  const paginateBackAction = () => {
+    const newPage = Math.max(0, page - 1);
+    updateSearchParams({ offset: newPage.toString() });
+  };
 
   if (isLoading || isFetching) return <Loader />;
   if (isError) return <SimpleAlert title={error.message} />;
@@ -125,10 +128,10 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
           <PaginationDDLB
             totalCount={data.total}
             limit={limit}
-            offset={offset}
+            page={currentPage}
             onFwdClick={paginateFwdAction}
             onBackClick={paginateBackAction}
-            onOffsetChange={paginateOffsetAction}
+            onPageChange={paginatePageChangeAction}
           />
         </div>
       </CardHeader>
@@ -179,10 +182,10 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
           <PaginationDDLB
             totalCount={data.total}
             limit={limit}
-            offset={offset}
+            page={currentPage}
             onFwdClick={paginateFwdAction}
             onBackClick={paginateBackAction}
-            onOffsetChange={paginateOffsetAction}
+            onPageChange={paginatePageChangeAction}
           />
         </div>
       </CardContent>

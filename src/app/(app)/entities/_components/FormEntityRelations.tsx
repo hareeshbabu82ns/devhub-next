@@ -80,16 +80,21 @@ const FormEntityRelations = ({
   if (!data || !data?.entities)
     return <SimpleAlert title={"Error loading Entities Tile Data"} />;
 
-  const paginateOffsetAction = (offset: number) => {
-    updateSearchParams({ offset: offset.toString() });
+  const currentPage = offset + 1;
+
+  const paginatePageChangeAction = (page: number) => {
+    const newOffset = page - 1;
+    updateSearchParams({ offset: newOffset.toString() });
   };
 
   const onBackAction = () => {
-    updateSearchParams({ offset: (offset - 1).toString() });
+    const newOffset = Math.max(0, offset - 1);
+    updateSearchParams({ offset: newOffset.toString() });
   };
 
   const onFwdAction = () => {
-    updateSearchParams({ offset: (offset + 1).toString() });
+    const newOffset = offset + 1;
+    updateSearchParams({ offset: newOffset.toString() });
   };
 
   return (
@@ -138,10 +143,10 @@ const FormEntityRelations = ({
                     <PaginationDDLB
                       totalCount={relationCount}
                       limit={limit}
-                      offset={offset}
+                      page={currentPage}
                       onFwdClick={onFwdAction}
                       onBackClick={onBackAction}
-                      onOffsetChange={paginateOffsetAction}
+                      onPageChange={paginatePageChangeAction}
                     />
                   </>
                 )}

@@ -121,7 +121,7 @@ function EntitySearchGrid({
   const dispatch = usePlaylistDispatchAtom();
 
   const limit = parseInt(useQueryLimitAtomValue());
-  const offset = parseInt(searchParams.get("offset") || "0", 10);
+  const page = parseInt(searchParams.get("offset") || "0", 10);
 
   const language = useLanguageAtomValue();
 
@@ -173,7 +173,7 @@ function EntitySearchGrid({
   const { data, isFetching, isLoading, error, refetch } = useQuery({
     queryKey: [
       "entities",
-      { forTypes, language, forEntity, offset, query, limit },
+      { forTypes, language, forEntity, offset: page, query, limit },
     ],
     queryFn: async () => {
       const filters: ColumnFiltersState = [];
@@ -188,7 +188,7 @@ function EntitySearchGrid({
       const entities = await fetchEntities({
         query,
         language,
-        pagination: { pageIndex: offset, pageSize: limit },
+        pagination: { pageIndex: page, pageSize: limit },
         sorting: [{ id: "order", desc: false }],
         filters,
       });
@@ -223,16 +223,21 @@ function EntitySearchGrid({
     ? (tile: TileModel) => onBookmarkClicked(mapTileModelToEntity(tile))
     : undefined;
 
-  const paginateOffsetAction = (offset: number) => {
-    updateSearchParams({ offset: offset.toString() });
+  const currentPage = page + 1;
+
+  const paginatePageChangeAction = (page: number) => {
+    const newPage = page - 1;
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   const paginateFwdAction = () => {
-    updateSearchParams({ offset: (offset + 1).toString() });
+    const newPage = page + 1;
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   const paginateBackAction = () => {
-    updateSearchParams({ offset: (offset - 1).toString() });
+    const newPage = Math.max(0, page - 1);
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   return (
@@ -271,10 +276,10 @@ function EntitySearchGrid({
           <PaginationDDLB
             totalCount={entitiesCount}
             limit={limit}
-            offset={offset}
+            page={currentPage}
             onFwdClick={paginateFwdAction}
             onBackClick={paginateBackAction}
-            onOffsetChange={paginateOffsetAction}
+            onPageChange={paginatePageChangeAction}
           />
         </div>
       </div>
@@ -285,7 +290,7 @@ function EntitySearchGrid({
               return (
                 <ArtSlokamTile
                   key={entity.id}
-                  index={limit * offset + i + 1}
+                  index={limit * page + i + 1}
                   model={entity}
                   className="col-span-4"
                   onTileClicked={onTileClicked}
@@ -312,10 +317,10 @@ function EntitySearchGrid({
         <PaginationDDLB
           totalCount={entitiesCount}
           limit={limit}
-          offset={offset}
+          page={currentPage}
           onFwdClick={paginateFwdAction}
           onBackClick={paginateBackAction}
-          onOffsetChange={paginateOffsetAction}
+          onPageChange={paginatePageChangeAction}
         />
       </div>
     </div>

@@ -33,7 +33,8 @@ const BookmarkedEntitiesGrid = () => {
   const language = useLanguageAtomValue();
   const limit = parseInt(useQueryLimitAtomValue());
 
-  const offset = parseInt(searchParams.offset || "0", 10);
+  const page = parseInt(searchParams.offset || "0", 10);
+  const currentPage = page + 1;
 
   const { mutateAsync: onBookmarkClicked } = useMutation({
     mutationKey: ["entityBookmark"],
@@ -50,11 +51,11 @@ const BookmarkedEntitiesGrid = () => {
   });
 
   const { data, isFetching, isLoading, error, refetch } = useQuery({
-    queryKey: ["bookmarkedEntities", { language, limit, offset }],
+    queryKey: ["bookmarkedEntities", { language, limit, offset: page }],
     queryFn: async () => {
       const entities = await fetchBookmarkedEntities({
         language,
-        pageIndex: offset,
+        pageIndex: page,
         pageSize: limit,
       });
       return entities;
@@ -77,16 +78,19 @@ const BookmarkedEntitiesGrid = () => {
     };
   });
 
-  const paginateOffsetAction = (offset: number) => {
-    updateSearchParams({ offset: offset.toString() });
+  const paginatePageChangeAction = (page: number) => {
+    const newPage = page - 1;
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   const onBackAction = () => {
-    updateSearchParams({ offset: (offset - 1).toString() });
+    const newPage = Math.max(0, page - 1);
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   const onFwdAction = () => {
-    updateSearchParams({ offset: (offset + 1).toString() });
+    const newPage = page + 1;
+    updateSearchParams({ offset: newPage.toString() });
   };
 
   const onTileClicked = (tile: Entity) => {
@@ -106,10 +110,10 @@ const BookmarkedEntitiesGrid = () => {
           <PaginationDDLB
             totalCount={data.total}
             limit={limit}
-            offset={offset}
+            page={currentPage}
             onFwdClick={onFwdAction}
             onBackClick={onBackAction}
-            onOffsetChange={paginateOffsetAction}
+            onPageChange={paginatePageChangeAction}
           />
           <Button
             onClick={() => refetch()}
