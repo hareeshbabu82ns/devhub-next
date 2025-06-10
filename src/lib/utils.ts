@@ -178,8 +178,10 @@ export const getSafePathFromUrl = (
     .slice(0, 14); // yyyyMMddHHmmss
   try {
     const urlObj = new URL(url);
-    const pageName =
-      urlObj.hostname + urlObj.pathname.replace(/[^a-z0-9]/gi, "_");
+    // Include hostname, pathname, and search parameters
+    const fullPath = urlObj.hostname + urlObj.pathname + urlObj.search;
+    // Replace all non-alphanumeric characters with underscores
+    const pageName = fullPath.replace(/[^a-z0-9]/gi, "_");
     const folderName = `${pageName}`;
     return {
       timestamp,
