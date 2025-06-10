@@ -11,7 +11,7 @@ import {
   SPECIAL_CHARS_PATTERN,
   NUMBER_PATTERN,
   type LanguageValueType,
-} from "../word-utils";
+} from "../dictionary/word-utils";
 
 describe("Dictionary Word Utilities", () => {
   describe("generatePhoneticString", () => {
