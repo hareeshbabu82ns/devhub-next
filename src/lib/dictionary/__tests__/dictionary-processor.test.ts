@@ -130,7 +130,7 @@ describe("Dictionary Processor", () => {
         { key: "word3", data: "desc3", lnum: 3 },
       ];
 
-      const results = processDictionaryWordRows(rows, "mw", mockTableMetadata);
+      const results = processDictionaryWordRows(rows, "ae", mockTableMetadata);
 
       expect(results).toHaveLength(3);
       expect(results[0].wordIndex).toBe(1);

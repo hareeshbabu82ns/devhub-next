@@ -19,6 +19,7 @@ import {
   SANSCRIPT_LANGS_TO_DB,
 } from "./dictionary-constants";
 import sanscript from "@indic-transliteration/sanscript";
+import { convertLexiconHtmlToMarkdown } from "./lexicon-utils";
 
 /**
  * SQLite row data structure
@@ -134,6 +135,9 @@ function getDescriptionTranscripts(
 ): LanguageValueType[] {
   const data: LanguageValueType[] = [];
 
+  // check if the text is html
+  const isHtml = /<\/?[a-z][\s\S]*>/i.test(text);
+
   if (dictName === "dhatu_pata") {
     // For dhatu_pata, convert from Devanagari to all supported scripts
     for (const lang of SANSCRIPT_LANGS) {
@@ -154,10 +158,8 @@ function getDescriptionTranscripts(
   } else if (["pe", "md", "pui", "pgn"].includes(dictName)) {
     // HTML processing needed but not transliteration
     let value = text;
-    if (options.includeHtmlProcessing) {
-      // TODO: Implement HTML to markdown conversion
-      // This would require the lexicon HTML parser functionality
-      value = text; // Placeholder for now
+    if (options.includeHtmlProcessing || isHtml) {
+      value = convertLexiconHtmlToMarkdown(dictName, text, word);
     }
     const valueTrimmed = value.trim();
     data.push({
@@ -178,10 +180,8 @@ function getDescriptionTranscripts(
     // Sanskrit dictionaries with HTML processing and transliteration
     for (const lang of SANSCRIPT_LANGS) {
       let value = text;
-      if (options.includeHtmlProcessing) {
-        // TODO: Implement lexicon HTML to markdown conversion with transliteration
-        // This would require the lexicon HTML parser functionality
-        value = text; // Placeholder for now
+      if (options.includeHtmlProcessing || isHtml) {
+        value = convertLexiconHtmlToMarkdown(dictName, text, word, lang);
       } else {
         // Simple transliteration without HTML processing
         value = convertText(text, "slp1", lang);

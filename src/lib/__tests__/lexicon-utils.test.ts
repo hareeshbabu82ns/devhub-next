@@ -121,7 +121,11 @@ describe("Lexicon HTML to Markdown Utilities", () => {
   describe("Sanskrit dictionary handling", () => {
     it("should handle Sanskrit dictionaries with transliteration", () => {
       const html = "<i>ganesha</i> is a <b>deity</b>";
-      const result = convertLexiconHtmlToMarkdown("ben", html, "ganesha");
+      const result = convertLexiconHtmlToMarkdown(
+        "dhatu_pata",
+        html,
+        "ganesha",
+      );
 
       // Should contain transliterated content for Bengali dictionary
       expect(result).toContain("**deity**");

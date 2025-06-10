@@ -157,11 +157,11 @@ export const SANSCRIPT_LANGS = [
  */
 export const DICTIONARY_LANGUAGE_MAPPING: Record<
   string,
-  { wordLang: string; descLang: string }
+  { wordLang: string; descriptionLang: string }
 > = {
-  eng2te: { wordLang: "ENG", descLang: "TEL" },
-  eng2en: { wordLang: "ENG", descLang: "ENG" },
-  pe: { wordLang: "SLP1", descLang: "ENG" },
-  pgn: { wordLang: "SLP1", descLang: "ENG" },
-  dhatu_pata: { wordLang: "SAN", descLang: "SAN" },
+  eng2te: { wordLang: "ENG", descriptionLang: "TEL" },
+  eng2en: { wordLang: "ENG", descriptionLang: "ENG" },
+  pe: { wordLang: "SLP1", descriptionLang: "ENG" },
+  pgn: { wordLang: "SLP1", descriptionLang: "ENG" },
+  dhatu_pata: { wordLang: "SAN", descriptionLang: "SAN" },
 };

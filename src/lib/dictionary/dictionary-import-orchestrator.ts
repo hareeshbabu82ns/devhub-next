@@ -130,12 +130,13 @@ export async function readSqliteRows(
 
   // Execute query
   const queryResults = await sqliteDb.query(query);
+  // console.log(tableMetadata, queryResults);
 
   // Convert to row data objects
   const rows: SqliteRowData[] = queryResults.map((row: any) => {
     const rowData: SqliteRowData = {};
-    tableMetadata.columns.forEach((col, index) => {
-      rowData[col] = row[index] !== undefined ? row[index] : null;
+    tableMetadata.columns.forEach((col) => {
+      rowData[col] = row[col] !== undefined ? row[col] : null;
     });
     return rowData;
   });

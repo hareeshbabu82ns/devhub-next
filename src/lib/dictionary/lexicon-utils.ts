@@ -131,7 +131,7 @@ export class LexiconHTMLParser {
    */
   feed(htmlContent: string): void {
     const $ = cheerio.load(htmlContent, {
-      xmlMode: false,
+      xml: false,
     });
 
     // Process the HTML content
