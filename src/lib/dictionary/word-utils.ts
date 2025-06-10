@@ -6,15 +6,8 @@
  * and filters out common stop words, numbers, and special characters.
  */
 
+import { LanguageValueType } from "@/app/generated/prisma";
 import sanscript from "@indic-transliteration/sanscript";
-
-/**
- * Language value type representing multilingual text
- */
-export interface LanguageValueType {
-  language: string;
-  value: string;
-}
 
 /**
  * Generate a condensed phonetic string from word and description arrays

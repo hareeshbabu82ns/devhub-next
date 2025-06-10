@@ -11,6 +11,7 @@ import { ScraperGeneric } from "./scraper-generic";
 import { GenericSampleScraper } from "./scraper-generic-sample";
 import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import { DictionaryImportManager } from "@/components/features/dictionary/dictionary-import-manager";
 
 // Define the navigation items
 const navItems = [
@@ -43,6 +44,12 @@ const navItems = [
     id: "sthotranidhi",
     label: "Sthotranidhi",
     group: "Others",
+    status: "available",
+  },
+  {
+    id: "dictionaryUploadsSqlite",
+    label: "Dictionary Uploads (SQLite)",
+    group: "Tools",
     status: "available",
   },
   {
@@ -123,6 +130,8 @@ export function ScraperLayout() {
         return <ScraperRamayanam />;
       case "mahabharatam":
         return <ScraperMahabharatam />;
+      case "dictionaryUploadsSqlite":
+        return <DictionaryImportManager />;
       case "generic":
         return <ScraperGeneric />;
       case "generic-sample":
