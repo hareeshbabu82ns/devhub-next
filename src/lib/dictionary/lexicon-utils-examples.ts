@@ -2,10 +2,10 @@
  * Usage examples for enhanced LexiconHTMLParser with custom tag handlers
  */
 
+import { TRANSLITERATION_SCHEMES } from "./dictionary-constants";
 import {
   convertLexiconHtmlToMarkdown,
   LexiconHTMLParser,
-  TRANSLITERATION_SCHEMES,
   type TagHandler,
   type CustomTagReplacement,
 } from "./lexicon-utils";
@@ -231,7 +231,7 @@ export function exampleConditionalHandlers() {
   `;
 
   const result = convertLexiconHtmlToMarkdown(
-    "test",
+    "ae",
     html,
     "",
     TRANSLITERATION_SCHEMES.DEVANAGARI,
@@ -304,7 +304,7 @@ export function exampleMixedHandlers() {
   `;
 
   const result = convertLexiconHtmlToMarkdown(
-    "test",
+    "ae",
     html,
     "",
     TRANSLITERATION_SCHEMES.DEVANAGARI,

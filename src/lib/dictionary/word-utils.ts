@@ -9,6 +9,9 @@
 import { LanguageValueType } from "@/app/generated/prisma";
 import sanscript from "@indic-transliteration/sanscript";
 
+const IGNORE_LANGUAGES = ["SAN", "TEL"];
+const REPLACEMENT_LANGUAGES_BY_PRIORITY = ["IAST", "ITRANS", "SLP1"];
+
 /**
  * Generate a condensed phonetic string from word and description arrays
  * for full text search optimization. Filters out duplicates, common articles,
@@ -26,6 +29,8 @@ export function generatePhoneticString(
     if (wordItem?.value) {
       const wordValue = wordItem.value.trim();
       if (wordValue) {
+        // const words = extractMeaningfulWords(wordValue, maxLength);
+        // allWords.push(...words);
         // Get transliterated versions for non-English words
         const transliteratedWords = getTransliteratedWords(wordItem);
         for (const transWord of transliteratedWords) {
@@ -41,6 +46,8 @@ export function generatePhoneticString(
     if (descItem?.value) {
       const descValue = descItem.value.trim();
       if (descValue) {
+        // const words = extractMeaningfulWords(descValue, maxLength);
+        // allWords.push(...words);
         // Get transliterated versions for non-English descriptions
         const transliteratedWords = getTransliteratedWords(descItem);
         for (const transWord of transliteratedWords) {
@@ -97,9 +104,53 @@ export function generatePhoneticString(
 }
 
 /**
+ * Extracts non-English/Latin words from text, preserving only characters
+ * that need transliteration (Sanskrit Devanagari, Telugu, etc.)
+ */
+function extractNonLatinWords(text: string): {
+  latin: string[];
+  nonLatin: string[];
+} {
+  if (!text) {
+    return { latin: [], nonLatin: [] };
+  }
+
+  // Split by whitespace and punctuation to get individual words/tokens
+  const tokens = text.split(/[\s\p{P}]+/u).filter((token) => token.length > 0);
+  const nonLatinWords: string[] = [];
+  const latinWords: string[] = [];
+
+  for (const token of tokens) {
+    // Check if token contains non-Latin characters that need transliteration
+    // \u0900-\u097F: Devanagari (Sanskrit)
+    // \u0C00-\u0C7F: Telugu
+    // \u0100-\u017F: Latin Extended-A (IAST characters like ā, ī, ū, etc.)
+    // \u1E00-\u1EFF: Latin Extended Additional (ṭ, ḍ, ṇ, ś, ṣ, etc.)
+    const hasNonBasicLatin =
+      /[\u0900-\u097F\u0C00-\u0C7F\u0100-\u017F\u1E00-\u1EFF]/.test(token);
+
+    if (hasNonBasicLatin) {
+      nonLatinWords.push(token);
+    } else {
+      // Check if it's purely ASCII English/Latin (a-z, A-Z, 0-9)
+      const isPureAscii = /^[a-zA-Z0-9]+$/.test(token);
+      if (!isPureAscii) {
+        // If it contains other characters, include it for potential transliteration
+        nonLatinWords.push(token);
+      } else {
+        // Otherwise, treat it as a Latin word
+        latinWords.push(token);
+      }
+    }
+  }
+
+  return { latin: latinWords, nonLatin: nonLatinWords };
+}
+
+/**
  * Get transliterated versions of a word/description item.
- * For non-English languages, returns ITRANS and SLP1 transliterations.
- * For English, returns the original value.
+ * Extracts non-English/Latin words before transliteration to avoid
+ * transliterating English words.
  */
 export function getTransliteratedWords(item: LanguageValueType): string[] {
   if (!item?.value) {
@@ -132,32 +183,86 @@ export function getTransliteratedWords(item: LanguageValueType): string[] {
     return [value];
   }
 
+  // Extract non-Latin words that need transliteration
+  const { nonLatin, latin } = extractNonLatinWords(value);
   const transliteratedWords: string[] = [];
 
+  // If no non-Latin words found, return original value
+  if (nonLatin.length === 0) {
+    return [value];
+  }
+
+  if (latin.length > 0) {
+    transliteratedWords.push(...latin);
+  }
+
+  const nonLatinWordsStr = nonLatin.join(" ");
   try {
     // Add ITRANS transliteration if not already ITRANS
     if (lang !== "ITRANS") {
-      const itransValue = sanscript.t(value, langMap[lang], "itrans_dravidian");
-      if (itransValue && itransValue !== value) {
+      const itransValue = sanscript.t(
+        nonLatinWordsStr,
+        langMap[lang],
+        "itrans_dravidian",
+      );
+      if (itransValue && itransValue !== nonLatinWordsStr) {
         transliteratedWords.push(itransValue);
       }
+      // // Always include the original non-Latin words
+      // transliteratedWords.push(nonLatinWordsStr);
     }
-
     // Add SLP1 transliteration if not already SLP1
     if (lang !== "SLP1") {
-      const slp1Value = sanscript.t(value, langMap[lang], "slp1");
-      if (slp1Value && slp1Value !== value) {
+      const slp1Value = sanscript.t(nonLatinWordsStr, langMap[lang], "slp1");
+      if (slp1Value && slp1Value !== nonLatinWordsStr) {
         transliteratedWords.push(slp1Value);
       }
-    }
-
-    // If no transliterations were added, just return original value
-    if (transliteratedWords.length === 0) {
-      transliteratedWords.push(value);
+      // // Always include the original non-Latin words
+      // transliteratedWords.push(nonLatinWordsStr);
     }
   } catch (error) {
-    // If transliteration fails, just return original value
-    console.error(`Transliteration error for '${value}' from ${lang}:`, error);
+    // If transliteration fails, just include the original non-Latin words
+    console.error(
+      `Transliteration error for '${nonLatinWordsStr}' from ${lang}:`,
+      error,
+    );
+    transliteratedWords.push(nonLatinWordsStr);
+  }
+
+  // // Process each non-Latin word separately
+  // for (const word of nonLatin) {
+  //   try {
+  //     // Add ITRANS transliteration if not already ITRANS
+  //     if (lang !== "ITRANS") {
+  //       const itransValue = sanscript.t(
+  //         word,
+  //         langMap[lang],
+  //         "itrans_dravidian",
+  //       );
+  //       if (itransValue && itransValue !== word) {
+  //         transliteratedWords.push(itransValue);
+  //       }
+  //     }
+
+  //     // Add SLP1 transliteration if not already SLP1
+  //     if (lang !== "SLP1") {
+  //       const slp1Value = sanscript.t(word, langMap[lang], "slp1");
+  //       if (slp1Value && slp1Value !== word) {
+  //         transliteratedWords.push(slp1Value);
+  //       }
+  //     }
+
+  //     // // Always include the original non-Latin word
+  //     // transliteratedWords.push(word);
+  //   } catch (error) {
+  //     // If transliteration fails for this word, just include the original
+  //     console.error(`Transliteration error for '${word}' from ${lang}:`, error);
+  //     transliteratedWords.push(word);
+  //   }
+  // }
+
+  // If no transliterations were successful, return original value
+  if (transliteratedWords.length === 0) {
     return [value];
   }
 
@@ -513,6 +618,7 @@ export function cleanText(text: string): string {
 export function extractMeaningfulWords(
   text: string,
   maxLength: number = 1000,
+  lang: string = "ENG",
 ): string[] {
   if (!text) {
     return [];
