@@ -7,82 +7,12 @@
 
 import * as cheerio from "cheerio";
 import sanscript from "@indic-transliteration/sanscript";
-
-/**
- * Sanskrit word tag mappings for different dictionaries
- */
-export const SANS_WORD_TAG: Record<string, string> = {
-  ben: "i", // has both i and s
-  bhs: "b",
-  ieg: "i",
-  inm: "i",
-  lan: "b",
-  mci: "i",
-  mw72: "i", // has both i and s
-  pgn: "i",
-  pui: "i",
-  snp: "i",
-  vei: "b",
-  default: "s",
-};
-
-/**
- * Sanskrit word language mappings for different dictionaries
- */
-export const SANS_WORD_LANG: Record<string, string> = {
-  ben: "iast",
-  bhs: "iast",
-  inm: "iast",
-  lan: "iast",
-  mci: "iast",
-  mw72: "iast",
-  pgn: "iast",
-  pui: "iast",
-  snp: "iast",
-  vei: "iast",
-  default: "slp1",
-};
-
-/**
- * List of Sanskrit dictionaries
- */
-export const LEXICON_SAN_DICT_LIST = [
-  "acc",
-  "ap90",
-  "armh",
-  "ben",
-  "bhs",
-  "cae",
-  "gst",
-  "ieg",
-  "inm",
-  "krm",
-  "lan",
-  "mci",
-  "md",
-  "mw",
-  "mw72",
-  "pe",
-  "pgn",
-  "pui",
-  "shs",
-  "skd",
-  "snp",
-  "vcp",
-  "vei",
-  "wil",
-  "yat",
-];
-
-/**
- * Transliteration scheme mappings
- */
-export const TRANSLITERATION_SCHEMES = {
-  DEVANAGARI: "devanagari",
-  IAST: "iast",
-  SLP1: "slp1",
-  ITRANS: "itrans",
-} as const;
+import {
+  DictionaryName,
+  LEXICON_SAN_DICT_LIST,
+  SANS_WORD_TAG,
+  TRANSLITERATION_SCHEMES,
+} from "./dictionary-constants";
 
 /**
  * Custom tag handler function type
@@ -627,7 +557,7 @@ export class LexiconHTMLParser {
  * @returns Converted markdown content
  */
 export function convertLexiconHtmlToMarkdown(
-  dictionary: string,
+  dictionary: DictionaryName,
   content: string,
   keyWord: string = "",
   toLang: string = TRANSLITERATION_SCHEMES.DEVANAGARI,

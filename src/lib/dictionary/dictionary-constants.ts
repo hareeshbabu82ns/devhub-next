@@ -164,4 +164,50 @@ export const DICTIONARY_LANGUAGE_MAPPING: Record<
   pe: { wordLang: "SLP1", descriptionLang: "ENG" },
   pgn: { wordLang: "SLP1", descriptionLang: "ENG" },
   dhatu_pata: { wordLang: "SAN", descriptionLang: "SAN" },
+  default: { wordLang: "SLP1", descriptionLang: "SLP1" },
 };
+
+/**
+ * Sanskrit word language mappings for different dictionaries
+ */
+export const SANS_WORD_LANG: Record<string, string> = {
+  ben: "iast",
+  bhs: "iast",
+  inm: "iast",
+  lan: "iast",
+  mci: "iast",
+  mw72: "iast",
+  pgn: "iast",
+  pui: "iast",
+  snp: "iast",
+  vei: "iast",
+  default: "slp1",
+};
+
+/**
+ * Sanskrit word tag mappings for different dictionaries
+ */
+export const SANS_WORD_TAG: Record<string, string> = {
+  ben: "i", // has both i and s
+  bhs: "b",
+  ieg: "i",
+  inm: "i",
+  lan: "b",
+  mci: "i",
+  mw72: "i", // has both i and s
+  pgn: "i",
+  pui: "i",
+  snp: "i",
+  vei: "b",
+  default: "s",
+};
+
+/**
+ * Transliteration scheme mappings
+ */
+export const TRANSLITERATION_SCHEMES = {
+  DEVANAGARI: "devanagari",
+  IAST: "iast",
+  SLP1: "slp1",
+  ITRANS: "itrans",
+} as const;

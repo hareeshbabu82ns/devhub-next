@@ -17,12 +17,11 @@ import {
   InMemoryDictionaryWordDatabase,
   saveDictionaryWordsBulk,
 } from "../dictionary-database";
-import { DictionaryName } from "../dictionary-constants";
 import {
-  convertLexiconHtmlToMarkdown,
-  TagHandler,
+  DictionaryName,
   TRANSLITERATION_SCHEMES,
-} from "../lexicon-utils";
+} from "../dictionary-constants";
+import { convertLexiconHtmlToMarkdown, TagHandler } from "../lexicon-utils";
 
 describe("Dictionary Processor", () => {
   let mockTableMetadata: TableMetadata;
@@ -483,7 +482,7 @@ describe("Dictionary Database Operations", () => {
       const expected = "**header** some data";
 
       const result = convertLexiconHtmlToMarkdown(
-        "test",
+        "ae",
         html,
         "",
         TRANSLITERATION_SCHEMES.DEVANAGARI,

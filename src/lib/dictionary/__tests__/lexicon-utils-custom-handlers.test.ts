@@ -5,10 +5,10 @@
 import {
   LexiconHTMLParser,
   convertLexiconHtmlToMarkdown,
-  TRANSLITERATION_SCHEMES,
   type TagHandler,
   type CustomTagReplacement,
 } from "@/lib/dictionary/lexicon-utils";
+import { TRANSLITERATION_SCHEMES } from "../dictionary-constants";
 
 describe("LexiconHTMLParser Custom Tag Handlers", () => {
   let parser: LexiconHTMLParser;
@@ -24,7 +24,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -41,7 +41,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -67,7 +67,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -86,7 +86,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -108,7 +108,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -134,7 +134,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -163,7 +163,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -191,7 +191,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -215,7 +215,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
         "<h1>Header</h1><h2>Subheader</h2><strong>bold text</strong>";
 
       const result = convertLexiconHtmlToMarkdown(
-        "test",
+        "ae",
         html,
         "",
         TRANSLITERATION_SCHEMES.DEVANAGARI,
@@ -233,7 +233,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       const html = "<h1>Custom</h1><h2>Default</h2><strong>Bold</strong>";
 
       const result = convertLexiconHtmlToMarkdown(
-        "test",
+        "ae",
         html,
         "",
         TRANSLITERATION_SCHEMES.DEVANAGARI,
@@ -255,7 +255,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -276,7 +276,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 
@@ -293,7 +293,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
   describe("Error handling and edge cases", () => {
     it("should handle empty custom handlers gracefully", () => {
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: {},
       });
 
@@ -305,7 +305,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
 
     it("should handle null/undefined custom handlers", () => {
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: undefined,
       });
 
@@ -323,7 +323,7 @@ describe("LexiconHTMLParser Custom Tag Handlers", () => {
       };
 
       parser.init({
-        dictionary: "test",
+        dictionary: "ae",
         customTagHandlers: customHandlers,
       });
 

@@ -409,6 +409,37 @@ const ignoreHandler: TagHandler = ($, element, parser) => {
   parser.addToMarkdown("");
 };
 
+const infoHandler: TagHandler = ($, element, parser) => {
+  const tag = element.prop("tagName")?.toLowerCase();
+  const text = element.text();
+  const attrs = element.attr();
+  const config = parser.getConfig();
+
+  // console.log(
+  //   `Processing tag: ${tag}, text: ${text}, attrs: ${JSON.stringify(attrs)}`,
+  // );
+  if (attrs) {
+    parser.addToMarkdown(` (${tag}:`);
+    for (const attrName in attrs) {
+      const attrValue = attrs[attrName].trim();
+      if (attrValue === "" || ["lex"].includes(attrName)) {
+        // Ignore these tags
+      } else if (["or", "verb", "parse"].includes(attrName)) {
+        // "cp" ??
+        const finalData = convertText(
+          attrValue,
+          config.fromLang,
+          config.toLang,
+        );
+        parser.addToMarkdown(` ${attrName}: __${finalData}__ `);
+      } else {
+        parser.addToMarkdown(`${attrName}: ${attrValue} `);
+      }
+    }
+    parser.addToMarkdown(` ${text} ) `);
+  }
+};
+
 const keyHandler: TagHandler = ($, element, parser) => {
   // const tag = element.prop("tagName")?.toLowerCase();
   const currentKeyText = element.text();
@@ -447,4 +478,6 @@ const customDictionaryWordHandlers = {
   tail: ignoreHandler,
   l: ignoreHandler,
   pc: ignoreHandler,
+  info: infoHandler,
+  vlex: infoHandler,
 };
