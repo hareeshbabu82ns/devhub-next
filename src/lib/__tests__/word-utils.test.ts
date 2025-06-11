@@ -2,6 +2,7 @@
  * Tests for Dictionary Word Utilities
  */
 
+import { LanguageValueType } from "@/app/generated/prisma";
 import {
   generatePhoneticString,
   getTransliteratedWords,
@@ -10,7 +11,6 @@ import {
   STOP_WORDS,
   SPECIAL_CHARS_PATTERN,
   NUMBER_PATTERN,
-  type LanguageValueType,
 } from "../dictionary/word-utils";
 
 describe("Dictionary Word Utilities", () => {

@@ -529,8 +529,8 @@ export function extractMeaningfulWords(
 
   const meaningfulWords: string[] = [];
   for (const word of words) {
-    // Skip if word is too short (less than 2 characters)
-    if (word.length < 2) {
+    // Skip if word is too short (less than 3 characters)
+    if (word.length < 3) {
       continue;
     }
 

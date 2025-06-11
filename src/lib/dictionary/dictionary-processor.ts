@@ -19,7 +19,7 @@ import {
   SANSCRIPT_LANGS_TO_DB,
 } from "./dictionary-constants";
 import sanscript from "@indic-transliteration/sanscript";
-import { convertLexiconHtmlToMarkdown } from "./lexicon-utils";
+import { convertLexiconHtmlToMarkdown, TagHandler } from "./lexicon-utils";
 
 /**
  * SQLite row data structure
@@ -73,7 +73,11 @@ export interface ProcessingOptions {
 /**
  * Convert text from one script to another using sanscript
  */
-function convertText(text: string, from = "slp1", to = "itrans"): string {
+export function convertText(
+  text: string,
+  from = "slp1",
+  to = "itrans",
+): string {
   try {
     return sanscript.t(text, from, to);
   } catch (error) {
@@ -159,7 +163,13 @@ function getDescriptionTranscripts(
     // HTML processing needed but not transliteration
     let value = text;
     if (options.includeHtmlProcessing || isHtml) {
-      value = convertLexiconHtmlToMarkdown(dictName, text, word);
+      value = convertLexiconHtmlToMarkdown(
+        dictName,
+        text,
+        word,
+        undefined,
+        customDictionaryWordHandlers,
+      );
     }
     const valueTrimmed = value.trim();
     data.push({
@@ -181,7 +191,13 @@ function getDescriptionTranscripts(
     for (const lang of SANSCRIPT_LANGS) {
       let value = text;
       if (options.includeHtmlProcessing || isHtml) {
-        value = convertLexiconHtmlToMarkdown(dictName, text, word, lang);
+        value = convertLexiconHtmlToMarkdown(
+          dictName,
+          text,
+          word,
+          lang,
+          customDictionaryWordHandlers,
+        );
       } else {
         // Simple transliteration without HTML processing
         value = convertText(text, "slp1", lang);
@@ -205,8 +221,10 @@ function extractWordAndDescription(
   dictName: DictionaryName,
   tableMetadata: TableMetadata,
 ): { word: string; description: string } {
-  const wordFieldName = LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName];
-  const descFieldName = LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName];
+  const wordFieldName =
+    tableMetadata.wordFieldName || LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName];
+  const descFieldName =
+    tableMetadata.descFieldName || LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName];
 
   let word = "";
   let description = "";
@@ -277,8 +295,10 @@ export function processDictionaryWordRow(
   // Build source data object
   const sourceData = {
     data: rowData,
-    wordField: LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName],
-    descriptionField: LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName],
+    wordField:
+      tableMetadata.wordFieldName || LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName],
+    descriptionField:
+      tableMetadata.descFieldName || LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName],
     ...languageSettings,
   };
 
@@ -346,14 +366,16 @@ export function validateRowData(
 ): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  const wordFieldName = LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName];
+  const wordFieldName =
+    tableMetadata.wordFieldName || LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName];
   if (!wordFieldName || !(wordFieldName in rowData)) {
     errors.push(
       `Missing word field '${wordFieldName}' for dictionary '${dictName}'`,
     );
   }
 
-  const descFieldName = LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName];
+  const descFieldName =
+    tableMetadata.descFieldName || LEXICON_ALL_TABLE_DESC_FIELD_MAP[dictName];
   if (!descFieldName) {
     errors.push(
       `Missing description field configuration for dictionary '${dictName}'`,
@@ -369,3 +391,60 @@ export function validateRowData(
     errors,
   };
 }
+
+/**
+ * DictionaryWord Lexicon Tag Handler Helpers
+ */
+
+const divHandler: TagHandler = ($, element, parser) => {
+  const attrN = element.attr("n") as string;
+  if (attrN && ["lb", "NI"].includes(attrN)) {
+    parser.addToMarkdown("  \n");
+  } else {
+  }
+  parser.processElement($, element);
+};
+
+const ignoreHandler: TagHandler = ($, element, parser) => {
+  parser.addToMarkdown("");
+};
+
+const keyHandler: TagHandler = ($, element, parser) => {
+  // const tag = element.prop("tagName")?.toLowerCase();
+  const currentKeyText = element.text();
+  const configKeyText = parser.getConfig().keyWord;
+  if (currentKeyText === configKeyText) {
+    parser.addToMarkdown("");
+  } else {
+    parser.addToMarkdown("**");
+    parser.processElement($, element);
+    parser.addToMarkdown("**  \n");
+  }
+};
+
+const customDictionaryWordHandlers = {
+  h1: {
+    open: "",
+    close: "",
+  },
+  h: {
+    open: "",
+    close: "",
+  },
+  key1: keyHandler,
+  key2: keyHandler,
+  body: "  \n",
+  lb: "  \n",
+  div: divHandler,
+  b: {
+    open: "",
+    close: "",
+  },
+  ab: {
+    open: " `",
+    close: "` ",
+  },
+  tail: ignoreHandler,
+  l: ignoreHandler,
+  pc: ignoreHandler,
+};

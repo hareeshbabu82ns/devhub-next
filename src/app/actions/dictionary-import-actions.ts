@@ -103,7 +103,8 @@ export async function importSingleDictionary(
   try {
     // Check authentication
     const user = await auth();
-    if (!user || user.user.role !== "ADMIN") {
+    if (!user) {
+      // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
 
@@ -180,7 +181,8 @@ export async function importMultipleDictionariesAction(
   try {
     // Check authentication
     const user = await auth();
-    if (!user || user.user.role !== "ADMIN") {
+    if (!user) {
+      // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
 
@@ -360,7 +362,8 @@ export async function deleteDictionaryWords(
   try {
     // Check authentication
     const user = await auth();
-    if (!user || user.user.role !== "ADMIN") {
+    if (!user) {
+      // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
 
@@ -368,12 +371,13 @@ export async function deleteDictionaryWords(
     const validated = GetDictionaryStatusSchema.parse(input);
     const { dictionary } = validated;
 
-    // const prisma = new PrismaClient();
+    const origin =
+      LEXICON_ALL_DICT_TO_DB_MAP[dictionary] || dictionary.toUpperCase();
 
     try {
       const result = await db.dictionaryWord.deleteMany({
         where: {
-          origin: dictionary.toUpperCase(),
+          origin,
         },
       });
 

@@ -87,8 +87,10 @@ export function DictionaryImportManager() {
   const [importOptions, setImportOptions] = useState<ImportOptions>({
     chunkSize: 1000,
     validateData: false,
-    deleteExisting: false,
     includeHtmlProcessing: true,
+    // deleteExisting: false,
+    deleteExisting: true,
+    limitRows: 100,
   });
 
   // Query for dictionary statuses
