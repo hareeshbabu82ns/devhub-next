@@ -14,6 +14,7 @@ import {
   deleteDictItem,
   readDictItem,
   updateDictItem,
+  reprocessSingleDictionaryWord,
 } from "../actions";
 import { Prisma } from "@/app/generated/prisma";
 import { useLanguageAtomValue } from "@/hooks/use-config";
@@ -128,6 +129,19 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
     },
   });
 
+  const {
+    mutateAsync: reprocessDictItemFn,
+    isPending: reprocessLoading,
+    error: reprocessDictItemError,
+  } = useMutation({
+    mutationKey: ["reprocessDictItem", dictionaryId],
+    mutationFn: async () => {
+      if (!dictionaryId) throw new Error("No dictionary ID provided");
+      const res = await reprocessSingleDictionaryWord(dictionaryId);
+      return res;
+    },
+  });
+
   const onDelete = useMemo(
     () => async () => {
       if (!dictionaryId) return;
@@ -142,6 +156,26 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
       });
     },
     [dictionaryId],
+  );
+
+  const onReprocess = useMemo(
+    () => async () => {
+      if (!dictionaryId) return;
+      await reprocessDictItemFn(undefined, {
+        onSuccess: (data) => {
+          if (data.status === "success") {
+            toast.success("Dictionary word reprocessed successfully");
+            refetch();
+          } else {
+            toast.error(data.error || "Error reprocessing dictionary word");
+          }
+        },
+        onError: (error) => {
+          toast.error("Error reprocessing dictionary word");
+        },
+      });
+    },
+    [dictionaryId, refetch],
   );
 
   const onSubmit = useMemo(
@@ -210,11 +244,13 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
         data={item}
         onSubmit={onSubmit}
         onDelete={isNew ? undefined : onDelete}
+        onReprocess={isNew ? undefined : onReprocess}
         // onRefresh={() => {
         //   refetch();
         //   setRefreshCount((refreshCount) => refreshCount + 1);
         // }}
         updating={createLoading || updateLoading}
+        reprocessing={reprocessLoading}
       />
     </div>
   );

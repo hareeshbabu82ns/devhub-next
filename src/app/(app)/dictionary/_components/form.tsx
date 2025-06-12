@@ -14,6 +14,7 @@ import {
   Trash2Icon as DeleteIcon,
   ChevronLeft as BackIcon,
   RefreshCcw as RefreshIcon,
+  RotateCcwIcon as ReprocessIcon,
 } from "lucide-react";
 import FormLanguageValueList from "@/components/inputs/FormLanguageValueList";
 import FormSelect from "@/components/inputs/FormSelect";
@@ -35,6 +36,8 @@ interface DictionaryItemFormProps {
   onRefresh?: () => void;
   onSubmit?: (data: Partial<z.infer<typeof DictItemFormSchema>>) => void;
   onDelete?: () => void;
+  onReprocess?: () => void;
+  reprocessing?: boolean;
 }
 
 const DictionaryItemForm = ({
@@ -44,6 +47,8 @@ const DictionaryItemForm = ({
   onSubmit: onFormSubmit,
   onRefresh,
   onDelete,
+  onReprocess,
+  reprocessing = false,
 }: DictionaryItemFormProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -192,6 +197,17 @@ const DictionaryItemForm = ({
         >
           <RefreshIcon className="size-4 mr-2" />
           Refetch
+        </Button>
+      )}
+      {itemId && onReprocess && (
+        <Button
+          type="button"
+          disabled={updating || reprocessing}
+          onClick={onReprocess}
+          variant="outline"
+        >
+          <ReprocessIcon className="size-4 mr-2" />
+          {reprocessing ? "Reprocessing..." : "Reprocess"}
         </Button>
       )}
       <Button

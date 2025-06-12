@@ -47,6 +47,7 @@ import {
   importMultipleDictionariesAction,
   getAllDictionaryStatuses,
   deleteDictionaryWords,
+  reprocessDictionaryWords,
   type DictionaryStatus,
 } from "@/app/actions/dictionary-import-actions";
 import {
@@ -205,6 +206,31 @@ export function DictionaryImportManager() {
     onError: (error) => {
       toast({
         title: "Delete Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Reprocess dictionary mutation
+  const reprocessMutation = useMutation({
+    mutationFn: async (dictionary: DictionaryName) => {
+      const result = await reprocessDictionaryWords({ dictionary });
+      if (result.status === "error") {
+        throw new Error(result.error);
+      }
+      return result.data;
+    },
+    onSuccess: (data, dictionary) => {
+      toast({
+        title: "Reprocessing Successful",
+        description: `${dictionary}: ${data.processedCount.toLocaleString()} words reprocessed, ${data.updatedCount.toLocaleString()} updated`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["dictionary-statuses"] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Reprocessing Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -509,6 +535,27 @@ export function DictionaryImportManager() {
                           %
                         </span>
                       </div>
+                    )}
+
+                    {status.wordCount > 0 && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          reprocessMutation.mutate(status.dictionary)
+                        }
+                        disabled={reprocessMutation.isPending}
+                        title="Reprocess existing dictionary words using updated processing logic"
+                      >
+                        {reprocessMutation.isPending ? (
+                          <>
+                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                            Reprocessing...
+                          </>
+                        ) : (
+                          "ReProcess"
+                        )}
+                      </Button>
                     )}
 
                     {status.sqliteFileExists ? (

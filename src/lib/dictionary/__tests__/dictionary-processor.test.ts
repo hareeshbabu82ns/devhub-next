@@ -3,6 +3,9 @@
  *
  * This test suite demonstrates the testability of the separated dictionary
  * processing logic without requiring actual database connections.
+ *
+ * $>  pnpm test:watch '/home/hareesh/dev/devhub-next/src/lib/dictionary/__tests__/dictionary-processor.test.ts'
+ *
  */
 
 import {
@@ -11,7 +14,6 @@ import {
   validateRowData,
   SqliteRowData,
   TableMetadata,
-  convertText,
 } from "../dictionary-processor";
 import {
   InMemoryDictionaryWordDatabase,
@@ -19,9 +21,16 @@ import {
 } from "../dictionary-database";
 import {
   DictionaryName,
+  LEXICON_ALL_DICT,
+  LEXICON_ALL_DICT_TO_DB_MAP,
   TRANSLITERATION_SCHEMES,
 } from "../dictionary-constants";
 import { convertLexiconHtmlToMarkdown, TagHandler } from "../lexicon-utils";
+import {
+  reprocessDictionaryWordData,
+  ReprocessWordData,
+} from "../reprocess-utils";
+import { dictionaryReProcessTestData } from "./dictionary-test-data";
 
 describe("Dictionary Processor", () => {
   let mockTableMetadata: TableMetadata;
@@ -461,6 +470,83 @@ describe("Dictionary Database Operations", () => {
       const allWords = database.getAllWords();
       expect(allWords).toHaveLength(1);
       expect(allWords[0].word[0].value).toBe("new_word");
+    });
+  });
+
+  describe("Reprocess Validation reprocessDictionaryWordData", () => {
+    LEXICON_ALL_DICT.forEach((dict) => {
+      const testData: any[] = dictionaryReProcessTestData[dict];
+      if (!testData) {
+        return;
+      }
+      for (const test of testData) {
+        it(`should prepare DB data from sourceData of ${dict} - ${test.scenario}`, () => {
+          const sourceData = test.sourceData;
+          const expectedData: any = test.expectedData;
+          const wordData: ReprocessWordData = {
+            id: "test_id",
+            sourceData,
+          };
+
+          const result = reprocessDictionaryWordData([wordData], dict)[0];
+
+          // console.log(result[0].processedWord);
+          expect(result.originalWord.id).toBe("test_id");
+          expect(result.originalWord.sourceData).toEqual(sourceData);
+          expect(result.processedWord.origin).toBe(
+            expectedData.origin, //LEXICON_ALL_DICT_TO_DB_MAP[dict],
+          );
+          expect(result.processedWord.wordIndex).toBe(1); // should not depend on wordLnum
+          expect(result.processedWord.phonetic).toEqual(expectedData.phonetic);
+          if (expectedData.wordLnum) {
+            expect(result.processedWord.wordLnum).toEqual(
+              expectedData.wordLnum,
+            );
+          }
+
+          expect(result.processedWord.word).toMatchObject(expectedData.word);
+          expect(result.processedWord.description).toMatchObject(
+            expectedData.description,
+          );
+
+          // const wordLanguages: string[] = test.wordLanguages || [
+          //   "SAN",
+          //   "ITRANS",
+          //   "IAST",
+          //   "SLP1",
+          //   "TEL",
+          // ];
+          // const descriptionLanguages: string[] = test.descriptionLanguages || [
+          //   "SAN",
+          //   "ITRANS",
+          //   "IAST",
+          //   "SLP1",
+          //   "TEL",
+          // ];
+          // wordLanguages.forEach((lang) => {
+          //   // check words
+          //   const processedWord = result.processedWord.word.find(
+          //     (w: any) => w.language === lang,
+          //   );
+          //   const expectedWord = expectedData.word.find(
+          //     (w: any) => w.language === lang,
+          //   );
+          //   expect(processedWord).toBeDefined();
+          //   expect(processedWord.value).toBe(expectedWord.value);
+          // });
+          // descriptionLanguages.forEach((lang) => {
+          //   // check descriptions
+          //   const processedDesc = result.processedWord.description.find(
+          //     (d: any) => d.language === lang,
+          //   );
+          //   const expectedDesc = expectedData.description.find(
+          //     (d: any) => d.language === lang,
+          //   );
+          //   expect(processedDesc).toBeDefined();
+          //   expect(processedDesc.value).toBe(expectedDesc.value);
+          // });
+        });
+      }
     });
   });
 

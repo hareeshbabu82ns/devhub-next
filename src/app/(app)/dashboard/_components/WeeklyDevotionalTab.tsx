@@ -324,7 +324,7 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
           </p>
           <p className="text-sm">
             Use the search button above to add STHOTRAM and PURANAM entities to
-            this day's collection.
+            this day&apos;s collection.
           </p>
         </div>
       )}

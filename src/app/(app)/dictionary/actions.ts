@@ -16,6 +16,40 @@ import {
   validateSearchParams,
   withSearchMetrics,
 } from "./search-utils";
+import { processDictionaryWordRows } from "@/lib/dictionary/dictionary-processor";
+import {
+  DictionaryName,
+  LEXICON_ALL_DICT_TO_DB_MAP,
+} from "@/lib/dictionary/dictionary-constants";
+import {
+  reprocessDictionaryWordData,
+  prepareProcessedWordUpdates,
+  ReprocessWordData,
+  ReprocessResult,
+} from "@/lib/dictionary/reprocess-utils";
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+
+// Response types for reprocess action
+export type ReprocessWordResponse<T = unknown> =
+  | { status: "success"; data: T }
+  | { status: "error"; error: string };
+
+/**
+ * Shared utility for updating processed words in database
+ */
+async function updateProcessedWords(results: ReprocessResult[]): Promise<void> {
+  const updates = prepareProcessedWordUpdates(results);
+
+  const updatePromises = updates.map(({ id, data }) => {
+    return db.dictionaryWord.update({
+      where: { id },
+      data,
+    });
+  });
+
+  await Promise.all(updatePromises);
+}
 
 export const deleteDictItem = async (
   id: DictionaryWord["id"],
@@ -264,3 +298,84 @@ export const searchDictionary = async ({
     }
   });
 };
+
+/**
+ * Reprocess a single dictionary word using processDictionaryWordRows
+ */
+export async function reprocessSingleDictionaryWord(
+  wordId: string,
+): Promise<ReprocessWordResponse<{ updated: boolean }>> {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session) {
+      return { status: "error", error: "Authentication required" };
+    }
+
+    console.log(`Starting reprocessing for word ID: ${wordId}`);
+
+    // Fetch the dictionary word from database
+    const dictionaryWord = await db.dictionaryWord.findUnique({
+      where: { id: wordId },
+      select: {
+        id: true,
+        origin: true,
+        sourceData: true,
+      },
+    });
+
+    if (!dictionaryWord) {
+      return { status: "error", error: "Dictionary word not found" };
+    }
+
+    // Extract origin and determine dictionary name
+    const origin = dictionaryWord.origin;
+
+    // Find the dictionary name that maps to this origin
+    const dictionaryEntry = Object.entries(LEXICON_ALL_DICT_TO_DB_MAP).find(
+      ([_, dbOrigin]) => dbOrigin === origin,
+    );
+
+    if (!dictionaryEntry) {
+      return { status: "error", error: `Unknown dictionary origin: ${origin}` };
+    }
+
+    const dictionary = dictionaryEntry[0] as DictionaryName;
+
+    console.log(
+      `Processing word from dictionary: ${dictionary} (origin: ${origin})`,
+    );
+
+    // Prepare row data for processing
+    const wordData: ReprocessWordData = {
+      id: wordId,
+      sourceData: dictionaryWord.sourceData,
+    };
+
+    // Process the single word
+    const results = await reprocessDictionaryWordData([wordData], dictionary);
+
+    if (results.length === 0) {
+      return { status: "error", error: "Failed to process word" };
+    }
+
+    // Update the word in database
+    await updateProcessedWords(results);
+
+    // Revalidate dictionary pages
+    revalidatePath("/dictionary");
+    revalidatePath(`/dictionary/${wordId}`);
+    revalidatePath(`/dictionary/${wordId}/edit`);
+
+    console.log(`Word reprocessing completed for ID: ${wordId}`);
+
+    return {
+      status: "success",
+      data: { updated: true },
+    };
+  } catch (error) {
+    console.error("Failed to reprocess dictionary word:", error);
+
+    return { status: "error", error: "Failed to reprocess dictionary word" };
+  }
+}

@@ -8,7 +8,7 @@
 /**
  * List of all supported dictionary names
  */
-export const LEXICON_ALL_DICT = [
+export const LEXICON_ALL_DICT: string[] = [
   "ae",
   "acc",
   "ap90",
@@ -159,6 +159,7 @@ export const DICTIONARY_LANGUAGE_MAPPING: Record<
   string,
   { wordLang: string; descriptionLang: string }
 > = {
+  acc: { wordLang: "SLP1", descriptionLang: "ENG" },
   eng2te: { wordLang: "ENG", descriptionLang: "TEL" },
   eng2en: { wordLang: "ENG", descriptionLang: "ENG" },
   pe: { wordLang: "SLP1", descriptionLang: "ENG" },

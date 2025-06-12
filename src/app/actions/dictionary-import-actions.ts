@@ -22,9 +22,15 @@ import {
   LEXICON_ALL_DICT,
   LEXICON_ALL_DICT_TO_DB_MAP,
 } from "@/lib/dictionary/dictionary-constants";
+import {
+  reprocessDictionaryWordData,
+  prepareProcessedWordUpdates,
+  ReprocessWordData,
+} from "@/lib/dictionary/reprocess-utils";
 import { resolve } from "path";
 import { auth } from "@/lib/auth";
 import config from "@/config";
+import { processDictionaryWordRows } from "@/lib/dictionary/dictionary-processor";
 
 // Response types for server actions
 export type DictionaryImportResponse<T = unknown> =
@@ -33,9 +39,7 @@ export type DictionaryImportResponse<T = unknown> =
 
 // Validation schemas
 const ImportSingleDictionarySchema = z.object({
-  dictionary: z.enum(
-    LEXICON_ALL_DICT as readonly [DictionaryName, ...DictionaryName[]],
-  ),
+  dictionary: z.enum(LEXICON_ALL_DICT as [DictionaryName, ...DictionaryName[]]),
   options: z
     .object({
       limitRows: z.number().int().positive().optional(),
@@ -49,11 +53,7 @@ const ImportSingleDictionarySchema = z.object({
 
 const ImportMultipleDictionariesSchema = z.object({
   dictionaries: z
-    .array(
-      z.enum(
-        LEXICON_ALL_DICT as readonly [DictionaryName, ...DictionaryName[]],
-      ),
-    )
+    .array(z.enum(LEXICON_ALL_DICT as [DictionaryName, ...DictionaryName[]]))
     .min(1, "At least one dictionary must be specified"),
   options: z
     .object({
@@ -67,9 +67,7 @@ const ImportMultipleDictionariesSchema = z.object({
 });
 
 const GetDictionaryStatusSchema = z.object({
-  dictionary: z.enum(
-    LEXICON_ALL_DICT as readonly [DictionaryName, ...DictionaryName[]],
-  ),
+  dictionary: z.enum(LEXICON_ALL_DICT as [DictionaryName, ...DictionaryName[]]),
 });
 
 // Types
@@ -400,5 +398,124 @@ export async function deleteDictionaryWords(
     }
 
     return { status: "error", error: "Failed to delete dictionary words" };
+  }
+}
+
+/**
+ * Reprocess existing dictionary words using processDictionaryWordRows in chunks
+ */
+export async function reprocessDictionaryWords(
+  input: z.infer<typeof GetDictionaryStatusSchema>,
+): Promise<
+  DictionaryImportResponse<{ processedCount: number; updatedCount: number }>
+> {
+  try {
+    // Check authentication
+    const user = await auth();
+    if (!user) {
+      return { status: "error", error: "Authentication required" };
+    }
+
+    // Validate input
+    const validated = GetDictionaryStatusSchema.parse(input);
+    const { dictionary } = validated;
+
+    const origin =
+      LEXICON_ALL_DICT_TO_DB_MAP[dictionary] || dictionary.toUpperCase();
+    const CHUNK_SIZE = 1000;
+
+    console.log(
+      `Starting reprocessing for dictionary: ${dictionary} (origin: ${origin})`,
+    );
+
+    try {
+      let totalProcessed = 0;
+      let totalUpdated = 0;
+      let skip = 0;
+
+      while (true) {
+        // Fetch a chunk of dictionary words from Prisma
+        const dictionaryWords = await db.dictionaryWord.findMany({
+          where: { origin },
+          orderBy: { wordIndex: "asc" },
+          take: CHUNK_SIZE,
+          skip,
+          select: {
+            id: true,
+            sourceData: true,
+          },
+        });
+
+        if (dictionaryWords.length === 0) {
+          break; // No more records
+        }
+
+        console.log(
+          `Processing chunk: ${skip + 1} to ${skip + dictionaryWords.length}`,
+        );
+
+        // Prepare word data for shared reprocessing function
+        const wordsToReprocess: ReprocessWordData[] = dictionaryWords.map(
+          (word) => ({
+            id: word.id,
+            sourceData: word.sourceData,
+          }),
+        );
+
+        // Use shared reprocessing logic
+        const results = await reprocessDictionaryWordData(
+          wordsToReprocess,
+          dictionary,
+        );
+
+        // Prepare updates using shared utility
+        const updates = prepareProcessedWordUpdates(results);
+
+        // Update the words in chunks
+        const updatePromises = updates.map(({ id, data }) => {
+          return db.dictionaryWord.update({
+            where: { id },
+            data,
+          });
+        });
+
+        await Promise.all(updatePromises);
+
+        totalProcessed += dictionaryWords.length;
+        totalUpdated += results.length;
+        skip += CHUNK_SIZE;
+
+        console.log(`Chunk completed. Total processed: ${totalProcessed}`);
+      }
+
+      // Revalidate dictionary pages
+      revalidatePath("/dictionary");
+      revalidatePath(`/dictionary/${dictionary}`);
+
+      console.log(
+        `Reprocessing completed for ${dictionary}: ${totalProcessed} words processed, ${totalUpdated} updated`,
+      );
+
+      return {
+        status: "success",
+        data: {
+          processedCount: totalProcessed,
+          updatedCount: totalUpdated,
+        },
+      };
+    } finally {
+      // Cleanup if needed
+    }
+  } catch (error) {
+    console.error("Failed to reprocess dictionary words:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "error",
+        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+      };
+    }
+
+    return { status: "error", error: "Failed to reprocess dictionary words" };
   }
 }
