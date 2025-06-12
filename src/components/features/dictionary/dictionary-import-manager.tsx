@@ -57,6 +57,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { Icons } from "@/components/utils/icons";
 import { DICTIONARY_ORIGINS_DDLB } from "@/app/(app)/dictionary/utils";
+import { SqliteFileUpload } from "./sqlite-file-upload";
 
 interface ImportProgress {
   dictionary: string;
@@ -275,7 +276,14 @@ export function DictionaryImportManager() {
 
   const getStatusBadge = (status: DictionaryStatus) => {
     if (!status.sqliteFileExists) {
-      return <Badge variant="destructive">SQLite Missing</Badge>;
+      return (
+        <Badge variant="destructive">
+          {status.wordCount === 0
+            ? "No Words"
+            : status.wordCount.toLocaleString() + " Words"}{" "}
+          (SQLite Missing)
+        </Badge>
+      );
     }
     if (status.wordCount === 0) {
       return <Badge variant="secondary">Not Imported</Badge>;
@@ -503,25 +511,36 @@ export function DictionaryImportManager() {
                       </div>
                     )}
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSingleImport(status.dictionary)}
-                      disabled={
-                        !status.sqliteFileExists ||
-                        singleImportMutation.isPending ||
-                        importProgress[status.dictionary]?.isActive
-                      }
-                    >
-                      {importProgress[status.dictionary]?.isActive ? (
-                        <>
-                          <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                          Importing...
-                        </>
-                      ) : (
-                        "Import"
-                      )}
-                    </Button>
+                    {status.sqliteFileExists ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSingleImport(status.dictionary)}
+                        disabled={
+                          singleImportMutation.isPending ||
+                          importProgress[status.dictionary]?.isActive
+                        }
+                      >
+                        {importProgress[status.dictionary]?.isActive ? (
+                          <>
+                            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                            Importing...
+                          </>
+                        ) : (
+                          "Import"
+                        )}
+                      </Button>
+                    ) : (
+                      <SqliteFileUpload
+                        dictionary={status.dictionary}
+                        onUploadSuccess={() => {
+                          queryClient.invalidateQueries({
+                            queryKey: ["dictionary-statuses"],
+                          });
+                        }}
+                        disabled={singleImportMutation.isPending}
+                      />
+                    )}
 
                     {status.wordCount > 0 && (
                       <Button

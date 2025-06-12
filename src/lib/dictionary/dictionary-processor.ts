@@ -453,6 +453,20 @@ const keyHandler: TagHandler = ($, element, parser) => {
   }
 };
 
+const s1Handler: TagHandler = ($, element, parser) => {
+  const tag = element.prop("tagName")?.toLowerCase();
+  const text = element.text();
+  const slpAttr = element.attr("slp1");
+  const config = parser.getConfig();
+  if (slpAttr) {
+    const convertedText = convertText(slpAttr, "slp1", config.toLang);
+    parser.addToMarkdown(` __${convertedText}__ `);
+  } else {
+    const convertedText = convertText(text, "iast", config.toLang);
+    parser.addToMarkdown(` __${convertedText}__ `);
+  }
+};
+
 const customDictionaryWordHandlers = {
   h1: {
     open: "",
@@ -462,6 +476,7 @@ const customDictionaryWordHandlers = {
     open: "",
     close: "",
   },
+  s1: s1Handler,
   key1: keyHandler,
   key2: keyHandler,
   body: "  \n",
