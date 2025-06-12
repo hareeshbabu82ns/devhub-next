@@ -98,7 +98,7 @@ const BookmarkedEntitiesGrid = () => {
     if (!entity) return;
     const parent =
       entity?.parents && entity.parents[0] ? entity.parents[0] : entity;
-    const url = `/entities/${parent.id}`;
+    const url = `/entities/${parent.id}/child/${entity.id}`;
     if (ENTITY_TYPES_CHILDREN[parent.type]?.length > 0) router.push(url);
   };
 

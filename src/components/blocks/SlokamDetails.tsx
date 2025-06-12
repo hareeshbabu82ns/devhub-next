@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
-import { readEntity } from "@/app/(app)/entities/actions";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { bookmarkEntity, readEntity } from "@/app/(app)/entities/actions";
 import Loader from "../utils/loader";
 import SimpleAlert from "../utils/SimpleAlert";
 import { cn } from "@/lib/utils";
@@ -9,12 +9,17 @@ import { ArtSlokamTile } from "./image-tiles-slokam";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { TileModel } from "@/types/entities";
-import { mapEntityToTileModel } from "@/app/(app)/entities/utils";
+import {
+  mapEntityToTileModel,
+  mapTileModelToEntity,
+} from "@/app/(app)/entities/utils";
 import {
   useLanguageAtomValue,
   useMeaningLanguageAtomValue,
   useTextSizeAtomValue,
 } from "@/hooks/use-config";
+import { Entity } from "@/lib/types";
+import { toast } from "sonner";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
@@ -39,6 +44,20 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
     staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
   });
 
+  const { mutateAsync: onBookmarkClicked } = useMutation({
+    mutationKey: ["entityBookmark"],
+    mutationFn: async (entity: Entity) => {
+      return await bookmarkEntity(
+        entity.id,
+        entity.bookmarked === undefined ? true : !entity.bookmarked,
+      );
+    },
+    onSuccess: (res) => {
+      if (res?.bookmarked) toast.success("Bookmark added");
+      else toast.success("Bookmark removed");
+    },
+  });
+
   if (isLoading || isFetching) return <Loader />;
   if (error) return <SimpleAlert title={error.message} />;
   if (!slokam)
@@ -59,6 +78,9 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
           <p className="text-secondary pb-2">Slokam:</p>
           <ArtSlokamTile
             model={slokamTile}
+            onBookmarkClicked={(model) =>
+              onBookmarkClicked(mapTileModelToEntity(model))
+            }
             className="border-none p-0 hover:bg-transparent"
           />
         </div>

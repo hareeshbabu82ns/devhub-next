@@ -54,6 +54,7 @@ import {
   X,
   Bookmark,
   BookmarkCheck,
+  Heart,
 } from "lucide-react";
 
 // https://react-icons.github.io/react-icons/
@@ -151,6 +152,7 @@ export const Icons = {
   login: LockKeyholeIcon,
   upload: Upload,
   download: Download,
+  heart: Heart,
 
   play: PlayIcon,
   pause: PauseIcon,
