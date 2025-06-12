@@ -24,8 +24,14 @@ import {
   useLanguageAtomValue,
   useQueryLimitAtomValue,
 } from "@/hooks/use-config";
+import { cn } from "@/lib/utils";
 
-const BookmarkedEntitiesGrid = () => {
+interface BookmarkedEntitiesGridProps {
+  className?: string;
+}
+const BookmarkedEntitiesGrid: React.FC<BookmarkedEntitiesGridProps> = ({
+  className,
+}) => {
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
@@ -103,9 +109,9 @@ const BookmarkedEntitiesGrid = () => {
   };
 
   return (
-    <div className="flex flex-1 flex-col mt-4 gap-4 border rounded-sm">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between border-b p-2">
-        <div className="flex items-center gap-2">{"Bookmarks"}</div>
+    <div className={cn("space-y-4", className)}>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold"></h3>
         <div className="flex items-center gap-2">
           <PaginationDDLB
             totalCount={data.total}
@@ -125,7 +131,7 @@ const BookmarkedEntitiesGrid = () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-col gap-4 p-2">
+      <div className="flex flex-col gap-4 p-2 overflow-auto">
         {tiles.map((tile) => (
           <ArtSlokamTile
             key={tile.id}
