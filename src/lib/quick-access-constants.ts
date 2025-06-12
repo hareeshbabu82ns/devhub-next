@@ -4,6 +4,19 @@
  * Constants related to daily and weekly devotional content organization
  */
 
+import { EntityTypeEnum } from "./types";
+
+export const QUICK_ACCESS_ATTRIBUTE_KEY = "quickAccess";
+export const QUICK_ACCESS_ENTITIES = [
+  "DANDAKAM",
+  "ITIHASAM",
+  "OTHERS",
+  "PURANAM",
+  "STHOTRAM",
+  "VRATHAM",
+  "KEERTHANAM",
+] as EntityTypeEnum[];
+
 export const DAYS_OF_WEEK = [
   "Sunday",
   "Monday",
@@ -26,7 +39,7 @@ export const DAYS_OF_WEEK_SHORT = [
   "Sat",
 ] as const;
 
-export const DEVOTIONAL_CATEGORIES = {
+export const QUICK_ACCESS_CATEGORIES = {
   EVERYDAY: "EVERYDAY",
   SUNDAY: "SUNDAY",
   MONDAY: "MONDAY",
@@ -37,18 +50,18 @@ export const DEVOTIONAL_CATEGORIES = {
   SATURDAY: "SATURDAY",
 } as const;
 
-export type DevotionalCategory =
-  (typeof DEVOTIONAL_CATEGORIES)[keyof typeof DEVOTIONAL_CATEGORIES];
+export type QuickAccessCategory =
+  (typeof QUICK_ACCESS_CATEGORIES)[keyof typeof QUICK_ACCESS_CATEGORIES];
 
-// Map day index to devotional category
-export const DAY_INDEX_TO_CATEGORY: Record<number, DevotionalCategory> = {
-  0: DEVOTIONAL_CATEGORIES.SUNDAY,
-  1: DEVOTIONAL_CATEGORIES.MONDAY,
-  2: DEVOTIONAL_CATEGORIES.TUESDAY,
-  3: DEVOTIONAL_CATEGORIES.WEDNESDAY,
-  4: DEVOTIONAL_CATEGORIES.THURSDAY,
-  5: DEVOTIONAL_CATEGORIES.FRIDAY,
-  6: DEVOTIONAL_CATEGORIES.SATURDAY,
+// Map day index to quick access category
+export const DAY_INDEX_TO_CATEGORY: Record<number, QuickAccessCategory> = {
+  0: QUICK_ACCESS_CATEGORIES.SUNDAY,
+  1: QUICK_ACCESS_CATEGORIES.MONDAY,
+  2: QUICK_ACCESS_CATEGORIES.TUESDAY,
+  3: QUICK_ACCESS_CATEGORIES.WEDNESDAY,
+  4: QUICK_ACCESS_CATEGORIES.THURSDAY,
+  5: QUICK_ACCESS_CATEGORIES.FRIDAY,
+  6: QUICK_ACCESS_CATEGORIES.SATURDAY,
 };
 
 // Traditional Hindu deity associations for each day
@@ -83,11 +96,11 @@ export const DAY_DEITY_ASSOCIATIONS = {
 } as const;
 
 // Type for day-specific categories (excluding EVERYDAY)
-export type DaySpecificCategory = Exclude<DevotionalCategory, "EVERYDAY">;
+export type DaySpecificCategory = Exclude<QuickAccessCategory, "EVERYDAY">;
 
 // Helper function to check if a category is day-specific
 export const isDaySpecificCategory = (
-  category: DevotionalCategory,
+  category: QuickAccessCategory,
 ): category is DaySpecificCategory => {
   return category !== "EVERYDAY";
 };

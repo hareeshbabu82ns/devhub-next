@@ -131,7 +131,7 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
             const indentLevel = Math.min(overlapLevel, maxIndent);
 
             return (
-              <Dialog key={`dlg-dayOverview-${schedule.title}`}>
+              <Dialog key={`dlg-dayOverview-${index}`}>
                 <DialogContent
                   className={cn(
                     schedule.negative ? "border-warning" : "border-success",
@@ -146,7 +146,7 @@ const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
                 </DialogContent>
                 <DialogTrigger>
                   <div
-                    key={`dlg-div-${schedule.title}`}
+                    key={`dlg-div-${index}`}
                     className={cn(
                       "absolute w-[150px] p-2 overflow-y-auto no-scrollbar border flex flex-col justify-center bg-card",
                       schedule.negative

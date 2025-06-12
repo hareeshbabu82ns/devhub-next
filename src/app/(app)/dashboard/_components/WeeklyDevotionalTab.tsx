@@ -3,22 +3,21 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchDayOfWeekDevotionalContent,
-  updateEntityDevotionalCategory,
-} from "../devotional-actions";
+  fetchDayOfWeekEntities,
+  updateEntityQuickAccessAttr,
+} from "../actions";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import {
   DAYS_OF_WEEK,
   DAY_DEITY_ASSOCIATIONS,
-  DEVOTIONAL_CATEGORIES,
+  QUICK_ACCESS_CATEGORIES,
   DAY_INDEX_TO_CATEGORY,
-  type DevotionalCategory,
-  type DaySpecificCategory,
+  type QuickAccessCategory,
   isDaySpecificCategory,
-} from "@/lib/devotional-constants";
+  QUICK_ACCESS_ENTITIES,
+} from "@/lib/quick-access-constants";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ArtTile } from "@/components/blocks/image-tiles";
 import { mapEntityToTileModel } from "../../entities/utils";
 import { Entity } from "@/lib/types";
@@ -37,6 +36,9 @@ import {
 import { Icons } from "@/components/utils/icons";
 import { Calendar, Star } from "lucide-react";
 import EntitySearchDlgTrigger from "../../entities/_components/EntitySearchDlgTrigger";
+import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
+import { useQueryLimitAtomValue } from "@/hooks/use-config";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface WeeklyDevotionalTabProps {
   className?: string;
@@ -49,7 +51,11 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
   const language = useLanguageAtomValue();
   const queryClient = useQueryClient();
 
-  const [selectedDay, setSelectedDay] = useState<DevotionalCategory>(
+  const limit = parseInt(useQueryLimitAtomValue());
+  const [page, setPage] = useState(0); // Local pagination state (0-based)
+  const currentPage = page + 1; // Convert to 1-based for UI
+
+  const [selectedDay, setSelectedDay] = useState<QuickAccessCategory>(
     DAY_INDEX_TO_CATEGORY[new Date().getDay()],
   );
 
@@ -62,27 +68,37 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
   // Fetch day-specific devotional content
   const {
     data: dayData,
-    isLoading: dayLoading,
+    isFetching,
+    isLoading,
     error: dayError,
+    refetch,
   } = useQuery({
-    queryKey: ["devotional", "day", selectedDay, language],
+    queryKey: [
+      "devotional",
+      "day",
+      selectedDay,
+      language,
+      { limit, offset: page },
+    ],
     queryFn: async () => {
-      const result = await fetchDayOfWeekDevotionalContent({
+      const result = await fetchDayOfWeekEntities({
         language,
         dayCategory: selectedDay,
+        pageIndex: page,
+        pageSize: limit,
       });
       if (result.status === "error") {
         throw new Error(result.error);
       }
       return result.data;
     },
-    staleTime: 1000 * 60 * 5,
-    enabled: selectedDay !== DEVOTIONAL_CATEGORIES.EVERYDAY,
+    staleTime: QUERY_STALE_TIME_LONG,
+    enabled: selectedDay !== QUICK_ACCESS_CATEGORIES.EVERYDAY,
   });
 
   // Mutation to update devotional category
   const updateCategoryMutation = useMutation({
-    mutationFn: updateEntityDevotionalCategory,
+    mutationFn: updateEntityQuickAccessAttr,
     onSuccess: (result) => {
       if (result.status === "success") {
         toast.success("Quick access category updated");
@@ -103,7 +119,7 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
 
   const handleAddToDevotional = (
     entity: Entity,
-    category: DevotionalCategory,
+    category: QuickAccessCategory,
   ) => {
     updateCategoryMutation.mutate({
       entityId: entity.id,
@@ -121,6 +137,25 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
   const handleWeeklyEntitySelect = (entity: Entity) => {
     handleAddToDevotional(entity, selectedDay);
     setWeeklyDialogOpen(false);
+  };
+
+  // Pagination handlers
+  const paginatePageChangeAction = (newPage: number) => {
+    setPage(newPage - 1); // Convert from 1-based to 0-based
+  };
+
+  const onBackAction = () => {
+    setPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const onFwdAction = () => {
+    setPage((prev) => prev + 1);
+  };
+
+  // Reset pagination when day changes
+  const handleDayChange = (dayCategory: QuickAccessCategory) => {
+    setSelectedDay(dayCategory);
+    setPage(0); // Reset to first page
   };
 
   const renderEntityTile = (entity: Entity, showActions = true) => {
@@ -160,7 +195,7 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
                     e.stopPropagation();
                     handleAddToDevotional(
                       entity,
-                      DEVOTIONAL_CATEGORIES.EVERYDAY,
+                      QUICK_ACCESS_CATEGORIES.EVERYDAY,
                     );
                   }}
                 >
@@ -232,7 +267,7 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
                 key={day}
                 variant={isSelected ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedDay(dayCategory)}
+                onClick={() => handleDayChange(dayCategory)}
                 className={cn(
                   "flex flex-col h-auto p-2",
                   isToday && "ring-2 ring-primary",
@@ -248,16 +283,31 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
         </div>
         <div className="flex items-center gap-2">
           <EntitySearchDlgTrigger
-            forTypes={["STHOTRAM", "PURANAM"]}
+            forTypes={QUICK_ACCESS_ENTITIES}
             open={weeklyDialogOpen}
             onOpenChange={setWeeklyDialogOpen}
             onClick={handleWeeklyEntitySelect}
           />
-          <Badge variant="secondary">{dayData?.total || 0} items</Badge>
+          <PaginationDDLB
+            totalCount={dayData?.total || 0}
+            limit={limit}
+            page={currentPage}
+            onFwdClick={onFwdAction}
+            onBackClick={onBackAction}
+            onPageChange={paginatePageChangeAction}
+          />
+          <Button
+            onClick={() => refetch()}
+            type="button"
+            variant="outline"
+            size="icon"
+          >
+            <Icons.refresh className="size-4" />
+          </Button>
         </div>
       </div>
 
-      {dayLoading && <Loader />}
+      {(isFetching || isLoading) && <Loader />}
       {dayError && <SimpleAlert title="Error loading day-specific content" />}
 
       {dayData && dayData.results.length === 0 && (
@@ -279,7 +329,7 @@ const WeeklyDevotionalTab: React.FC<WeeklyDevotionalTabProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
         {dayData?.results.map((entity) => renderEntityTile(entity))}
       </div>
     </div>

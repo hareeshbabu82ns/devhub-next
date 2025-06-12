@@ -12,20 +12,22 @@ export type LanguageDDLB = {
 };
 
 export type EntityTypeEnum =
-  | "GOD"
-  | "AUTHOR"
-  | "ITIHASAM"
-  | "PURANAM"
-  | "STHOTRAM"
-  | "DANDAKAM"
-  | "KAANDAM"
-  | "SARGA"
-  | "PARVAM"
   | "ADHYAAYAM"
-  | "SLOKAM"
+  | "AUTHOR"
+  | "DANDAKAM"
+  | "GHATTAM"
+  | "GOD"
+  | "ITIHASAM"
+  | "KAANDAM"
+  | "KEERTHANAM"
   | "OTHERS"
+  | "PARVAM"
+  | "PURANAM"
+  | "SARGA"
   | "SKANDAM"
-  | "GHATTAM";
+  | "SLOKAM"
+  | "STHOTRAM"
+  | "VRATHAM";
 
 // export enum EntityTypeEnum {
 //   GOD = "GOD",

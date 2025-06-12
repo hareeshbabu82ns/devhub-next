@@ -1,5 +1,5 @@
 import { Option } from "@/components/ui/multi-select";
-import { EntityTypeEnum } from "./types";
+import { Entity, EntityTypeEnum } from "./types";
 
 export const LS_AUDIO_PLAYER_VOLUME = "audioPlayerVolume";
 
@@ -16,6 +16,10 @@ export const TEXT_SIZE_SELECT_DEFAULT = "md";
 
 export const ENTITY_DEFAULT_IMAGE_THUMBNAIL = "/default-om_256.png";
 
+export const QUERY_STALE_TIME_SHORT = 1000 * 60 * 60; // 1 hour
+export const QUERY_STALE_TIME_MEDIUM = 1000 * 60 * 60 * 12; // 12 hours
+export const QUERY_STALE_TIME_LONG = 1000 * 60 * 60 * 24; // 1 day
+
 export const ENTITY_TYPES = [
   "ADHYAAYAM",
   "AUTHOR",
@@ -24,6 +28,7 @@ export const ENTITY_TYPES = [
   "GOD",
   "ITIHASAM",
   "KAANDAM",
+  "KEERTHANAM",
   "OTHERS",
   "PARVAM",
   "PURANAM",
@@ -32,7 +37,6 @@ export const ENTITY_TYPES = [
   "SLOKAM",
   "STHOTRAM",
   "VRATHAM",
-  "KEERTHANAM",
 ] as const;
 
 export const ENTITY_TYPES_PARENTS = {
@@ -122,7 +126,7 @@ export const ENTITY_TYPES_DDLB = [
 ] as Option[];
 
 export const ENTITY_TYPES_LANGUAGE_MAP: Record<
-  string,
+  EntityTypeEnum,
   Record<string, string>
 > = {
   GOD: {

@@ -17,6 +17,7 @@ import {
 } from "../actions";
 import { Prisma } from "@/app/generated/prisma";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 const defaultValues: z.infer<typeof DictItemFormSchema> = {
   origin: "OTHERS",
@@ -79,7 +80,7 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
     queryKey: ["dictItem", dictionaryId, language],
     queryFn: () => readDictItem(dictionaryId, language),
     enabled: !!dictionaryId,
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const {

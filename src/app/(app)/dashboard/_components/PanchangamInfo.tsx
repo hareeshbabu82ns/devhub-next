@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 // const schedules = [
 //   { title: "Team Meeting", startTime: "09:00", endTime: "10:30" },
@@ -26,21 +27,25 @@ import { Calendar } from "@/components/ui/calendar";
 //   { title: "Project Discussion", startTime: "15:45", endTime: "16:30" },
 // ];
 
-const PanchangamInfo = () => {
+interface PanchangamInfoProps {
+  className?: string;
+}
+
+const PanchangamInfo: React.FC<PanchangamInfoProps> = ({ className }) => {
   const [date, setDate] = React.useState<Date | undefined>(new Date());
 
   const cityId = usePanchangamPlaceAtomValue();
 
-  const { data, isPending, isError, refetch } = useQuery({
+  const { data, isFetching, isPending, isError, refetch } = useQuery({
     queryKey: ["panchangam", cityId, date],
     queryFn: async () => {
       const response = await getDayPanchangam({ place: cityId, date });
       return response;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
-  if (isPending) return <Loader />;
+  if (isFetching || isPending) return <Loader />;
   if (isError) return <SimpleAlert title="Error fetching panchangam" />;
 
   const datePicker = (
@@ -69,7 +74,12 @@ const PanchangamInfo = () => {
   );
 
   return (
-    <div className="@container/panchangam flex flex-1 flex-col mt-4 gap-4 border rounded-sm">
+    <div
+      className={cn(
+        "@container/panchangam flex flex-col mt-4 gap-4 border rounded-sm",
+        className,
+      )}
+    >
       <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between border-b p-2">
         <div className="flex items-center gap-2">
           Panchnagam:{" "}

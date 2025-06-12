@@ -28,7 +28,7 @@ import {
 } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
-import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
+import { LANGUAGE_FONT_FAMILY, QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface DictionaryResultsProps {
   asBrowse?: boolean;
@@ -87,7 +87,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
       originParam.length > 0 ||
       (originParam.length > 0 && searchParam.length > 0) ||
       (searchParam.length > 0 && ftsParam === "x"),
-    staleTime: 1000 * 60 * 60, // Keep fresh for 60 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const paginatePageChangeAction = (page: number) => {

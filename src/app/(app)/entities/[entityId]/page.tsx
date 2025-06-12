@@ -5,7 +5,7 @@ import { bookmarkEntity, readEntity } from "../actions";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import Loader from "@/components/utils/loader";
-import { ENTITY_TYPES_CHILDREN } from "@/lib/constants";
+import { ENTITY_TYPES_CHILDREN, QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { Entity } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -32,7 +32,7 @@ const Page = () => {
     queryKey: ["entity", entityId, language],
     queryFn: () => readEntity(entityId, language),
     enabled: !!entityId,
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const { mutateAsync: onBookmarkClicked } = useMutation({

@@ -22,6 +22,7 @@ import {
 import { useDebounce } from "@/hooks/use-debounce";
 import AssetSearchInput from "./AssetSearchInput";
 import FullscreenImageViewer from "./FullscreenImageViewer";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 const AssetFileExplorer = ({ path }: { path: string }) => {
   const router = useRouter();
@@ -60,7 +61,7 @@ const AssetFileExplorer = ({ path }: { path: string }) => {
       const data = await exploreAssets(path);
       return data;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const onDeleteFile = async (name: string) => {

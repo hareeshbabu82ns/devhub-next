@@ -3,7 +3,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Icons } from "@/components/utils/icons";
 import { Calendar, Star, Bookmark } from "lucide-react";
 import EverydayDevotionalTab from "./EverydayDevotionalTab";
 import WeeklyDevotionalTab from "./WeeklyDevotionalTab";
@@ -18,12 +17,11 @@ const DevotionalQuickAccess: React.FC<DevotionalQuickAccessProps> = ({
   className,
 }) => {
   return (
-    <Card className={cn("rounded-sm p-0 flex-1", className)}>
+    <Card className={cn("rounded-sm p-0", className)}>
       <Tabs defaultValue="everyday" className="w-full">
         <CardHeader className="p-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 border-b gap-2">
             <CardTitle className="flex items-center gap-2">
-              <Icons.heart className="h-5 w-5 text-red-500" />
               Quick Access
             </CardTitle>
             <TabsList className="grid w-full grid-cols-3 sm:w-auto">

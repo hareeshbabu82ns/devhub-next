@@ -27,6 +27,7 @@ import {
 import { Icons } from "@/components/utils/icons";
 import { toast } from "sonner";
 import { usePlaylistDispatchAtom } from "@/hooks/use-songs";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   forEntity?: TileModel;
@@ -194,7 +195,7 @@ function EntitySearchGrid({
       });
       return entities;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   if (isFetching || isLoading) return <Loader />;

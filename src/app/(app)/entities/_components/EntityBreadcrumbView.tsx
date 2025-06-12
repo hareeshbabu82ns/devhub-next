@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import Link from "next/link";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface CompProps {
   entityId: string;
@@ -27,7 +28,7 @@ const EntityBreadcrumbView = ({ entityId }: CompProps) => {
     queryFn: async () => {
       return entityHierarchy({ id: entityId, language });
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   if (error) {

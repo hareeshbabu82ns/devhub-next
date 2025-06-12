@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import React from "react";
+import React, { useState } from "react";
 import { fetchBookmarkedEntities } from "../actions";
 import { Loader } from "lucide-react";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -13,12 +13,11 @@ import {
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
 import { Entity } from "@/lib/types";
 import { useRouter } from "next/navigation";
-import { ENTITY_TYPES_CHILDREN } from "@/lib/constants";
+import { ENTITY_TYPES_CHILDREN, QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { bookmarkEntity } from "../../entities/actions";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
-import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import {
   useLanguageAtomValue,
@@ -33,13 +32,11 @@ const BookmarkedEntitiesGrid: React.FC<BookmarkedEntitiesGridProps> = ({
   className,
 }) => {
   const router = useRouter();
-  const { searchParamsObject: searchParams, updateSearchParams } =
-    useSearchParamsUpdater();
 
   const language = useLanguageAtomValue();
   const limit = parseInt(useQueryLimitAtomValue());
 
-  const page = parseInt(searchParams.offset || "0", 10);
+  const [page, setPage] = useState<number>(0);
   const currentPage = page + 1;
 
   const { mutateAsync: onBookmarkClicked } = useMutation({
@@ -66,7 +63,7 @@ const BookmarkedEntitiesGrid: React.FC<BookmarkedEntitiesGridProps> = ({
       });
       return entities;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   if (isFetching || isLoading) return <Loader />;
@@ -85,18 +82,15 @@ const BookmarkedEntitiesGrid: React.FC<BookmarkedEntitiesGridProps> = ({
   });
 
   const paginatePageChangeAction = (page: number) => {
-    const newPage = page - 1;
-    updateSearchParams({ offset: newPage.toString() });
+    setPage(page - 1);
   };
 
   const onBackAction = () => {
-    const newPage = Math.max(0, page - 1);
-    updateSearchParams({ offset: newPage.toString() });
+    setPage((prev) => Math.max(0, prev - 1));
   };
 
   const onFwdAction = () => {
-    const newPage = page + 1;
-    updateSearchParams({ offset: newPage.toString() });
+    setPage((prev) => prev + 1);
   };
 
   const onTileClicked = (tile: Entity) => {

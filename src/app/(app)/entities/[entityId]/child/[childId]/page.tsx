@@ -24,6 +24,7 @@ import EntityNavigationView from "@/app/(app)/entities/_components/EntityBreadcr
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { useKeyboardNavigation, useAnimatedSwipe, KEYS } from "@/hooks";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 const Page = () => {
   const params = useParams();
@@ -53,7 +54,7 @@ const Page = () => {
     queryFn: async () => {
       return await fetchEntitySiblings(childId);
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
     // gcTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
   });
 

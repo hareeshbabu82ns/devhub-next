@@ -13,6 +13,7 @@ import {
   SortOrder,
 } from "@/app/(app)/dictionary/types";
 import { useDebounce } from "@/hooks/use-debounce";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface UseDictionarySearchOptions {
   dictFrom?: string[];
@@ -75,8 +76,8 @@ const DEFAULT_OPTIONS: Required<UseDictionarySearchOptions> = {
   defaultSortOrder: "asc",
   debounceMs: 300,
   enabled: true,
-  staleTime: 1000 * 60 * 5, // 5 minutes
-  cacheTime: 1000 * 60 * 10, // 10 minutes
+  staleTime: QUERY_STALE_TIME_LONG,
+  cacheTime: QUERY_STALE_TIME_LONG,
 };
 
 export function useDictionarySearch(
@@ -283,7 +284,7 @@ export function useDictionarySuggestions(
         sortOrder: "asc",
       }),
     enabled: enabled && debouncedTerm.length >= minLength,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
     select: (data) => data.results.slice(0, limit),
   });
 }
@@ -306,7 +307,7 @@ export function usePopularDictionaryWords(
         sortBy: "wordIndex",
         sortOrder: "asc",
       }),
-    staleTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
     select: (data) => data.results,
   });
 }

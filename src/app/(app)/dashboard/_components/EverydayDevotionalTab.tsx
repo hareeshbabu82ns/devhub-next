@@ -2,16 +2,13 @@
 
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  fetchEveryDayDevotionalContent,
-  updateEntityDevotionalCategory,
-} from "../devotional-actions";
+import { fetchEveryDayEntities, updateEntityQuickAccessAttr } from "../actions";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import {
-  DEVOTIONAL_CATEGORIES,
-  type DevotionalCategory,
-} from "@/lib/devotional-constants";
-import { Badge } from "@/components/ui/badge";
+  QUICK_ACCESS_CATEGORIES,
+  QUICK_ACCESS_ENTITIES,
+  type QuickAccessCategory,
+} from "@/lib/quick-access-constants";
 import { ArtTile } from "@/components/blocks/image-tiles";
 import { mapEntityToTileModel } from "../../entities/utils";
 import { Entity } from "@/lib/types";
@@ -37,7 +34,10 @@ import {
   DAY_DEITY_ASSOCIATIONS,
   DAY_INDEX_TO_CATEGORY,
   isDaySpecificCategory,
-} from "@/lib/devotional-constants";
+} from "@/lib/quick-access-constants";
+import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
+import { useQueryLimitAtomValue } from "@/hooks/use-config";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface EverydayDevotionalTabProps {
   className?: string;
@@ -50,6 +50,10 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
   const language = useLanguageAtomValue();
   const queryClient = useQueryClient();
 
+  const limit = parseInt(useQueryLimitAtomValue());
+  const [page, setPage] = useState(0);
+  const currentPage = page + 1;
+
   // Dialog state management
   const [everydayDialogOpen, setEverydayDialogOpen] = useState(false);
 
@@ -59,23 +63,29 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
   // Fetch everyday devotional content
   const {
     data: everydayData,
-    isLoading: everydayLoading,
+    isFetching,
+    isLoading,
     error: everydayError,
+    refetch,
   } = useQuery({
-    queryKey: ["devotional", "everyday", language],
+    queryKey: ["devotional", "everyday", language, { limit, offset: page }],
     queryFn: async () => {
-      const result = await fetchEveryDayDevotionalContent({ language });
+      const result = await fetchEveryDayEntities({
+        language,
+        pageIndex: page,
+        pageSize: limit,
+      });
       if (result.status === "error") {
         throw new Error(result.error);
       }
       return result.data;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   // Mutation to update devotional category
   const updateCategoryMutation = useMutation({
-    mutationFn: updateEntityDevotionalCategory,
+    mutationFn: updateEntityQuickAccessAttr,
     onSuccess: (result) => {
       if (result.status === "success") {
         toast.success("Quick access category updated");
@@ -96,7 +106,7 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
 
   const handleAddToDevotional = (
     entity: Entity,
-    category: DevotionalCategory,
+    category: QuickAccessCategory,
   ) => {
     updateCategoryMutation.mutate({
       entityId: entity.id,
@@ -113,8 +123,21 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
 
   // Handle entity selection from search dialog
   const handleEverydayEntitySelect = (entity: Entity) => {
-    handleAddToDevotional(entity, DEVOTIONAL_CATEGORIES.EVERYDAY);
+    handleAddToDevotional(entity, QUICK_ACCESS_CATEGORIES.EVERYDAY);
     setEverydayDialogOpen(false);
+  };
+
+  // Pagination handlers
+  const paginatePageChangeAction = (newPage: number) => {
+    setPage(newPage - 1);
+  };
+
+  const onBackAction = () => {
+    setPage((prev) => Math.max(0, prev - 1));
+  };
+
+  const onFwdAction = () => {
+    setPage((prev) => prev + 1);
   };
 
   const renderEntityTile = (entity: Entity, showActions = true) => {
@@ -154,7 +177,7 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
                     e.stopPropagation();
                     handleAddToDevotional(
                       entity,
-                      DEVOTIONAL_CATEGORIES.EVERYDAY,
+                      QUICK_ACCESS_CATEGORIES.EVERYDAY,
                     );
                   }}
                 >
@@ -209,16 +232,31 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
         <h3 className="text-lg font-semibold"></h3>
         <div className="flex items-center gap-2">
           <EntitySearchDlgTrigger
-            forTypes={["STHOTRAM", "PURANAM"]}
+            forTypes={QUICK_ACCESS_ENTITIES}
             open={everydayDialogOpen}
             onOpenChange={setEverydayDialogOpen}
             onClick={handleEverydayEntitySelect}
           />
-          <Badge variant="secondary">{everydayData?.total || 0} items</Badge>
+          <PaginationDDLB
+            totalCount={everydayData?.total || 0}
+            limit={limit}
+            page={currentPage}
+            onFwdClick={onFwdAction}
+            onBackClick={onBackAction}
+            onPageChange={paginatePageChangeAction}
+          />
+          <Button
+            onClick={() => refetch()}
+            type="button"
+            variant="outline"
+            size="icon"
+          >
+            <Icons.refresh className="size-4" />
+          </Button>
         </div>
       </div>
 
-      {everydayLoading && <Loader />}
+      {(isFetching || isLoading) && <Loader />}
       {everydayError && <SimpleAlert title="Error loading everyday content" />}
 
       {everydayData && everydayData.results.length === 0 && (
@@ -232,7 +270,7 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
         {everydayData?.results.map((entity) => renderEntityTile(entity))}
       </div>
     </div>

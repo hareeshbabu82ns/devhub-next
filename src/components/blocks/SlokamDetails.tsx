@@ -20,6 +20,7 @@ import {
 } from "@/hooks/use-config";
 import { Entity } from "@/lib/types";
 import { toast } from "sonner";
+import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
@@ -41,7 +42,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
       const slokam = await readEntity(slokamId, language!);
       return slokam;
     },
-    staleTime: 1000 * 60 * 5, // Keep fresh for 5 minutes
+    staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const { mutateAsync: onBookmarkClicked } = useMutation({
