@@ -123,33 +123,86 @@ export const mapDbToEntity = (e: any, language: string, meaning?: string) => {
 
 export async function downloadEntityHierarchy(entityId: string) {
   try {
-    const hierarchy = await fetchEntityHierarchy(entityId);
+    // Use API route for download (better for large files)
+    const response = await fetch(
+      `/api/entities/download-zip?entityId=${encodeURIComponent(entityId)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-    if (!hierarchy) {
-      throw new Error("Entity not found");
+    if (!response.ok) {
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: "Download failed" }));
+      throw new Error(
+        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+      );
     }
 
-    const blob = new Blob([JSON.stringify(hierarchy, null, 2)], {
-      type: "application/json",
-    });
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get("Content-Disposition");
+    const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
+    const filename = filenameMatch?.[1] || "entity_hierarchy.zip";
 
-    saveAs(blob, `entity_${entityId}_hierarchy.json`);
+    // Get ZIP data as blob
+    const blob = await response.blob();
+
+    // Download the file
+    saveAs(blob, filename);
   } catch (error) {
     console.error("Failed to download entity hierarchy:", error);
+    throw error;
   }
 }
 
 async function processEntityFile(file: File, parentId: string | null = null) {
   try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    if (!data || !data.type) {
-      throw new Error("Invalid file format");
+    if (file.type === "application/zip" || file.name.endsWith(".zip")) {
+      // Handle ZIP file upload via API route (better for large files)
+      const formData = new FormData();
+      formData.append("file", file);
+      if (parentId) {
+        formData.append("parentId", parentId);
+      }
+
+      const response = await fetch("/api/entities/upload-zip", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || "ZIP upload failed");
+      }
+
+      console.log(
+        `ZIP uploaded successfully: ${result.data?.totalEntities} entities created`,
+      );
+    } else if (
+      file.type === "application/json" ||
+      file.name.endsWith(".json")
+    ) {
+      // Handle JSON file upload (legacy)
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data || !data.type) {
+        throw new Error("Invalid JSON file format");
+      }
+      await uploadEntityWithChildren(data, parentId);
+      console.log("JSON entities created successfully");
+    } else {
+      throw new Error(
+        "Unsupported file format. Please upload a ZIP or JSON file.",
+      );
     }
-    await uploadEntityWithChildren(data, parentId);
-    console.log("Entities created successfully");
   } catch (error) {
     console.error("Failed to process entity file:", error);
+    throw error;
   }
 }
 
@@ -160,14 +213,18 @@ export async function handleEntityFileUpload(
   if (!e.target.files) return;
   if (e.target.files.length === 0) return;
   if (e.target.files.length > 1) {
-    console.error("Please upload only one file");
-    return;
+    throw new Error("Please upload only one file");
   }
-  if (e.target.files[0].type !== "application/json") {
-    console.error("Please upload a JSON file");
-    return;
-  }
+
   const file = e.target.files[0];
+  const isZip = file.type === "application/zip" || file.name.endsWith(".zip");
+  const isJson =
+    file.type === "application/json" || file.name.endsWith(".json");
+
+  if (!isZip && !isJson) {
+    throw new Error("Please upload a ZIP or JSON file");
+  }
+
   if (file) {
     await processEntityFile(file, parentId);
   }

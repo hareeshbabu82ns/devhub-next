@@ -114,7 +114,7 @@ const Page = () => {
       <input
         id="upload-entity-file"
         type="file"
-        accept="application/json"
+        accept="application/zip,.zip,application/json,.json"
         style={{ display: "none" }}
         onChange={async (e) => {
           toast.promise(handleEntityFileUpload(e, entityId), {
