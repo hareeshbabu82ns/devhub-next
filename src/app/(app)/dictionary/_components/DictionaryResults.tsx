@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useReadLocalStorageHydrationSafe } from "@/hooks/use-hydration-safe-storage";
+import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
@@ -39,8 +39,7 @@ export function DictionaryResults({ asBrowse }: DictionaryResultsProps) {
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   const localOrigins =
-    useReadLocalStorageHydrationSafe<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) ||
-    [];
+    useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const originParam = (
     searchParams.get("origin")?.split(",") ??

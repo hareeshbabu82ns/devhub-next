@@ -18,7 +18,7 @@ import DictionariesMultiSelectChips from "./DictionaryMultiSelectChips";
 import WebIMEIdeInput from "@/app/(app)/sanscript/_components/WebIMEIdeInput";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
-import { useReadLocalStorageHydrationSafe } from "@/hooks/use-hydration-safe-storage";
+import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import { useMutation } from "@tanstack/react-query";
 import { downloadDictionary } from "../download-actions";
@@ -52,8 +52,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const language = useLanguageAtomValue();
 
   const localOrigins =
-    useReadLocalStorageHydrationSafe<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) ||
-    [];
+    useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const originParam = (
     searchParams.get("origin")?.split(",") ??

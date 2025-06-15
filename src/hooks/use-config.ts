@@ -12,6 +12,7 @@ import {
 } from "@/lib/constants";
 import { useAtom, useAtomValue } from "jotai";
 import { atomWithStorage } from "jotai/utils";
+import { useLocalStorage } from "./use-hydration-safe-storage";
 
 type LocalConfig = {
   pageSize: number;
@@ -84,4 +85,8 @@ export function usePanchangamPlaceAtom() {
 }
 export function usePanchangamPlaceAtomValue() {
   return useAtomValue(panchangamPlaceAtom);
+}
+
+export function useSidebarMinimized() {
+  return useLocalStorage<boolean>("sidebar-minimized", false);
 }

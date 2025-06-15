@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
 import AudioControls from "./AudioControls";
 // import PlaylistControls from "./PlaylistControls";
-import { useReadLocalStorageHydrationSafe } from "@/hooks/use-hydration-safe-storage";
+import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
 import { LS_AUDIO_PLAYER_VOLUME } from "@/lib/constants";
 
 interface AudioPlayerProps {
@@ -22,8 +22,7 @@ interface AudioPlayerProps {
 const AudioPlayer = ({ className, isMini, isSidebar }: AudioPlayerProps) => {
   const { load, seek, src } = useAudioPlayerContext();
   const [playlist, dispatch] = usePlaylistAtom();
-  const savedVolume =
-    useReadLocalStorageHydrationSafe<number>(LS_AUDIO_PLAYER_VOLUME) || 1;
+  const savedVolume = useReadLocalStorage<number>(LS_AUDIO_PLAYER_VOLUME) || 1;
 
   // Track if user has requested to stop playback - persists between component renders
   const userPausedRef = useRef(false);

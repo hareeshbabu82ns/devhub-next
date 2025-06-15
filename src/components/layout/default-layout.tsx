@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import React from "react";
-import { ReactFlowProvider } from '@xyflow/react';
+import { ReactFlowProvider } from "@xyflow/react";
 import { AppSidebar } from "../sidebar/app-sidebar";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -17,18 +17,24 @@ import { PlaylistSheetProvider } from "@/hooks/use-playlist-sheet";
 import { PlaylistTrigger } from "../audio-player/PlaylistTrigger";
 import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
+import { useSidebarMinimized } from "@/hooks/use-config";
 
-const WithDefaultLayout = ( {
+const WithDefaultLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}> ) => {
+}>) => {
   const pathname = usePathname();
+  const { value: sidebarDefaultOpen, setValue: setSidebarDefaultOpen } =
+    useSidebarMinimized();
 
   return (
     <ReactFlowProvider>
       <PlaylistSheetProvider>
-        <SidebarProvider>
+        <SidebarProvider
+          open={sidebarDefaultOpen}
+          onOpenChange={setSidebarDefaultOpen}
+        >
           <AppSidebar variant="inset" />
           <SidebarInset>
             <TopNavBar />
