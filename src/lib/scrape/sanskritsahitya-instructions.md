@@ -22,7 +22,7 @@ git clone https://github.com/hareeshbabu82ns/data.git
     {"c": "1", "t": "अथ प्रथमोऽध्यायः"},
     {"c": "1", "n": "1", "i": 0, "v": "प्रणम्य शिरसा देवौ पितामहमहेश्वरौ । नाट्यशास्त्रं प्रवक्ष्यामि ब्रह्मणा यदुदाहृतम् ॥",
          "ch": {"n": "अनुष्टुप्", "s": [[["प्र", "l"], ["ण", "g"], ["म्य", "l"], ["शि", "l"], ["र", "l"], ["सा", "g"], ["दे", "g"], ["वौ", "g"]], [["पि", "l"], ["ता", "g"], ["म", "l"], ["ह", "l"], ["म", "l"], ["हे", "g"], ["श्व", "l"], ["रौ", "g"]], [["ना", "g"], ["ट्य", "l"], ["शा", "g"], ["स्त्रं", "g"], ["प्र", "l"], ["व", "g"], ["क्ष्या", "g"], ["मि", "l"]], [["ब्र", "g"], ["ह्म", "l"], ["णा", "g"], ["य", "l"], ["दु", "l"], ["दा", "g"], ["हृ", "l"], ["तम्", "g"]]]}},
-    {"c": "2", "t": "अथ भारतीये नाट्यशास्त्रे द्वितीयोऽध्यायः"},
+    {"c": "2", "t": "अथ भारतीये नाट्यशास्त्रे द्वितीयोऽध्यायः", "sp": "शकुन्तला"},
     {"c": "2", "n": "1", "i": 131, "v": "भरतस्य वचः श्रुत्वा पप्रच्छुर्मुनयस्ततः । भगवन्श्रोतुमिच्छामो यजनं रङ्गसंश्रयम् ॥",
          "ch": {"n": "अनुष्टुप्", "s": [[["भ", "l"], ["र", "l"], ["त", "g"], ["स्य", "l"], ["व", "l"], ["चः", "g"], ["श्रु", "g"], ["त्वा", "g"]], [["प", "g"], ["प्र", "g"], ["च्छु", "g"], ["र्मु", "l"], ["न", "l"], ["य", "g"], ["स्त", "l"], ["तः", "g"]], [["भ", "l"], ["ग", "l"], ["व", "g"], ["न्श्रो", "g"], ["तु", "l"], ["मि", "g"], ["च्छा", "g"], ["मो", "g"]], [["य", "l"], ["ज", "l"], ["नं", "g"], ["र", "g"], ["ङ्ग", "l"], ["सं", "g"], ["श्र", "l"], ["यम्", "g"]]]}},
     {"c": "3.1", "n": "17", "v": "विष्णुना सदृशो वीर्ये सोमवत्प्रियदर्शनः । कालाग्निसदृशः क्रोधे क्षमया पृथिवीसमः ॥", "i": 17,
@@ -48,10 +48,12 @@ git clone https://github.com/hareeshbabu82ns/data.git
   - i: index of the verse in the book
   - t: introductory or explanatory text (will not contain verse text, can be added as another verse)
   - v: verse text
-  - mn: meaning (optional, not in the original data)
-  - es: English translation (optional, not in the original data)
-  - anv: anuvada (word-by-word meaning, optional, not in the original data)
-  - md: meaning additional (optional, not in the original data)
+  - sp: speaker of the verse (optional)
+  - mn: meaning (optional)
+  - es: English translation (optional)
+  - anv: anuvada (word-by-word meaning, optional)
+  - md: meaning additional (optional)
+  - vd: verse description (optional)
   - ch: chandas information
     - n: name of the chandas
     - s: syllable splits, where each syllable is an array of [syllable, type(l-laghu, g-guru)] pairs
@@ -59,3 +61,11 @@ git clone https://github.com/hareeshbabu82ns/data.git
     - w: word
     - l: lemma of the word
     - pos: part of speech
+    - c: (optional)
+    - n: (optional)
+    - g: (optional)
+    - pl: (optional)
+    - vp: (optional)
+    - inf: (optional)
+    - tm: (optional)
+    - nc: (optional)

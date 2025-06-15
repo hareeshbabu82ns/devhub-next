@@ -16,9 +16,9 @@ import { auth } from "@/lib/auth";
 import {
   parseSanskritSahityaData,
   validateSanskritSahityaData,
-  type ParsedEntity,
   type ParsedHierarchy,
 } from "@/lib/scrape/sanskrit-sahitya-parser";
+import { transliteratedText } from "../(app)/sanscript/_components/utils";
 
 // Response types for server actions
 export type SanskritSahityaImportResponse<T = unknown> =
@@ -207,7 +207,13 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
   // Create book entity
   const bookData: any = {
     type: hierarchy.book.type,
-    text: hierarchy.book.text,
+    text: transliteratedText(hierarchy.book.text, [
+      "SAN",
+      "IAST",
+      "SLP1",
+      "ITRANS",
+      "TEL",
+    ]),
     meaning: hierarchy.book.meaning,
     attributes: hierarchy.book.attributes,
     bookmarked: hierarchy.book.bookmarked,
@@ -217,15 +223,25 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
 
   // Add parent connection if parentId is provided
   if (hierarchy.book.parentId) {
-    bookData.parentsRel = {
-      connect: { id: hierarchy.book.parentId },
-    };
+    bookData.parents = [hierarchy.book.parentId];
   }
 
   const bookEntity = await db.entity.create({
     data: bookData,
   });
   createdEntities.push(bookEntity);
+
+  // Update parent entity to include book as child if parentId exists
+  if (hierarchy.book.parentId) {
+    await db.entity.update({
+      where: { id: hierarchy.book.parentId },
+      data: {
+        children: {
+          push: bookEntity.id,
+        },
+      },
+    });
+  }
 
   // Create chapter entities and track their IDs
   const chapterIdMap = new Map<string, string>();
@@ -253,8 +269,20 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
     const chapterEntity = await db.entity.create({
       data: {
         type: chapter.type,
-        text: chapter.text,
-        meaning: chapter.meaning,
+        text: transliteratedText(chapter.text, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
+        meaning: transliteratedText(chapter.meaning, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
         attributes: chapter.attributes,
         bookmarked: chapter.bookmarked,
         order: chapter.order,
@@ -265,6 +293,18 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
 
     chapterIdMap.set(chapterNumber, chapterEntity.id);
     createdEntities.push(chapterEntity);
+
+    // Update parent entities to include chapter as child
+    for (const parentId of parentIds) {
+      await db.entity.update({
+        where: { id: parentId },
+        data: {
+          children: {
+            push: chapterEntity.id,
+          },
+        },
+      });
+    }
   }
 
   // Create verse entities
@@ -285,8 +325,20 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
     const verseEntity = await db.entity.create({
       data: {
         type: verse.type,
-        text: verse.text,
-        meaning: verse.meaning,
+        text: transliteratedText(verse.text, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
+        meaning: transliteratedText(verse.meaning, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
         attributes: verse.attributes,
         bookmarked: verse.bookmarked,
         order: verse.order,
@@ -296,6 +348,18 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
     });
 
     createdEntities.push(verseEntity);
+
+    // Update parent entities to include verse as child
+    for (const parentId of parentIds) {
+      await db.entity.update({
+        where: { id: parentId },
+        data: {
+          children: {
+            push: verseEntity.id,
+          },
+        },
+      });
+    }
   }
 
   return createdEntities;

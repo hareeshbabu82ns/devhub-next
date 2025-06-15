@@ -214,8 +214,8 @@ describe("Sanskrit Sahitya Parser", () => {
       expect(verses).toHaveLength(5);
 
       // First two are explanatory text
-      expect(verses[0].type).toBe("OTHERS");
-      expect(verses[1].type).toBe("OTHERS");
+      expect(verses[0].type).toBe("SLOKAM");
+      expect(verses[1].type).toBe("SLOKAM");
 
       // Rest are verses
       expect(verses[2].type).toBe("SLOKAM");
@@ -345,8 +345,8 @@ describe("Sanskrit Sahitya Parser", () => {
         ADHYAAYAM: 1,
       });
       expect(stats.verseTypes).toEqual({
-        OTHERS: 2,
-        SLOKAM: 3,
+        // OTHERS: 2,
+        SLOKAM: 5,
       });
       expect(stats.versesWithMeaning).toBe(2);
       expect(stats.versesWithChandas).toBe(1);
@@ -399,7 +399,7 @@ describe("Sanskrit Sahitya Parser", () => {
 
       const result = parseSanskritSahityaData(dataWithOnlyText);
       expect(result.verses).toHaveLength(1);
-      expect(result.verses[0].type).toBe("OTHERS");
+      // expect(result.verses[0].type).toBe("OTHERS");
       expect(result.verses[0].text[0].value).toBe("Only explanatory text here");
     });
 

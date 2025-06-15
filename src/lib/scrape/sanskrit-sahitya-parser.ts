@@ -45,6 +45,7 @@ const VerseDataSchema = z.object({
   es: z.string().optional(), // English translation
   anv: z.string().optional(), // anuvada (word-by-word meaning)
   md: z.string().optional(), // additional meaning
+  vd: z.string().optional(), // additional meaning - verse description
   ch: ChandasSchema.optional(), // chandas information
   xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
 });
@@ -107,6 +108,14 @@ export function validateSanskritSahityaData(
   jsonData: unknown,
 ): SanskritSahityaData {
   return SanskritSahityaDataSchema.parse(jsonData);
+}
+
+function cleanSanskritText(text: string): string {
+  return text
+    .replace(/<br\s*\/?>/g, "  \n")
+    .replace(/।/g, "।  \n")
+    .replace(/॥/g, "॥  \n\n")
+    .trim();
 }
 
 /**
@@ -280,30 +289,42 @@ function createVerseEntities(
 
     // Prepare text data
     const textData: LanguageValueType[] = [];
-    if (verse.v) {
-      textData.push({ language: textLanguage, value: verse.v });
-    } else if (verse.t) {
-      textData.push({ language: textLanguage, value: verse.t });
-    }
+    const textParsed = verse.v || verse.t || "";
+    textData.push({
+      language: textLanguage,
+      value: cleanSanskritText(textParsed),
+    });
 
     // Prepare meaning data
     const meaningData: LanguageValueType[] = [];
     if (verse.mn) {
-      meaningData.push({ language: meaningLanguage, value: verse.mn });
+      meaningData.push({
+        language: meaningLanguage,
+        value: cleanSanskritText(verse.mn),
+      });
     }
     if (verse.es) {
-      meaningData.push({ language: meaningLanguage, value: verse.es });
+      meaningData.push({
+        language: meaningLanguage,
+        value: cleanSanskritText(verse.es),
+      });
     }
     if (verse.anv) {
       meaningData.push({
         language: meaningLanguage,
-        value: `Word-by-word: ${verse.anv}`,
+        value: `Word-by-word:  \n\n${cleanSanskritText(verse.anv)}`,
       });
     }
     if (verse.md) {
       meaningData.push({
         language: meaningLanguage,
-        value: `Additional: ${verse.md}`,
+        value: `Additional:  \n\n${cleanSanskritText(verse.md)}`,
+      });
+    }
+    if (verse.vd) {
+      meaningData.push({
+        language: meaningLanguage,
+        value: `Description:  \n\n${cleanSanskritText(verse.vd)}`,
       });
     }
 
@@ -329,17 +350,59 @@ function createVerseEntities(
 
     // Determine entity type based on content
     let entityType: string = "SLOKAM"; // Default for verses
-    if (verse.t && !verse.v) {
-      entityType = "OTHERS"; // For explanatory text
-    }
+    // if (verse.t && !verse.v) {
+    //   entityType = "OTHERS"; // For explanatory text
+    // }
 
     // Create notes with additional information
     let notes = `From ${data.title}`;
-    if (verse.ch?.n) {
-      notes += ` | Chandas: ${verse.ch.n}`;
-    }
     if (verse.xx && verse.xx.length > 0) {
-      notes += ` | Contains word analysis`;
+      // notes += ` | Contains word analysis`;
+      //"w": "धर्मक्षेत्रे", "l": "धर्म", "pos": "mn", "c": 0, "n": 0, "g": 1
+      // prepare markdown table for word analysis
+      const wordAnalysis = verse.xx
+        .map((wordGroup) =>
+          wordGroup
+            .map((words) =>
+              words
+                .map(
+                  (word) =>
+                    `| ${word.w} | ${word.l} | ${word.pos} | ${word.c} | ${word.n} | ${word.g} |\n`,
+                )
+                .join(""),
+            )
+            .join(""),
+        )
+        .join("");
+      notes += `\n\n### Word Analysis:\n\n| Word | Lemma | POS | Case | Number | Gender |\n|------|-------|-----|------|--------|--------|\n${wordAnalysis}`;
+    }
+    if (verse.ch?.n) {
+      notes += `  \n\nChandas: ${verse.ch.n}`;
+      // s: [[["दृ", "g"], ["ष्ट्वा", "g"], ["तु", "l"], ["पा", "g"], ["ण्ड", "l"], ["वा", "g"], ["नी", "g"], ["कं", "g"]], [["व्यू", "g"], ["ढं", "g"], ["दु", "g"], ["र्यो", "g"], ["ध", "l"], ["न", "g"], ["स्त", "l"], ["दा", "g"]], [["आ", "g"], ["चा", "g"], ["र्य", "l"], ["मु", "l"], ["प", "l"], ["सं", "g"], ["ग", "g"], ["म्य", "l"]], [["रा", "g"], ["जा", "g"], ["व", "l"], ["च", "l"], ["न", "l"], ["म", "g"], ["ब्र", "l"], ["वीत्", "g"]]]
+      // prepare markdown table for chandas syllables
+      if (verse.ch.s && verse.ch.s.length > 0) {
+        let tableColumns = 0;
+        const syllableAnalysis = verse.ch.s
+          .map((syllableGroup) => {
+            const syllableNotesLine = syllableGroup
+              .map(([text, note]) =>
+                note === "g" ? `__${text}__` : `_${text}_`,
+              )
+              .join("|");
+            tableColumns = Math.max(tableColumns, syllableGroup.length);
+            return `| ${syllableNotesLine} |`;
+          })
+          .join("\n");
+        const mdTableHeader = Array(tableColumns)
+          .fill("")
+          .map((_, i) => `${i + 1} `)
+          .join("|");
+        const mdTableSeparator = Array(tableColumns)
+          .fill("")
+          .map(() => "---")
+          .join("|");
+        notes += `\n\n### Chandas Syllables:  \n\n|${mdTableHeader}|\n|${mdTableSeparator}|\n${syllableAnalysis}`;
+      }
     }
 
     const verseEntity: ParsedEntity = {

@@ -20,7 +20,7 @@ const customJestConfig = {
 
   // Test file patterns
   testMatch: [
-    "<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}",
+    "<rootDir>/src/**/__tests__/**/*.(test|spec).{js,jsx,ts,tsx}",
     "<rootDir>/src/**/*.(test|spec).{js,jsx,ts,tsx}",
     "<rootDir>/tests/**/*.{js,jsx,ts,tsx}",
   ],

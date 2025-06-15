@@ -1,4 +1,4 @@
-import { LANGUAGE_SCHEME_MAP } from "@/lib/constants";
+import { LANGUAGE_SCHEME_MAP, LANGUAGES_TYPE } from "@/lib/constants";
 import Sanscript from "@indic-transliteration/sanscript";
 
 export const LANGUAGE_SANSCRIPT_DDLB = {
@@ -138,9 +138,16 @@ export function replaceWordAtCursor({
 }
 
 export const transliteratedText = (
-  textData: { value: string; language: string }[],
+  textData: { value: string; language: string }[] | undefined,
+  fillLanguages?: LANGUAGES_TYPE[],
 ) => {
-  return textData?.map((t) => {
+  // Handle undefined/null textData
+  if (!textData) {
+    return undefined;
+  }
+
+  // First, process existing textData for transliteration directives
+  const processedTextData = textData.map((t) => {
     if (t.value.startsWith("$transliterateFrom=")) {
       const fromLangs = t.value.split("=").pop()?.split("|");
       if (fromLangs) {
@@ -158,6 +165,72 @@ export const transliteratedText = (
     }
     return t;
   });
+
+  // If fillLanguages is provided, add missing languages by transliterating from existing ones
+  if (fillLanguages && fillLanguages.length > 0) {
+    const existingLanguages = new Set(processedTextData.map((t) => t.language));
+    const missingLanguages = fillLanguages.filter(
+      (lang) => !existingLanguages.has(lang),
+    );
+
+    const additionalTextData: { value: string; language: string }[] = [];
+
+    for (const missingLang of missingLanguages) {
+      const targetScheme = LANGUAGE_SCHEME_MAP[missingLang];
+      if (!targetScheme) continue;
+
+      // Find a suitable source language to transliterate from
+      // Priority fallback sequence: IAST > SLP1 > ITRANS > SAN > TEL > first available language with valid scheme
+      let sourceText: { value: string; language: string } | undefined;
+
+      // Define fallback sequence: IAST, SLP1, ITRANS, SAN, TEL
+      const fallbackSequence = ["IAST", "SLP1", "ITRANS", "SAN", "TEL"];
+
+      // Try each language in the fallback sequence
+      for (const langCode of fallbackSequence) {
+        sourceText = processedTextData.find(
+          (t) => t.language === langCode && !t.value.startsWith("$"),
+        );
+        if (sourceText) {
+          break;
+        }
+      }
+
+      // If still no source, use the first available language with a valid scheme
+      if (!sourceText) {
+        sourceText = processedTextData.find((t) => {
+          const scheme = LANGUAGE_SCHEME_MAP[t.language];
+          return scheme && !t.value.startsWith("$");
+        });
+      }
+
+      if (sourceText) {
+        const sourceScheme = LANGUAGE_SCHEME_MAP[sourceText.language];
+        if (sourceScheme) {
+          try {
+            const transliteratedValue = Sanscript.t(
+              sourceText.value,
+              sourceScheme,
+              targetScheme,
+            );
+            additionalTextData.push({
+              language: missingLang,
+              value: transliteratedValue,
+            });
+          } catch (error) {
+            console.warn(
+              `Failed to transliterate from ${sourceText.language} to ${missingLang}:`,
+              error,
+            );
+          }
+        }
+      }
+    }
+
+    return [...processedTextData, ...additionalTextData];
+  }
+
+  return processedTextData;
 };
 export const transliteratedTextToItrans = (
   textData: { value: string; language: string }[],

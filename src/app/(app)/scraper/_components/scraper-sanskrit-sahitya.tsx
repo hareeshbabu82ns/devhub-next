@@ -419,7 +419,7 @@ export function ScraperSanskritSahitya() {
                   <div className="space-y-2 text-sm">
                     <div>
                       <Badge variant="outline">Sanskrit Text</Badge>
-                      <p className="mt-1 text-lg">{record.v}</p>
+                      <p className="mt-1 text-lg">{record.v || record.t}</p>
                     </div>
                     {record.vd && (
                       <div>
