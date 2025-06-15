@@ -36,7 +36,7 @@ const WordAnalysisSchema = z.object({
 });
 
 const VerseDataSchema = z.object({
-  c: z.string(), // chapter number
+  c: z.string().optional(), // chapter number - optional when no chapters present
   t: z.string().optional(), // introductory/explanatory text
   n: z.union([z.string(), z.number()]).optional(), // verse number
   i: z.number().optional(), // index in the book
@@ -69,6 +69,8 @@ export interface ParseOptions {
   defaultLanguage?: string;
   meaningLanguage?: string;
   bookmarkAll?: boolean;
+  entityType?: string;
+  parentId?: string;
 }
 
 export interface ParsedEntity {
@@ -79,6 +81,7 @@ export interface ParsedEntity {
   bookmarked: boolean;
   order: number;
   notes: string;
+  parentId?: string;
   parentRelation?: {
     type: "book" | "chapter";
     chapterNumber?: string;
@@ -117,9 +120,17 @@ export function parseSanskritSahityaData(
     defaultLanguage = "SAN",
     meaningLanguage = "ENG",
     bookmarkAll = false,
+    entityType = "KAVYAM",
+    parentId,
   } = options;
 
-  const book = createBookEntity(data, defaultLanguage, bookmarkAll);
+  const book = createBookEntity(
+    data,
+    defaultLanguage,
+    bookmarkAll,
+    entityType,
+    parentId,
+  );
   const chapters = createChapterEntities(data, defaultLanguage, bookmarkAll);
   const verses = createVerseEntities(
     data,
@@ -150,6 +161,7 @@ function createBookEntity(
   language: string = "SAN",
   bookmarked: boolean,
   bookType: string = "KAVYAM", // Default book type
+  parentId?: string,
 ): ParsedEntity {
   const textData: LanguageValueType[] = [{ language, value: data.title }];
 
@@ -173,6 +185,7 @@ function createBookEntity(
     bookmarked,
     order: 0,
     notes: `Sanskrit literature work: ${data.title}`,
+    parentId,
   };
 }
 
@@ -250,17 +263,20 @@ function createVerseEntities(
   const verseEntities: ParsedEntity[] = [];
 
   for (const verse of data.data) {
-    // Find the chapter entity for this verse
-    const chapterEntity = chapterEntities.find((ch) =>
-      ch.attributes.some(
-        (attr: AttributeValueType) =>
-          attr.key === "chapterNumber" && attr.value === verse.c,
-      ),
-    );
+    // Find the chapter entity for this verse (only if verse has chapter info)
+    const chapterEntity = verse.c
+      ? chapterEntities.find((ch) =>
+          ch.attributes.some(
+            (attr: AttributeValueType) =>
+              attr.key === "chapterNumber" && attr.value === verse.c,
+          ),
+        )
+      : undefined;
 
-    const parentRelation: ParsedEntity["parentRelation"] = chapterEntity
-      ? { type: "chapter", chapterNumber: verse.c }
-      : { type: "book" };
+    const parentRelation: ParsedEntity["parentRelation"] =
+      chapterEntity && verse.c
+        ? { type: "chapter", chapterNumber: verse.c }
+        : { type: "book" };
 
     // Prepare text data
     const textData: LanguageValueType[] = [];
@@ -294,8 +310,12 @@ function createVerseEntities(
     // Prepare attributes
     const attributes: AttributeValueType[] = [
       { key: "sourceType", value: "sanskritsahitya" },
-      { key: "chapterNumber", value: verse.c },
     ];
+
+    // Only add chapter number if it exists
+    if (verse.c) {
+      attributes.push({ key: "chapterNumber", value: verse.c });
+    }
 
     if (verse.n !== undefined) {
       attributes.push({ key: "verseNumber", value: verse.n.toString() });

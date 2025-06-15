@@ -10,6 +10,7 @@ import { ScraperMahabharatam } from "./scraper-mahabharatam";
 import { ScraperGeneric } from "./scraper-generic";
 import { GenericSampleScraper } from "./scraper-generic-sample";
 import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
+import { ScraperSanskritSahitya } from "./scraper-sanskrit-sahitya";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { DictionaryImportManager } from "@/components/features/dictionary/dictionary-import-manager";
 
@@ -43,6 +44,12 @@ const navItems = [
   {
     id: "sthotranidhi",
     label: "Sthotranidhi",
+    group: "Others",
+    status: "available",
+  },
+  {
+    id: "sanskrit-sahitya",
+    label: "Sanskrit Sahitya Import",
     group: "Others",
     status: "available",
   },
@@ -138,6 +145,8 @@ export function ScraperLayout() {
         return <GenericSampleScraper />;
       case "sthotranidhi":
         return <ScraperSthotranidhi />;
+      case "sanskrit-sahitya":
+        return <ScraperSanskritSahitya />;
       case "bhagavatam":
       case "vedas":
       case "upanishads":
@@ -170,7 +179,7 @@ export function ScraperLayout() {
   };
 
   return (
-    <div className="flex w-full h-[calc(100vh-10rem)] overflow-hidden">
+    <div className="flex w-full h-full">
       {/* Left side navigation menu */}
       <div className="w-64 border-r shrink-0">
         <ScrollArea className="h-[calc(100%-3.5rem)]">

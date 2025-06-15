@@ -39,11 +39,11 @@ git clone https://github.com/hareeshbabu82ns/data.git
 
 - title: title of the book
 - terms: terms used in the book, e.g., chapterSg (singular), chapterPl (plural)
-- chapters: array of chapter objects with
+- chapters: array of chapter objects with (optional)
 - number: if chapter number is with '.' like 3.1, it belongs to chapter 3 and sub-chapter 1
 - name: name of the chapter (optional)
 - data: array of verse objects with Each verse object containing:
-  - c: chapter number
+  - c: chapter number (optional if chapters is not available)
   - n: verse number
   - i: index of the verse in the book
   - t: introductory or explanatory text (will not contain verse text, can be added as another verse)

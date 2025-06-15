@@ -34,6 +34,8 @@ const ImportSanskritSahityaSchema = z.object({
       bookmarkAll: z.boolean().default(false),
       defaultLanguage: z.string().default("SAN"), // Sanskrit
       meaningLanguage: z.string().default("ENG"), // English
+      entityType: z.string().default("KAVYAM"), // Default entity type
+      parentId: z.string().optional(), // Parent entity ID
     })
     .optional(),
 });
@@ -49,6 +51,8 @@ export async function parseSanskritSahityaFile(
     defaultLanguage?: string;
     meaningLanguage?: string;
     bookmarkAll?: boolean;
+    entityType?: string;
+    parentId?: string;
   },
 ): Promise<SanskritSahityaImportResponse<ParsedHierarchy>> {
   try {
@@ -125,6 +129,8 @@ export async function importSanskritSahityaData(
       bookmarkAll = false,
       defaultLanguage = "SAN",
       meaningLanguage = "ENG",
+      entityType = "KAVYAM",
+      parentId,
     } = options || {};
 
     // Parse the file first
@@ -132,6 +138,8 @@ export async function importSanskritSahityaData(
       defaultLanguage,
       meaningLanguage,
       bookmarkAll,
+      entityType,
+      parentId,
     });
 
     if (parseResult.status === "error") {
@@ -197,16 +205,25 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
   const createdEntities = [];
 
   // Create book entity
+  const bookData: any = {
+    type: hierarchy.book.type,
+    text: hierarchy.book.text,
+    meaning: hierarchy.book.meaning,
+    attributes: hierarchy.book.attributes,
+    bookmarked: hierarchy.book.bookmarked,
+    order: hierarchy.book.order,
+    notes: hierarchy.book.notes,
+  };
+
+  // Add parent connection if parentId is provided
+  if (hierarchy.book.parentId) {
+    bookData.parentsRel = {
+      connect: { id: hierarchy.book.parentId },
+    };
+  }
+
   const bookEntity = await db.entity.create({
-    data: {
-      type: hierarchy.book.type,
-      text: hierarchy.book.text,
-      meaning: hierarchy.book.meaning,
-      attributes: hierarchy.book.attributes,
-      bookmarked: hierarchy.book.bookmarked,
-      order: hierarchy.book.order,
-      notes: hierarchy.book.notes,
-    },
+    data: bookData,
   });
   createdEntities.push(bookEntity);
 
@@ -334,6 +351,68 @@ export async function validateSanskritSahityaFile(
     return {
       status: "error",
       error: error instanceof Error ? error.message : "File validation failed",
+    };
+  }
+}
+
+// Input validation schema for reading JSON files
+const ReadJsonFileSchema = z.object({
+  filePath: z.string().min(1, "File path is required"),
+});
+
+/**
+ * Reads a raw JSON file for preview (without parsing)
+ */
+export async function readSanskritSahityaJsonFile(
+  filePath: string,
+): Promise<SanskritSahityaImportResponse<any>> {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user) {
+      return { status: "error", error: "Unauthorized access" };
+    }
+
+    // Validate input
+    const validated = ReadJsonFileSchema.parse({ filePath });
+
+    // Ensure the file path is within the allowed directory
+    if (!validated.filePath.startsWith("data/sanskritsahitya-com-data/")) {
+      return { status: "error", error: "Invalid file path" };
+    }
+
+    // Read and parse JSON file
+    const fullPath = resolve(validated.filePath);
+    const fileContent = await readFile(fullPath, "utf-8");
+    const jsonData = JSON.parse(fileContent);
+
+    return {
+      status: "success",
+      data: jsonData,
+    };
+  } catch (error) {
+    console.error("JSON file reading failed:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "error",
+        error: `Validation error: ${error.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join(", ")}`,
+      };
+    }
+
+    if (error instanceof SyntaxError) {
+      return {
+        status: "error",
+        error: "Invalid JSON file format",
+      };
+    }
+
+    return {
+      status: "error",
+      error:
+        error instanceof Error ? error.message : "Failed to read JSON file",
     };
   }
 }
