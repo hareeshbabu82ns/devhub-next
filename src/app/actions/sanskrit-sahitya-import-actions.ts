@@ -1,0 +1,339 @@
+/**
+ * Sanskrit Sahitya Import Server Actions for DevHub
+ *
+ * These server actions provide a safe interface for importing Sanskrit literature data
+ * from the sanskritsahitya.com JSON format with proper authentication and error handling.
+ */
+
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { readFile } from "fs/promises";
+import { resolve } from "path";
+import { db } from "@/lib/db";
+import { auth } from "@/lib/auth";
+import {
+  parseSanskritSahityaData,
+  validateSanskritSahityaData,
+  type ParsedEntity,
+  type ParsedHierarchy,
+} from "@/lib/scrape/sanskrit-sahitya-parser";
+
+// Response types for server actions
+export type SanskritSahityaImportResponse<T = unknown> =
+  | { status: "success"; data: T }
+  | { status: "error"; error: string };
+
+// Input validation schema
+const ImportSanskritSahityaSchema = z.object({
+  filePath: z.string().min(1, "File path is required"),
+  options: z
+    .object({
+      deleteExisting: z.boolean().default(false),
+      bookmarkAll: z.boolean().default(false),
+      defaultLanguage: z.string().default("SAN"), // Sanskrit
+      meaningLanguage: z.string().default("ENG"), // English
+    })
+    .optional(),
+});
+
+type ImportSanskritSahityaInput = z.infer<typeof ImportSanskritSahityaSchema>;
+
+/**
+ * Parses Sanskrit Sahitya data from a JSON file (without database operations)
+ */
+export async function parseSanskritSahityaFile(
+  filePath: string,
+  options?: {
+    defaultLanguage?: string;
+    meaningLanguage?: string;
+    bookmarkAll?: boolean;
+  },
+): Promise<SanskritSahityaImportResponse<ParsedHierarchy>> {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user) {
+      return { status: "error", error: "Unauthorized access" };
+    }
+
+    // Read and parse JSON file
+    const fullPath = resolve(filePath);
+    const fileContent = await readFile(fullPath, "utf-8");
+    const jsonData = JSON.parse(fileContent);
+
+    // Validate JSON structure
+    const sahityaData = validateSanskritSahityaData(jsonData);
+
+    // Parse data into entity hierarchy
+    const parsedHierarchy = parseSanskritSahityaData(sahityaData, options);
+
+    return {
+      status: "success",
+      data: parsedHierarchy,
+    };
+  } catch (error) {
+    console.error("Sanskrit Sahitya parsing failed:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "error",
+        error: `Validation error: ${error.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join(", ")}`,
+      };
+    }
+
+    if (error instanceof SyntaxError) {
+      return {
+        status: "error",
+        error: "Invalid JSON file format",
+      };
+    }
+
+    return {
+      status: "error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to parse Sanskrit Sahitya data",
+    };
+  }
+}
+
+/**
+ * Imports Sanskrit Sahitya data from a JSON file into the database
+ */
+export async function importSanskritSahityaData(
+  input: ImportSanskritSahityaInput,
+): Promise<
+  SanskritSahityaImportResponse<{ entitiesCreated: number; bookTitle: string }>
+> {
+  try {
+    // Check authentication
+    const session = await auth();
+    if (!session?.user) {
+      return { status: "error", error: "Unauthorized access" };
+    }
+
+    // Validate input
+    const validated = ImportSanskritSahityaSchema.parse(input);
+    const { filePath, options } = validated;
+    const {
+      deleteExisting = false,
+      bookmarkAll = false,
+      defaultLanguage = "SAN",
+      meaningLanguage = "ENG",
+    } = options || {};
+
+    // Parse the file first
+    const parseResult = await parseSanskritSahityaFile(filePath, {
+      defaultLanguage,
+      meaningLanguage,
+      bookmarkAll,
+    });
+
+    if (parseResult.status === "error") {
+      return parseResult;
+    }
+
+    const hierarchy = parseResult.data;
+
+    // Delete existing entities if requested
+    if (deleteExisting) {
+      await db.entity.deleteMany({
+        where: {
+          attributes: {
+            some: {
+              key: "bookTitle",
+              value: hierarchy.book.text[0].value,
+            },
+          },
+        },
+      });
+    }
+
+    // Create entities in database
+    const createdEntities = await createEntitiesInDatabase(hierarchy);
+
+    // Revalidate relevant paths
+    revalidatePath("/entity");
+    revalidatePath("/dashboard");
+
+    return {
+      status: "success",
+      data: {
+        entitiesCreated: createdEntities.length,
+        bookTitle: hierarchy.metadata.bookTitle,
+      },
+    };
+  } catch (error) {
+    console.error("Sanskrit Sahitya import failed:", error);
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "error",
+        error: `Validation error: ${error.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join(", ")}`,
+      };
+    }
+
+    return {
+      status: "error",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to import Sanskrit Sahitya data",
+    };
+  }
+}
+
+/**
+ * Creates entities in the database from parsed hierarchy
+ */
+async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
+  const createdEntities = [];
+
+  // Create book entity
+  const bookEntity = await db.entity.create({
+    data: {
+      type: hierarchy.book.type,
+      text: hierarchy.book.text,
+      meaning: hierarchy.book.meaning,
+      attributes: hierarchy.book.attributes,
+      bookmarked: hierarchy.book.bookmarked,
+      order: hierarchy.book.order,
+      notes: hierarchy.book.notes,
+    },
+  });
+  createdEntities.push(bookEntity);
+
+  // Create chapter entities and track their IDs
+  const chapterIdMap = new Map<string, string>();
+  for (const chapter of hierarchy.chapters) {
+    const chapterNumberAttr = chapter.attributes.find(
+      (attr) => attr.key === "chapterNumber",
+    );
+    const chapterNumber = chapterNumberAttr?.value || "";
+
+    let parentIds = [bookEntity.id];
+
+    // Handle sub-chapters (find parent chapter)
+    if (
+      chapter.parentRelation?.type === "chapter" &&
+      chapter.parentRelation.chapterNumber
+    ) {
+      const parentChapterId = chapterIdMap.get(
+        chapter.parentRelation.chapterNumber,
+      );
+      if (parentChapterId) {
+        parentIds = [parentChapterId];
+      }
+    }
+
+    const chapterEntity = await db.entity.create({
+      data: {
+        type: chapter.type,
+        text: chapter.text,
+        meaning: chapter.meaning,
+        attributes: chapter.attributes,
+        bookmarked: chapter.bookmarked,
+        order: chapter.order,
+        notes: chapter.notes,
+        parents: parentIds,
+      },
+    });
+
+    chapterIdMap.set(chapterNumber, chapterEntity.id);
+    createdEntities.push(chapterEntity);
+  }
+
+  // Create verse entities
+  for (const verse of hierarchy.verses) {
+    const chapterNumberAttr = verse.attributes.find(
+      (attr) => attr.key === "chapterNumber",
+    );
+    const chapterNumber = chapterNumberAttr?.value || "";
+
+    let parentIds = [bookEntity.id];
+    if (verse.parentRelation?.type === "chapter" && chapterNumber) {
+      const chapterId = chapterIdMap.get(chapterNumber);
+      if (chapterId) {
+        parentIds = [chapterId];
+      }
+    }
+
+    const verseEntity = await db.entity.create({
+      data: {
+        type: verse.type,
+        text: verse.text,
+        meaning: verse.meaning,
+        attributes: verse.attributes,
+        bookmarked: verse.bookmarked,
+        order: verse.order,
+        notes: verse.notes,
+        parents: parentIds,
+      },
+    });
+
+    createdEntities.push(verseEntity);
+  }
+
+  return createdEntities;
+}
+
+/**
+ * Validates if a file path exists and is accessible
+ */
+export async function validateSanskritSahityaFile(
+  filePath: string,
+): Promise<
+  SanskritSahityaImportResponse<{ isValid: boolean; title?: string }>
+> {
+  try {
+    const session = await auth();
+    if (!session?.user) {
+      return { status: "error", error: "Unauthorized access" };
+    }
+
+    const fullPath = resolve(filePath);
+    const fileContent = await readFile(fullPath, "utf-8");
+    const jsonData = JSON.parse(fileContent);
+
+    // Basic validation
+    const sahityaData = validateSanskritSahityaData(jsonData);
+
+    return {
+      status: "success",
+      data: {
+        isValid: true,
+        title: sahityaData.title,
+      },
+    };
+  } catch (error) {
+    console.error("File validation failed:", error);
+
+    if (error instanceof SyntaxError) {
+      return {
+        status: "error",
+        error: "Invalid JSON file format",
+      };
+    }
+
+    if (error instanceof z.ZodError) {
+      return {
+        status: "error",
+        error: `Invalid file structure: ${error.errors
+          .map((e) => `${e.path.join(".")}: ${e.message}`)
+          .join(", ")}`,
+      };
+    }
+
+    return {
+      status: "error",
+      error: error instanceof Error ? error.message : "File validation failed",
+    };
+  }
+}
