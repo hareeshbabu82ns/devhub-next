@@ -111,6 +111,7 @@ export const DICTIONARY_ORIGINS = [
   "VEI",
   "WIL",
   "YAT",
+  "OTHERS",
 ] as const;
 
 export const DICTIONARY_SORT_OPTIONS = [

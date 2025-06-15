@@ -19,6 +19,7 @@ export type EntityTypeEnum =
   | "GOD"
   | "ITIHASAM"
   | "KAANDAM"
+  | "KAVYAM"
   | "KEERTHANAM"
   | "OTHERS"
   | "PARVAM"
@@ -37,6 +38,7 @@ export type EntityTypeEnum =
 //   STHOTRAM = "STHOTRAM",
 //   DANDAKAM = "DANDAKAM",
 //   KAANDAM = "KAANDAM",
+//   KAVYAM = "KAVYAM",
 //   SARGA = "SARGA",
 //   PARVAM = "PARVAM",
 //   ADHYAAYAM = "ADHYAAYAM",

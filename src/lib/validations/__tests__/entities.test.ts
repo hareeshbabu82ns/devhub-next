@@ -50,6 +50,7 @@ describe("Entity Validation Schemas", () => {
         "STHOTRAM",
         "DANDAKAM",
         "KAANDAM",
+        "KAVYAM",
         "SARGA",
         "PARVAM",
         "ADHYAAYAM",
