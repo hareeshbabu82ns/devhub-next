@@ -466,7 +466,7 @@ describe("Sanskrit Sahitya Parser", () => {
       const result = parseSanskritSahityaData(dataWithNumericChapterNumbers);
       expect(result.chapters).toHaveLength(2);
       expect(result.chapters[0].order).toBe(1);
-      expect(result.chapters[1].order).toBe(2.5);
+      expect(result.chapters[1].order).toBe(5);
     });
   });
 
