@@ -34,6 +34,7 @@ export const ENTITY_TYPES = [
   "PARVAM",
   "PURANAM",
   "SARGA",
+  "SHATAKAM",
   "SKANDAM",
   "SLOKAM",
   "STHOTRAM",
@@ -65,6 +66,7 @@ export const ENTITY_TYPES_PARENTS = {
     "OTHERS",
     "PARVAM",
     "SARGA",
+    "SHATAKAM",
     "STHOTRAM",
   ],
   OTHERS: [
@@ -74,6 +76,7 @@ export const ENTITY_TYPES_PARENTS = {
     "ITIHASAM",
     "PURANAM",
     "STHOTRAM",
+    "SHATAKAM",
     "VRATHAM",
   ],
 } as Record<string, EntityTypeEnum[]>;
@@ -92,8 +95,9 @@ export const ENTITY_TYPES_CHILDREN = {
 
   ITIHASAM: ["KAANDAM"],
   KAANDAM: ["SARGA"],
-  KAVYAM: ["SARGA", "ADHYAAYAM"],
+  KAVYAM: ["SARGA", "ADHYAAYAM", "SARGA"],
   SARGA: ["SLOKAM"],
+  SHATAKAM: ["SLOKAM", "ADHYAAYAM", "SARGA"],
   KEERTHANAM: ["SLOKAM"],
 
   PURANAM: ["PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM"],
@@ -115,6 +119,7 @@ export const ENTITY_TYPES_DDLB = [
   { label: "Itihasam", value: "ITIHASAM" },
   { label: "Puranam", value: "PURANAM" },
   { label: "Sthotram", value: "STHOTRAM" },
+  { label: "Shatakham", value: "SHATAKAM" },
   { label: "Dandakam", value: "DANDAKAM" },
   { label: "Kaandam", value: "KAANDAM" },
   { label: "Kavyam", value: "KAVYAM" },
@@ -231,6 +236,15 @@ export const ENTITY_TYPES_LANGUAGE_MAP: Record<
     ITRANS: "sargaH",
     IAST: "sargaḥ",
     SLP1: "sargaH",
+  },
+  SHATAKAM: {
+    SAN: "शतकम्",
+    TEL: "శతకము",
+    HIN: "शतकम्",
+    TAM: "SHATAKAM",
+    ITRANS: "shatakamaH",
+    IAST: "śatakamaḥ",
+    SLP1: "shatakamaH",
   },
   PARVAM: {
     SAN: "पुराणः",

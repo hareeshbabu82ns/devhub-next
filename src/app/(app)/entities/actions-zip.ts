@@ -354,7 +354,6 @@ async function buildHierarchyStructure(
 
   let totalEntities = 1;
   let maxDepth = depth;
-  let nextIndex = 0; // Reset index for children of this entity
 
   // Generate filename with parent hierarchy indexes
   const fileName = generateEntityFileName(

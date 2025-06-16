@@ -25,6 +25,7 @@ export type EntityTypeEnum =
   | "PARVAM"
   | "PURANAM"
   | "SARGA"
+  | "SHATAKAM"
   | "SKANDAM"
   | "SLOKAM"
   | "STHOTRAM"

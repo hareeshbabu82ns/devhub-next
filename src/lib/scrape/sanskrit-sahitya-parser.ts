@@ -446,7 +446,9 @@ function createVerseEntities(
 ): ParsedEntity[] {
   const verseEntities: ParsedEntity[] = [];
 
-  let verseOrder = 0;
+  // Track verse order per chapter - starts from 0 for each new chapter
+  const chapterVerseCounters = new Map<string, number>();
+  let globalVerseOrder = 0; // Used when no chapters exist
 
   for (const verse of data.data) {
     let parentRelation: ParsedEntity["parentRelation"];
@@ -601,7 +603,7 @@ function createVerseEntities(
     }
 
     // Determine entity type based on content
-    let entityType: string = "SLOKAM"; // Default for verses
+    const entityType: string = "SLOKAM"; // Default for verses
     // if (verse.t && !verse.v) {
     //   entityType = "OTHERS"; // For explanatory text
     // }
@@ -657,13 +659,29 @@ function createVerseEntities(
       }
     }
 
+    // Calculate verse order based on chapter grouping
+    let currentVerseOrder: number;
+
+    if (verse.c) {
+      // Verse has chapter information - use chapter-specific counter
+      const chapterKey = verse.c;
+      if (!chapterVerseCounters.has(chapterKey)) {
+        chapterVerseCounters.set(chapterKey, 0);
+      }
+      currentVerseOrder = chapterVerseCounters.get(chapterKey)!;
+      chapterVerseCounters.set(chapterKey, currentVerseOrder + 1);
+    } else {
+      // No chapter information - use global counter
+      currentVerseOrder = globalVerseOrder++;
+    }
+
     const verseEntity: ParsedEntity = {
       type: entityType,
       text: textData,
       meaning: meaningData,
       attributes,
       bookmarked,
-      order: verseOrder++,
+      order: currentVerseOrder,
       // order: verse.i || 0,
       notes,
       parentRelation,

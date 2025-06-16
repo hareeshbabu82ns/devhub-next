@@ -11,6 +11,7 @@ git clone https://github.com/hareeshbabu82ns/data.git
 ```ts
 {
   "title": "नाट्यशास्त्रम्",
+  "custom": {"anv": {"name": "अन्वयः", "lang": "sa", "markdown": false, "order": 1}, "es": {"name": "Summary", "lang": "en", "order": 3}, "md": {"name": "M N Dutt", "lang": "en", "order": 2, "showInline": true}},
   "terms": {"chapterSg": "अध्यायः", "chapterPl": "अध्यायाः"},
   "books": [
     {"number": "1", "name": "आदिपर्व"},
@@ -43,6 +44,13 @@ git clone https://github.com/hareeshbabu82ns/data.git
 ### Structure of the JSON data:
 
 - title: title of the book
+- custom: object contains extra fields in data verses
+  - key: field name in data
+  - value: object
+    - name: to be used instead of key for descriptions
+    - lang: language of the text with en - english, sa - sanskrit options
+    - markdown: boolean indicator (optional)
+    - order: number (optional)
 - terms: terms used in the book
   - chapterSg: chapter type (singular) (optional, type for chapters array bellow)
   - chapterPl: chapter type (plural) (optional)
