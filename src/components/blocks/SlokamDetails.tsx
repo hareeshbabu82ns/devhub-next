@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { bookmarkEntity, readEntity } from "@/app/(app)/entities/actions";
 import Loader from "../utils/loader";
@@ -21,14 +21,25 @@ import {
 import { Entity } from "@/lib/types";
 import { toast } from "sonner";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { Button } from "../ui/button";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
 }
 const SlokamDetails = ({ slokamId, className }: CompParams) => {
   const language = useLanguageAtomValue();
-  const meaningLanguage = useMeaningLanguageAtomValue();
+  const defaultMeaningLanguage = useMeaningLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
+
+  // Local state for meaning language selection
+  const [meaningLanguage, setMeaningLanguage] = useState(
+    defaultMeaningLanguage,
+  );
+
+  // Sync with the global meaning language atom when it changes
+  useEffect(() => {
+    setMeaningLanguage(defaultMeaningLanguage);
+  }, [defaultMeaningLanguage]);
 
   // Fetch current slokam details
   const {
@@ -86,7 +97,22 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
           />
         </div>
         <div className="flex flex-1 flex-col p-4 rounded-md border">
-          <p className="text-secondary pb-2">Meaning:</p>
+          <div className="flex items-center justify-between pb-2">
+            <p className="text-secondary">Meaning:</p>
+            <div className="flex gap-1">
+              {["ITRANS", "SAN", "TEL", "ENG"].map((lang) => (
+                <Button
+                  key={lang}
+                  variant={meaningLanguage === lang ? "default" : "outline"}
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setMeaningLanguage(lang)}
+                >
+                  {lang}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div
             className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest markdown-content`}
           >
