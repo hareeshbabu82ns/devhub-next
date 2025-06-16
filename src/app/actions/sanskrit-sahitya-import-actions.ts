@@ -154,8 +154,8 @@ export async function importSanskritSahityaData(
         where: {
           attributes: {
             some: {
-              key: "bookTitle",
-              value: hierarchy.book.text[0].value,
+              key: "rootTitle",
+              value: hierarchy.root.text[0].value,
             },
           },
         },
@@ -173,7 +173,7 @@ export async function importSanskritSahityaData(
       status: "success",
       data: {
         entitiesCreated: createdEntities.length,
-        bookTitle: hierarchy.metadata.bookTitle,
+        bookTitle: hierarchy.metadata.rootTitle,
       },
     };
   } catch (error) {
@@ -200,41 +200,89 @@ export async function importSanskritSahityaData(
 
 /**
  * Creates entities in the database from parsed hierarchy
+ * Handles both hierarchical Books[Chapters[Verses[]]] and flat Chapters[Verses[]] structures
  */
 async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
   const createdEntities = [];
 
-  // Create book entity
-  const bookData: any = {
-    type: hierarchy.book.type,
-    text: transliteratedText(hierarchy.book.text, [
+  // Create root entity
+  const rootData: any = {
+    type: hierarchy.root.type,
+    text: transliteratedText(hierarchy.root.text, [
       "SAN",
       "IAST",
       "SLP1",
       "ITRANS",
       "TEL",
     ]),
-    meaning: hierarchy.book.meaning,
-    attributes: hierarchy.book.attributes,
-    bookmarked: hierarchy.book.bookmarked,
-    order: hierarchy.book.order,
-    notes: hierarchy.book.notes,
+    meaning: hierarchy.root.meaning,
+    attributes: hierarchy.root.attributes,
+    bookmarked: hierarchy.root.bookmarked,
+    order: hierarchy.root.order,
+    notes: hierarchy.root.notes,
   };
 
   // Add parent connection if parentId is provided
-  if (hierarchy.book.parentId) {
-    bookData.parents = [hierarchy.book.parentId];
+  if (hierarchy.root.parentId) {
+    rootData.parents = [hierarchy.root.parentId];
   }
 
-  const bookEntity = await db.entity.create({
-    data: bookData,
+  const rootEntity = await db.entity.create({
+    data: rootData,
   });
-  createdEntities.push(bookEntity);
+  createdEntities.push(rootEntity);
 
-  // Update parent entity to include book as child if parentId exists
-  if (hierarchy.book.parentId) {
+  // Update parent entity to include root as child if parentId exists
+  if (hierarchy.root.parentId) {
     await db.entity.update({
-      where: { id: hierarchy.book.parentId },
+      where: { id: hierarchy.root.parentId },
+      data: {
+        children: {
+          push: rootEntity.id,
+        },
+      },
+    });
+  }
+
+  // Create book entities and track their IDs (if books exist)
+  const bookIdMap = new Map<string, string>();
+  for (const book of hierarchy.books) {
+    const bookNumberAttr = book.attributes.find(
+      (attr) => attr.key === "bookNumber",
+    );
+    const bookNumber = bookNumberAttr?.value || "";
+
+    const bookEntity = await db.entity.create({
+      data: {
+        type: book.type,
+        text: transliteratedText(book.text, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
+        meaning: transliteratedText(book.meaning, [
+          "SAN",
+          "IAST",
+          "SLP1",
+          "ITRANS",
+          "TEL",
+        ]),
+        attributes: book.attributes,
+        bookmarked: book.bookmarked,
+        order: book.order,
+        notes: book.notes,
+        parents: [rootEntity.id],
+      },
+    });
+
+    bookIdMap.set(bookNumber, bookEntity.id);
+    createdEntities.push(bookEntity);
+
+    // Update root entity to include book as child
+    await db.entity.update({
+      where: { id: rootEntity.id },
       data: {
         children: {
           push: bookEntity.id,
@@ -251,13 +299,22 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
     );
     const chapterNumber = chapterNumberAttr?.value || "";
 
-    let parentIds = [bookEntity.id];
+    let parentIds = [rootEntity.id];
 
-    // Handle sub-chapters (find parent chapter)
+    // Handle hierarchical structure based on parent relation
     if (
+      chapter.parentRelation?.type === "book" &&
+      chapter.parentRelation.bookNumber
+    ) {
+      const parentBookId = bookIdMap.get(chapter.parentRelation.bookNumber);
+      if (parentBookId) {
+        parentIds = [parentBookId];
+      }
+    } else if (
       chapter.parentRelation?.type === "chapter" &&
       chapter.parentRelation.chapterNumber
     ) {
+      // Handle sub-chapters (find parent chapter)
       const parentChapterId = chapterIdMap.get(
         chapter.parentRelation.chapterNumber,
       );
@@ -309,16 +366,24 @@ async function createEntitiesInDatabase(hierarchy: ParsedHierarchy) {
 
   // Create verse entities
   for (const verse of hierarchy.verses) {
-    const chapterNumberAttr = verse.attributes.find(
-      (attr) => attr.key === "chapterNumber",
-    );
-    const chapterNumber = chapterNumberAttr?.value || "";
+    let parentIds = [rootEntity.id]; // Default to root
 
-    let parentIds = [bookEntity.id];
-    if (verse.parentRelation?.type === "chapter" && chapterNumber) {
-      const chapterId = chapterIdMap.get(chapterNumber);
+    // Determine parent based on parent relation
+    if (
+      verse.parentRelation?.type === "chapter" &&
+      verse.parentRelation.chapterNumber
+    ) {
+      const chapterId = chapterIdMap.get(verse.parentRelation.chapterNumber);
       if (chapterId) {
         parentIds = [chapterId];
+      }
+    } else if (
+      verse.parentRelation?.type === "book" &&
+      verse.parentRelation.bookNumber
+    ) {
+      const bookId = bookIdMap.get(verse.parentRelation.bookNumber);
+      if (bookId) {
+        parentIds = [bookId];
       }
     }
 

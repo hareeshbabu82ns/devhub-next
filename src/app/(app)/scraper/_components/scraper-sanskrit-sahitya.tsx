@@ -62,9 +62,18 @@ interface ParsedEntity {
 }
 
 interface ParsedHierarchy {
-  book: ParsedEntity;
+  root: ParsedEntity;
+  books: ParsedEntity[];
   chapters: ParsedEntity[];
   verses: ParsedEntity[];
+  metadata: {
+    totalEntities: number;
+    rootTitle: string;
+    bookCount: number;
+    chapterCount: number;
+    verseCount: number;
+    hasHierarchicalBooks: boolean;
+  };
 }
 
 interface FileItem {
@@ -82,7 +91,7 @@ const AVAILABLE_FILES: FileItem[] = [
   },
   { path: "kiratarjuniyam/kiratarjuniyam.json", name: "Kiratarjuniyam" },
   { path: "kumarasambhavam/kumarasambhavam.json", name: "Kumarasambhavam" },
-  { path: "mahabharatam/mahabharatam.json", name: "Mahabharatam" },
+  { path: "mahabharatam/mahabharatam1.json", name: "Mahabharatam" },
   { path: "meghadutam/meghadutam.json", name: "Meghadutam" },
   {
     path: "naishadhiyacaritam/naishadhiyacaritam.json",
@@ -90,7 +99,7 @@ const AVAILABLE_FILES: FileItem[] = [
   },
   { path: "pancatantram/pancatantram.json", name: "Pancatantram" },
   { path: "raghuvansham/raghuvansham.json", name: "Raghuvansham" },
-  { path: "ramayanam/ramayanam.json", name: "Ramayanam" },
+  { path: "ramayanam/ramayanam1.json", name: "Ramayanam" },
   { path: "rtusamharam/rtusamharam.json", name: "Rtusamharam" },
   { path: "shakuntalam/shakuntalam.json", name: "Shakuntalam" },
   { path: "shatakatrayam/shatakatrayam.json", name: "Shatakatrayam" },
@@ -472,7 +481,7 @@ export function ScraperSanskritSahitya() {
   const renderEntityPreview = () => {
     if (!parsedData) return null;
 
-    const { book, chapters, verses } = parsedData;
+    const { root, books, chapters, verses } = parsedData;
     const sampleVerses = verses.slice(0, 3); // Show first 3 verses
 
     return (
@@ -624,19 +633,43 @@ export function ScraperSanskritSahitya() {
 
             {/* Book Entity */}
             <div className="p-3 border rounded-lg">
-              <Badge className="mb-2">Book Entity</Badge>
+              <Badge className="mb-2">Root Entity</Badge>
               <div className="text-sm space-y-1">
                 <p>
-                  <strong>Type:</strong> {book.type}
+                  <strong>Type:</strong> {root.type}
                 </p>
                 <p>
-                  <strong>Text:</strong> {book.text[0]?.value}
+                  <strong>Text:</strong> {root.text[0]?.value}
                 </p>
                 <p>
-                  <strong>Bookmarked:</strong> {book.bookmarked ? "Yes" : "No"}
+                  <strong>Bookmarked:</strong> {root.bookmarked ? "Yes" : "No"}
                 </p>
               </div>
             </div>
+
+            {/* Book Entities */}
+            {books.length > 0 && (
+              <div className="space-y-2">
+                <Badge className="mb-2">Book Entities ({books.length})</Badge>
+                {books.slice(0, 3).map((book, index) => (
+                  <div key={index} className="p-2 bg-gray-50 rounded">
+                    <div className="text-sm space-y-1">
+                      <p>
+                        <strong>Type:</strong> {book.type}
+                      </p>
+                      <p>
+                        <strong>Text:</strong> {book.text[0]?.value}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {books.length > 3 && (
+                  <p className="text-sm text-gray-500">
+                    ... and {books.length - 3} more books
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Chapter Entities */}
             {chapters.length > 0 && (
@@ -748,7 +781,7 @@ export function ScraperSanskritSahitya() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <Badge variant="secondary">Book</Badge>
-                <p className="mt-1">{parsedData.book.text[0]?.value}</p>
+                <p className="mt-1">{parsedData.root.text[0]?.value}</p>
               </div>
               <div>
                 <Badge variant="secondary">Total Entities</Badge>

@@ -12,6 +12,11 @@ git clone https://github.com/hareeshbabu82ns/data.git
 {
   "title": "नाट्यशास्त्रम्",
   "terms": {"chapterSg": "अध्यायः", "chapterPl": "अध्यायाः"},
+  "books": [
+    {"number": "1", "name": "आदिपर्व"},
+    {"number": "2", "name": "सभापर्व"},
+    {"number": "3", "name": "अरयण्कपर्व"},
+  ],
   "chapters": [
     {"number": "1", "name": "प्रथमोऽध्याय:"},
     {"number": "2", "name": "द्वितीयोऽध्याय:"},
@@ -38,10 +43,17 @@ git clone https://github.com/hareeshbabu82ns/data.git
 ### Structure of the JSON data:
 
 - title: title of the book
-- terms: terms used in the book, e.g., chapterSg (singular), chapterPl (plural)
+- terms: terms used in the book
+  - chapterSg: chapter type (singular) (optional, type for chapters array bellow)
+  - chapterPl: chapter type (plural) (optional)
+  - bookSg: book type (sigular) (optional, type of books array bellow)
+  - bookPl: book type (plural) (optionl)
+- books: array of book objects
+  - number: book index number
+  - name: book title
 - chapters: array of chapter objects with (optional)
-- number: if chapter number is with '.' like 3.1, it belongs to chapter 3 and sub-chapter 1
-- name: name of the chapter (optional)
+  - number: if chapter number is with '.' like 3.1, it belongs to book 3 and chapter 1
+  - name: name of the chapter (optional)
 - data: array of verse objects with Each verse object containing:
   - c: chapter number (optional if chapters is not available)
   - n: verse number
@@ -69,3 +81,46 @@ git clone https://github.com/hareeshbabu82ns/data.git
     - inf: (optional)
     - tm: (optional)
     - nc: (optional)
+
+## Hierarchical Structure Support
+
+The Sanskrit Sahitya import logic now supports hierarchical structures:
+
+### Books[Chapters[Verses[]]] Structure
+
+When a `books` array exists in the JSON data:
+
+- The `bookSg` term from the `terms` object is used to determine the entity type for books
+- Books are created as child entities of the root work
+- Chapters can belong to specific books using dot notation (e.g., "3.1" means chapter 1 of book 3)
+- Verses are assigned to the appropriate chapter or book based on their chapter number
+
+### Flat Chapters[Verses[]] Structure
+
+When no `books` array exists:
+
+- Works as before with chapters directly under the root work
+- Supports sub-chapters with dot notation
+
+### Entity Hierarchy
+
+```
+Root Work (title)
+├── Book 1 (if books array exists)
+│   ├── Chapter 1.1
+│   │   ├── Verse 1
+│   │   └── Verse 2
+│   └── Chapter 1.2
+└── Book 2
+    └── Chapter 2.1
+        └── Verse 1
+```
+
+### Implementation Details
+
+- **Root Entity**: Uses the main title and work type (default: KAVYAM)
+- **Book Entities**: Type derived from `terms.bookSg` or defaults to KAANDAM
+- **Chapter Entities**: Type derived from `terms.chapterSg` or defaults to ADHYAAYAM
+- **Verse Entities**: Default to SLOKAM type
+- **Parent Relations**: Tracked via `parentRelation` field with type and identifiers
+- **Attributes**: Enhanced with bookNumber, chapterNumber for proper hierarchy tracking

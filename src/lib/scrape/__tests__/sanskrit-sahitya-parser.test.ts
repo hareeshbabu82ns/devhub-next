@@ -12,6 +12,7 @@ import {
   type SanskritSahityaData,
   type ParsedHierarchy,
   type ParseOptions,
+  BOOK_SG_ENTITY_TYPE_MAP,
 } from "@/lib/scrape/sanskrit-sahitya-parser";
 
 describe("Sanskrit Sahitya Parser", () => {
@@ -132,11 +133,13 @@ describe("Sanskrit Sahitya Parser", () => {
     test("should parse complete Sanskrit Sahitya data with default options", () => {
       const result = parseSanskritSahityaData(mockSahityaData);
 
-      expect(result.book).toBeDefined();
+      expect(result.root).toBeDefined();
+      expect(result.books).toHaveLength(0); // No books in flat structure
       expect(result.chapters).toHaveLength(3);
       expect(result.verses).toHaveLength(5);
-      expect(result.metadata.totalEntities).toBe(9); // 1 book + 3 chapters + 5 verses
-      expect(result.metadata.bookTitle).toBe("नाट्यशास्त्रम्");
+      expect(result.metadata.totalEntities).toBe(9); // 1 root + 0 books + 3 chapters + 5 verses
+      expect(result.metadata.rootTitle).toBe("नाट्यशास्त्रम्");
+      expect(result.metadata.hasHierarchicalBooks).toBe(false);
     });
 
     test("should parse with custom options", () => {
@@ -148,34 +151,34 @@ describe("Sanskrit Sahitya Parser", () => {
 
       const result = parseSanskritSahityaData(mockSahityaData, options);
 
-      expect(result.book.text[0].language).toBe("HIN");
-      expect(result.book.bookmarked).toBe(true);
+      expect(result.root.text[0].language).toBe("HIN");
+      expect(result.root.bookmarked).toBe(true);
       expect(result.chapters[0].bookmarked).toBe(true);
       expect(result.verses[0].bookmarked).toBe(true);
     });
 
-    test("should create proper book entity", () => {
+    test("should create proper root entity", () => {
       const result = parseSanskritSahityaData(mockSahityaData);
-      const book = result.book;
+      const root = result.root;
 
-      expect(book.type).toBe("KAVYAM");
-      expect(book.text[0]).toEqual({
+      expect(root.type).toBe("KAVYAM");
+      expect(root.text[0]).toEqual({
         language: "SAN",
         value: "नाट्यशास्त्रम्",
       });
-      expect(book.attributes).toContainEqual({
+      expect(root.attributes).toContainEqual({
         key: "sourceType",
         value: "sanskritsahitya",
       });
-      expect(book.attributes).toContainEqual({
-        key: "bookTitle",
+      expect(root.attributes).toContainEqual({
+        key: "rootTitle",
         value: "नाट्यशास्त्रम्",
       });
-      expect(book.attributes).toContainEqual({
+      expect(root.attributes).toContainEqual({
         key: "chapterSingular",
         value: "अध्यायः",
       });
-      expect(book.attributes).toContainEqual({
+      expect(root.attributes).toContainEqual({
         key: "chapterPlural",
         value: "अध्यायाः",
       });
@@ -188,12 +191,12 @@ describe("Sanskrit Sahitya Parser", () => {
       expect(chapters).toHaveLength(3);
 
       // Regular chapters
-      expect(chapters[0].type).toBe("KAANDAM");
-      expect(chapters[1].type).toBe("KAANDAM");
+      expect(chapters[0].type).toBe("ADHYAAYAM");
+      expect(chapters[1].type).toBe("ADHYAAYAM");
 
       // Sub-chapter
       expect(chapters[2].type).toBe("ADHYAAYAM");
-      expect(chapters[2].parentRelation?.type).toBe("book"); // Should fallback to book if parent not found
+      expect(chapters[2].parentRelation?.type).toBe("root"); // Should fallback to root if parent not found
 
       chapters.forEach((chapter, index) => {
         expect(chapter.attributes).toContainEqual({
@@ -274,7 +277,7 @@ describe("Sanskrit Sahitya Parser", () => {
 
       expect(result.chapters).toHaveLength(0);
       expect(result.verses).toHaveLength(1);
-      expect(result.verses[0].parentRelation?.type).toBe("book");
+      expect(result.verses[0].parentRelation?.type).toBe("root");
     });
 
     test("should set correct parent relationships", () => {
@@ -339,10 +342,10 @@ describe("Sanskrit Sahitya Parser", () => {
       const stats = getEntityStatistics(parsedHierarchy);
 
       expect(stats.totalEntities).toBe(9);
-      expect(stats.bookTitle).toBe("नाट्यशास्त्रम्");
+      expect(stats.rootTitle).toBe("नाट्यशास्त्रम्");
       expect(stats.chapterTypes).toEqual({
-        KAANDAM: 2,
-        ADHYAAYAM: 1,
+        // KAANDAM: 2,
+        ADHYAAYAM: 3,
       });
       expect(stats.verseTypes).toEqual({
         // OTHERS: 2,
@@ -355,7 +358,7 @@ describe("Sanskrit Sahitya Parser", () => {
 
     test("getEntityStatistics should handle empty hierarchy", () => {
       const emptyHierarchy: ParsedHierarchy = {
-        book: {
+        root: {
           type: "KAVYAM",
           text: [{ language: "SAN", value: "Empty Book" }],
           meaning: [],
@@ -364,13 +367,16 @@ describe("Sanskrit Sahitya Parser", () => {
           order: 0,
           notes: "",
         },
+        books: [],
         chapters: [],
         verses: [],
         metadata: {
           totalEntities: 1,
-          bookTitle: "Empty Book",
+          rootTitle: "Empty Book",
+          bookCount: 0,
           chapterCount: 0,
           verseCount: 0,
+          hasHierarchicalBooks: false,
         },
       };
 
@@ -461,6 +467,125 @@ describe("Sanskrit Sahitya Parser", () => {
       expect(result.chapters).toHaveLength(2);
       expect(result.chapters[0].order).toBe(1);
       expect(result.chapters[1].order).toBe(2.5);
+    });
+  });
+
+  describe("Hierarchical Books Structure", () => {
+    const hierarchicalData: SanskritSahityaData = {
+      title: "महाभारतम्",
+      terms: {
+        bookSg: "पर्व",
+        chapterSg: "अध्यायः",
+      },
+      books: [
+        { number: "1", name: "आदिपर्व" },
+        { number: "2", name: "सभापर्व" },
+      ],
+      chapters: [
+        { number: "1.1", name: "प्रथम अध्याय" },
+        { number: "1.2", name: "द्वितीय अध्याय" },
+        { number: "2.1", name: "सभा प्रथम अध्याय" },
+      ],
+      data: [
+        { c: "1.1", n: "1", v: "धृतराष्ट्र उवाच।" },
+        { c: "1.2", n: "1", v: "संजय उवाच।" },
+        { c: "2.1", n: "1", v: "जनमेजय उवाच।" },
+      ],
+    };
+
+    test("should parse hierarchical structure correctly", () => {
+      const result = parseSanskritSahityaData(hierarchicalData);
+
+      expect(result.root.text[0].value).toBe("महाभारतम्");
+      expect(result.root.type).toBe("KAVYAM");
+      expect(result.books).toHaveLength(2);
+      expect(result.chapters).toHaveLength(3);
+      expect(result.verses).toHaveLength(3);
+      expect(result.metadata.hasHierarchicalBooks).toBe(true);
+      expect(result.metadata.totalEntities).toBe(9); // 1 root + 2 books + 3 chapters + 3 verses
+    });
+
+    test("should use bookSg from terms for book entity type", () => {
+      const result = parseSanskritSahityaData(hierarchicalData);
+
+      expect(result.books[0].type).toBe(BOOK_SG_ENTITY_TYPE_MAP["पर्व"]);
+      expect(result.books[1].type).toBe(BOOK_SG_ENTITY_TYPE_MAP["पर्व"]);
+    });
+
+    test("should create proper parent relationships in hierarchical structure", () => {
+      const result = parseSanskritSahityaData(hierarchicalData);
+
+      // Books should belong to root
+      expect(result.books[0].parentRelation?.type).toBe("root");
+      expect(result.books[1].parentRelation?.type).toBe("root");
+
+      // Chapters should belong to books
+      expect(result.chapters[0].parentRelation?.type).toBe("book");
+      expect(result.chapters[0].parentRelation?.bookNumber).toBe("1");
+      expect(result.chapters[1].parentRelation?.type).toBe("book");
+      expect(result.chapters[1].parentRelation?.bookNumber).toBe("1");
+      expect(result.chapters[2].parentRelation?.type).toBe("book");
+      expect(result.chapters[2].parentRelation?.bookNumber).toBe("2");
+
+      // Verses should belong to chapters
+      expect(result.verses[0].parentRelation?.type).toBe("chapter");
+      expect(result.verses[0].parentRelation?.chapterNumber).toBe("1.1");
+      expect(result.verses[1].parentRelation?.type).toBe("chapter");
+      expect(result.verses[1].parentRelation?.chapterNumber).toBe("1.2");
+      expect(result.verses[2].parentRelation?.type).toBe("chapter");
+      expect(result.verses[2].parentRelation?.chapterNumber).toBe("2.1");
+    });
+
+    test("should add book attributes for hierarchical chapters", () => {
+      const result = parseSanskritSahityaData(hierarchicalData);
+
+      // Chapters should have bookNumber attribute
+      expect(result.chapters[0].attributes).toContainEqual({
+        key: "bookNumber",
+        value: "1",
+      });
+      expect(result.chapters[0].attributes).toContainEqual({
+        key: "localChapterNumber",
+        value: "1",
+      });
+      expect(result.chapters[2].attributes).toContainEqual({
+        key: "bookNumber",
+        value: "2",
+      });
+    });
+
+    test("should handle mixed structures gracefully", () => {
+      const mixedData: SanskritSahityaData = {
+        title: "Mixed Structure",
+        books: [{ number: "1", name: "Book 1" }],
+        chapters: [
+          { number: "1.1", name: "Chapter 1.1" }, // Belongs to book
+          { number: "2", name: "Standalone Chapter" }, // No corresponding book
+        ],
+        data: [
+          { c: "1.1", v: "Verse in book chapter" },
+          { c: "2", v: "Verse in standalone chapter" },
+          { v: "Verse without chapter" }, // Should belong to root
+        ],
+      };
+
+      const result = parseSanskritSahityaData(mixedData);
+
+      expect(result.books).toHaveLength(1);
+      expect(result.chapters).toHaveLength(2);
+      expect(result.verses).toHaveLength(3);
+
+      // First chapter belongs to book
+      expect(result.chapters[0].parentRelation?.type).toBe("book");
+      expect(result.chapters[0].parentRelation?.bookNumber).toBe("1");
+
+      // Second chapter has no corresponding book, belongs to root
+      expect(result.chapters[1].parentRelation?.type).toBe("root");
+
+      // Verses have appropriate parents
+      expect(result.verses[0].parentRelation?.type).toBe("chapter");
+      expect(result.verses[1].parentRelation?.type).toBe("chapter");
+      expect(result.verses[2].parentRelation?.type).toBe("root");
     });
   });
 });

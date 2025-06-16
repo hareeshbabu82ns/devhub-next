@@ -14,6 +14,11 @@ import type {
 
 // Validation schemas for the JSON structure
 
+const BookSchema = z.object({
+  number: z.string(),
+  name: z.string().optional(),
+});
+
 const ChapterSchema = z.object({
   number: z.string(),
   name: z.string().optional(),
@@ -56,13 +61,17 @@ export const SanskritSahityaDataSchema = z.object({
     .object({
       chapterSg: z.string().optional(),
       chapterPl: z.string().optional(),
+      bookSg: z.string().optional(),
+      bookPl: z.string().optional(),
     })
     .optional(),
+  books: z.array(BookSchema).optional(),
   chapters: z.array(ChapterSchema).optional(),
   data: z.array(VerseDataSchema),
 });
 
 export type SanskritSahityaData = z.infer<typeof SanskritSahityaDataSchema>;
+export type BookData = z.infer<typeof BookSchema>;
 export type ChapterData = z.infer<typeof ChapterSchema>;
 export type VerseData = z.infer<typeof VerseDataSchema>;
 
@@ -84,22 +93,42 @@ export interface ParsedEntity {
   notes: string;
   parentId?: string;
   parentRelation?: {
-    type: "book" | "chapter";
+    type: "root" | "book" | "chapter";
+    bookNumber?: string;
     chapterNumber?: string;
   };
 }
 
 export interface ParsedHierarchy {
-  book: ParsedEntity;
+  root: ParsedEntity;
+  books: ParsedEntity[];
   chapters: ParsedEntity[];
   verses: ParsedEntity[];
   metadata: {
     totalEntities: number;
-    bookTitle: string;
+    rootTitle: string;
+    bookCount: number;
     chapterCount: number;
     verseCount: number;
+    hasHierarchicalBooks: boolean;
   };
 }
+
+export const BOOK_SG_ENTITY_TYPE_MAP: Record<string, string> = {
+  काण्डम्: "KAANDAM",
+  पर्व: "PARVAM",
+  default: "KAANDAM",
+};
+export const BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP: Record<string, string> = {
+  काण्डम्: "SARGA",
+  पर्व: "ADHYAAYAM",
+  default: "ADHYAAYAM",
+};
+export const CHAPTER_SG_ENTITY_TYPE_MAP: Record<string, string> = {
+  अध्यायः: "ADHYAAYAM",
+  सर्गः: "SARGA",
+  default: "ADHYAAYAM",
+};
 
 /**
  * Validates Sanskrit Sahitya JSON data structure
@@ -120,6 +149,7 @@ function cleanSanskritText(text: string): string {
 
 /**
  * Parses Sanskrit Sahitya data into entity hierarchy
+ * Handles both hierarchical Books[Chapters[Verses[]]] and flat Chapters[Verses[]] structures
  */
 export function parseSanskritSahityaData(
   data: SanskritSahityaData,
@@ -133,50 +163,74 @@ export function parseSanskritSahityaData(
     parentId,
   } = options;
 
-  const book = createBookEntity(
+  const hasBooks = data.books && data.books.length > 0;
+  const hasHierarchicalBooks = hasBooks;
+
+  // Create root entity (main work)
+  const root = createRootEntity(
     data,
     defaultLanguage,
     bookmarkAll,
     entityType,
     parentId,
   );
-  const chapters = createChapterEntities(data, defaultLanguage, bookmarkAll);
+
+  // Create book entities if books array exists
+  const books = hasBooks
+    ? createBookEntities(data, defaultLanguage, bookmarkAll)
+    : [];
+
+  // Create chapter entities
+  const chapters = createChapterEntities(
+    data,
+    books,
+    defaultLanguage,
+    bookmarkAll,
+    hasHierarchicalBooks,
+  );
+
+  // Create verse entities
   const verses = createVerseEntities(
     data,
+    books,
     chapters,
     defaultLanguage,
     meaningLanguage,
     bookmarkAll,
+    hasHierarchicalBooks,
   );
 
   return {
-    book,
+    root,
+    books,
     chapters,
     verses,
     metadata: {
-      totalEntities: 1 + chapters.length + verses.length,
-      bookTitle: data.title,
+      totalEntities: 1 + books.length + chapters.length + verses.length,
+      rootTitle: data.title,
+      bookCount: books.length,
       chapterCount: chapters.length,
       verseCount: verses.length,
+      hasHierarchicalBooks: hasHierarchicalBooks || false,
     },
   };
 }
 
 /**
- * Creates the root book entity structure
+ * Creates the root entity structure (main work/collection)
  */
-function createBookEntity(
+function createRootEntity(
   data: SanskritSahityaData,
   language: string = "SAN",
   bookmarked: boolean,
-  bookType: string = "KAVYAM", // Default book type
+  rootType: string = "KAVYAM",
   parentId?: string,
 ): ParsedEntity {
   const textData: LanguageValueType[] = [{ language, value: data.title }];
 
   const attributes: AttributeValueType[] = [
     { key: "sourceType", value: "sanskritsahitya" },
-    { key: "bookTitle", value: data.title },
+    { key: "rootTitle", value: data.title },
   ];
 
   if (data.terms?.chapterSg) {
@@ -185,9 +239,15 @@ function createBookEntity(
   if (data.terms?.chapterPl) {
     attributes.push({ key: "chapterPlural", value: data.terms.chapterPl });
   }
+  if (data.terms?.bookSg) {
+    attributes.push({ key: "bookSingular", value: data.terms.bookSg });
+  }
+  if (data.terms?.bookPl) {
+    attributes.push({ key: "bookPlural", value: data.terms.bookPl });
+  }
 
   return {
-    type: bookType,
+    type: rootType,
     text: textData,
     meaning: [],
     attributes,
@@ -195,22 +255,75 @@ function createBookEntity(
     order: 0,
     notes: `Sanskrit literature work: ${data.title}`,
     parentId,
+    parentRelation: parentId ? { type: "root" } : undefined,
   };
 }
 
 /**
- * Creates chapter entities based on the chapters array
+ * Creates book entities from the books array
  */
-function createChapterEntities(
+function createBookEntities(
   data: SanskritSahityaData,
   language: string,
   bookmarked: boolean,
+): ParsedEntity[] {
+  if (!data.books || data.books.length === 0) {
+    return [];
+  }
+
+  const bookEntities: ParsedEntity[] = [];
+  // Use bookSg from terms if available, otherwise default to appropriate type
+  const bookType = BOOK_SG_ENTITY_TYPE_MAP[data.terms?.bookSg || "default"];
+
+  for (const book of data.books) {
+    const textData: LanguageValueType[] = [
+      { language, value: book.name || `Book ${book.number}` },
+    ];
+
+    const attributes: AttributeValueType[] = [
+      { key: "bookNumber", value: book.number },
+      { key: "sourceType", value: "sanskritsahitya" },
+    ];
+
+    const bookEntity: ParsedEntity = {
+      type: bookType,
+      text: textData,
+      meaning: [],
+      attributes,
+      bookmarked,
+      order: parseFloat(book.number) || 0,
+      notes: `Book from ${data.title}`,
+      parentRelation: { type: "root" },
+    };
+
+    bookEntities.push(bookEntity);
+  }
+
+  return bookEntities;
+}
+
+/**
+ * Creates chapter entities based on the chapters array
+ * Handles hierarchical structure when books exist
+ */
+function createChapterEntities(
+  data: SanskritSahityaData,
+  bookEntities: ParsedEntity[],
+  language: string,
+  bookmarked: boolean,
+  hasHierarchicalBooks: boolean = false,
 ): ParsedEntity[] {
   if (!data.chapters || data.chapters.length === 0) {
     return [];
   }
 
   const chapterEntities: ParsedEntity[] = [];
+  // Use chapterSg from terms if available
+  const defaultChapterType = data.terms?.chapterSg
+    ? CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.chapterSg || "default"]
+    : data.terms?.bookSg
+      ? BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.bookSg || "default"]
+      : "ADHYAAYAM";
 
   for (const chapter of data.chapters) {
     const textData: LanguageValueType[] = [
@@ -222,23 +335,74 @@ function createChapterEntities(
       { key: "sourceType", value: "sanskritsahitya" },
     ];
 
-    // Determine if this is a sub-chapter (contains dot notation like "3.1")
-    const isSubChapter = chapter.number.includes(".");
-    const entityType = isSubChapter ? "ADHYAAYAM" : "KAANDAM";
+    // Determine parent relationship and entity type
+    let parentRelation: ParsedEntity["parentRelation"];
+    const entityType: string = defaultChapterType;
 
-    let parentRelation: ParsedEntity["parentRelation"] = { type: "book" };
+    if (hasHierarchicalBooks) {
+      // In hierarchical structure, chapters belong to books
+      // Handle notation like "3.1" where "3" is book number and "1" is chapter number
+      const isSubChapter = chapter.number.includes(".");
 
-    // If it's a sub-chapter, find the parent chapter
-    if (isSubChapter) {
-      const [mainChapterNum] = chapter.number.split(".");
-      const parentChapter = chapterEntities.find((ch) =>
-        ch.attributes.some(
-          (attr: AttributeValueType) =>
-            attr.key === "chapterNumber" && attr.value === mainChapterNum,
-        ),
-      );
-      if (parentChapter) {
-        parentRelation = { type: "chapter", chapterNumber: mainChapterNum };
+      if (isSubChapter) {
+        const [bookNum, chapterNum] = chapter.number.split(".");
+        const parentBook = bookEntities.find((book) =>
+          book.attributes.some(
+            (attr: AttributeValueType) =>
+              attr.key === "bookNumber" && attr.value === bookNum,
+          ),
+        );
+
+        if (parentBook) {
+          parentRelation = { type: "book", bookNumber: bookNum };
+          attributes.push({ key: "bookNumber", value: bookNum });
+          attributes.push({ key: "localChapterNumber", value: chapterNum });
+        } else {
+          // Fallback to root if book not found
+          parentRelation = { type: "root" };
+        }
+      } else {
+        // Simple chapter number, check if it corresponds to a book
+        const correspondingBook = bookEntities.find((book) =>
+          book.attributes.some(
+            (attr: AttributeValueType) =>
+              attr.key === "bookNumber" && attr.value === chapter.number,
+          ),
+        );
+
+        if (correspondingBook) {
+          // This chapter belongs to a book
+          parentRelation = { type: "book", bookNumber: chapter.number };
+          attributes.push({ key: "bookNumber", value: chapter.number });
+        } else {
+          parentRelation = { type: "root" };
+        }
+      }
+    } else {
+      // Flat structure: chapters belong to root
+      // Determine if this is a sub-chapter (contains dot notation like "3.1")
+      const isSubChapter = chapter.number.includes(".");
+      // entityType = isSubChapter ? "ADHYAAYAM" : "KAANDAM";
+
+      let parentChapterNumber: string | undefined;
+
+      // If it's a sub-chapter, find the parent chapter
+      if (isSubChapter) {
+        const [mainChapterNum] = chapter.number.split(".");
+        const parentChapter = chapterEntities.find((ch) =>
+          ch.attributes.some(
+            (attr: AttributeValueType) =>
+              attr.key === "chapterNumber" && attr.value === mainChapterNum,
+          ),
+        );
+        if (parentChapter) {
+          parentRelation = { type: "chapter", chapterNumber: mainChapterNum };
+          parentChapterNumber = mainChapterNum;
+        } else {
+          parentRelation = { type: "root" };
+        }
+      } else {
+        parentRelation = { type: "root" };
       }
     }
 
@@ -261,31 +425,109 @@ function createChapterEntities(
 
 /**
  * Creates verse entities from the data array
+ * Handles hierarchical structure when books exist
  */
 function createVerseEntities(
   data: SanskritSahityaData,
+  bookEntities: ParsedEntity[],
   chapterEntities: ParsedEntity[],
   textLanguage: string,
   meaningLanguage: string,
   bookmarked: boolean,
+  hasHierarchicalBooks: boolean = false,
 ): ParsedEntity[] {
   const verseEntities: ParsedEntity[] = [];
 
   for (const verse of data.data) {
-    // Find the chapter entity for this verse (only if verse has chapter info)
-    const chapterEntity = verse.c
-      ? chapterEntities.find((ch) =>
-          ch.attributes.some(
-            (attr: AttributeValueType) =>
-              attr.key === "chapterNumber" && attr.value === verse.c,
-          ),
-        )
-      : undefined;
+    let parentRelation: ParsedEntity["parentRelation"];
 
-    const parentRelation: ParsedEntity["parentRelation"] =
-      chapterEntity && verse.c
-        ? { type: "chapter", chapterNumber: verse.c }
-        : { type: "book" };
+    if (hasHierarchicalBooks) {
+      // In hierarchical structure: determine if verse belongs to book or chapter
+      if (verse.c) {
+        // Verse has chapter information
+        const isSubChapter = verse.c.includes(".");
+
+        if (isSubChapter) {
+          // Handle "3.1" format - belongs to book 3, chapter 1
+          const [bookNum, chapterNum] = verse.c.split(".");
+          const chapterEntity = chapterEntities.find((ch) =>
+            ch.attributes.some(
+              (attr: AttributeValueType) =>
+                attr.key === "chapterNumber" && attr.value === verse.c,
+            ),
+          );
+
+          if (chapterEntity) {
+            parentRelation = {
+              type: "chapter",
+              bookNumber: bookNum,
+              chapterNumber: verse.c,
+            };
+          } else {
+            // Fallback to book if chapter not found
+            const bookEntity = bookEntities.find((book) =>
+              book.attributes.some(
+                (attr: AttributeValueType) =>
+                  attr.key === "bookNumber" && attr.value === bookNum,
+              ),
+            );
+            parentRelation = bookEntity
+              ? { type: "book", bookNumber: bookNum }
+              : { type: "root" };
+          }
+        } else {
+          // Simple chapter number - check if it's a direct chapter or corresponds to a book
+          const chapterEntity = chapterEntities.find((ch) =>
+            ch.attributes.some(
+              (attr: AttributeValueType) =>
+                attr.key === "chapterNumber" && attr.value === verse.c,
+            ),
+          );
+
+          if (chapterEntity) {
+            // Check if this chapter belongs to a book
+            const bookNumber = chapterEntity.attributes.find(
+              (attr) => attr.key === "bookNumber",
+            )?.value;
+
+            parentRelation = {
+              type: "chapter",
+              bookNumber,
+              chapterNumber: verse.c,
+            };
+          } else {
+            // Check if verse.c corresponds to a book number
+            const bookEntity = bookEntities.find((book) =>
+              book.attributes.some(
+                (attr: AttributeValueType) =>
+                  attr.key === "bookNumber" && attr.value === verse.c,
+              ),
+            );
+            parentRelation = bookEntity
+              ? { type: "book", bookNumber: verse.c }
+              : { type: "root" };
+          }
+        }
+      } else {
+        // No chapter info, belongs to root
+        parentRelation = { type: "root" };
+      }
+    } else {
+      // Flat structure: verse belongs to chapter or root
+      const chapterEntity = verse.c
+        ? chapterEntities.find((ch) =>
+            ch.attributes.some(
+              (attr: AttributeValueType) =>
+                attr.key === "chapterNumber" && attr.value === verse.c,
+            ),
+          )
+        : undefined;
+
+      parentRelation =
+        chapterEntity && verse.c
+          ? { type: "chapter", chapterNumber: verse.c }
+          : { type: "root" };
+    }
 
     // Prepare text data
     const textData: LanguageValueType[] = [];
@@ -454,7 +696,15 @@ export function getEntitiesByChapter(
  * Helper function to get entity statistics
  */
 export function getEntityStatistics(hierarchy: ParsedHierarchy) {
-  const { book, chapters, verses } = hierarchy;
+  const { root, books, chapters, verses } = hierarchy;
+
+  const bookTypes = books.reduce(
+    (acc, book) => {
+      acc[book.type] = (acc[book.type] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
 
   const chapterTypes = chapters.reduce(
     (acc, chapter) => {
@@ -481,7 +731,9 @@ export function getEntityStatistics(hierarchy: ParsedHierarchy) {
 
   return {
     totalEntities: hierarchy.metadata.totalEntities,
-    bookTitle: book.text[0]?.value || "",
+    rootTitle: root.text[0]?.value || "",
+    hasHierarchicalBooks: hierarchy.metadata.hasHierarchicalBooks,
+    bookTypes,
     chapterTypes,
     verseTypes,
     versesWithMeaning,
