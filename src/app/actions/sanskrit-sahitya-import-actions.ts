@@ -44,6 +44,7 @@ type ImportSanskritSahityaInput = z.infer<typeof ImportSanskritSahityaSchema>;
 
 /**
  * Parses Sanskrit Sahitya data from a JSON file (without database operations)
+ * Supports split files with numbered suffixes (e.g., ramayanam1.json, ramayanam2.json)
  */
 export async function parseSanskritSahityaFile(
   filePath: string,
@@ -62,13 +63,28 @@ export async function parseSanskritSahityaFile(
       return { status: "error", error: "Unauthorized access" };
     }
 
-    // Read and parse JSON file
-    const fullPath = resolve(filePath);
-    const fileContent = await readFile(fullPath, "utf-8");
-    const jsonData = JSON.parse(fileContent);
+    // Read and parse JSON file(s) - handle split files
+    const combinedData = await readAndCombineSplitFiles(filePath);
+
+    // // Clean up any null values that might cause validation issues
+    // if (combinedData.data && Array.isArray(combinedData.data)) {
+    //   let nullChCount = 0;
+    //   combinedData.data = combinedData.data.map(
+    //     (record: any, index: number) => {
+    //       if (record.ch === null) {
+    //         nullChCount++;
+    //         console.log(`Cleaning null ch field at index ${index}`);
+    //         const { ch, ...cleanRecord } = record;
+    //         return cleanRecord;
+    //       }
+    //       return record;
+    //     },
+    //   );
+    //   console.log(`Cleaned ${nullChCount} records with null ch fields`);
+    // }
 
     // Validate JSON structure
-    const sahityaData = validateSanskritSahityaData(jsonData);
+    const sahityaData = validateSanskritSahityaData(combinedData);
 
     // Parse data into entity hierarchy
     const parsedHierarchy = parseSanskritSahityaData(sahityaData, options);
@@ -108,6 +124,7 @@ export async function parseSanskritSahityaFile(
 
 /**
  * Imports Sanskrit Sahitya data from a JSON file into the database
+ * Supports split files with numbered suffixes (e.g., ramayanam1.json, ramayanam2.json)
  */
 export async function importSanskritSahityaData(
   input: ImportSanskritSahityaInput,
@@ -133,7 +150,7 @@ export async function importSanskritSahityaData(
       parentId,
     } = options || {};
 
-    // Parse the file first
+    // Parse the file(s) first - this will handle split files automatically
     const parseResult = await parseSanskritSahityaFile(filePath, {
       defaultLanguage,
       meaningLanguage,
@@ -492,6 +509,10 @@ const ReadJsonFileSchema = z.object({
 /**
  * Reads a raw JSON file for preview (without parsing)
  */
+/**
+ * Reads Sanskrit Sahitya JSON file for preview purposes
+ * Supports split files with numbered suffixes (e.g., ramayanam1.json, ramayanam2.json)
+ */
 export async function readSanskritSahityaJsonFile(
   filePath: string,
 ): Promise<SanskritSahityaImportResponse<any>> {
@@ -510,14 +531,31 @@ export async function readSanskritSahityaJsonFile(
       return { status: "error", error: "Invalid file path" };
     }
 
-    // Read and parse JSON file
-    const fullPath = resolve(validated.filePath);
-    const fileContent = await readFile(fullPath, "utf-8");
-    const jsonData = JSON.parse(fileContent);
+    // Read and combine split files if applicable
+    const combinedData = await readAndCombineSplitFiles(validated.filePath);
+
+    // // Clean up any null values that might cause validation issues
+    // if (combinedData.data && Array.isArray(combinedData.data)) {
+    //   let nullChCount = 0;
+    //   combinedData.data = combinedData.data.map(
+    //     (record: any, index: number) => {
+    //       if (record.ch === null) {
+    //         nullChCount++;
+    //         console.log(`Cleaning null ch field at index ${index} in preview`);
+    //         const { ch, ...cleanRecord } = record;
+    //         return cleanRecord;
+    //       }
+    //       return record;
+    //     },
+    //   );
+    //   console.log(
+    //     `Cleaned ${nullChCount} records with null ch fields in preview`,
+    //   );
+    // }
 
     return {
       status: "success",
-      data: jsonData,
+      data: combinedData,
     };
   } catch (error) {
     console.error("JSON file reading failed:", error);
@@ -544,4 +582,81 @@ export async function readSanskritSahityaJsonFile(
         error instanceof Error ? error.message : "Failed to read JSON file",
     };
   }
+}
+
+/**
+ * Helper function to read and combine split files
+ * Handles files with numbered suffixes like ramayanam1.json, ramayanam2.json, etc.
+ * Only the first file contains header info (books, chapters, terms)
+ * Subsequent files contain only title and data arrays
+ */
+async function readAndCombineSplitFiles(filePath: string): Promise<any> {
+  const fullPath = resolve(filePath);
+
+  // Read the first file
+  const firstFileContent = await readFile(fullPath, "utf-8");
+  const firstFileData = JSON.parse(firstFileContent);
+
+  // Check if this is a split file by looking for numbered suffix
+  const pathParts = filePath.split("/");
+  const fileName = pathParts[pathParts.length - 1];
+  const fileBaseName = fileName.replace(/\d+\.json$/, "");
+  const fileNumber = fileName.match(/(\d+)\.json$/)?.[1];
+
+  // If no number found, return single file data
+  if (!fileNumber) {
+    return firstFileData;
+  }
+
+  // Initialize combined data with first file (which has header info)
+  const combinedData = { ...firstFileData };
+  let currentFileNumber = parseInt(fileNumber) + 1;
+
+  // Read subsequent files and combine their data arrays
+  while (true) {
+    try {
+      const nextFilePath = filePath.replace(
+        /\d+\.json$/,
+        `${currentFileNumber}.json`,
+      );
+      const nextFullPath = resolve(nextFilePath);
+
+      const nextFileContent = await readFile(nextFullPath, "utf-8");
+      const nextFileData = JSON.parse(nextFileContent);
+
+      // Validate that the next file has the same title
+      if (nextFileData.title && nextFileData.title !== combinedData.title) {
+        console.warn(
+          `Title mismatch in split file ${nextFilePath}: expected ${combinedData.title}, got ${nextFileData.title}`,
+        );
+      }
+
+      // Combine data arrays
+      if (nextFileData.data && Array.isArray(nextFileData.data)) {
+        if (!combinedData.data) {
+          combinedData.data = [];
+        }
+        combinedData.data.push(...nextFileData.data);
+        console.log(
+          `Combined ${nextFileData.data.length} entries from ${nextFilePath}`,
+        );
+      }
+
+      currentFileNumber++;
+    } catch (error) {
+      // No more files to read, break the loop
+      if (error instanceof Error && error.message.includes("ENOENT")) {
+        break;
+      }
+      // Re-throw other errors
+      throw error;
+    }
+  }
+
+  console.log(
+    `Total combined entries: ${combinedData.data?.length || 0} from ${
+      currentFileNumber - parseInt(fileNumber)
+    } files`,
+  );
+  return combinedData;
 }

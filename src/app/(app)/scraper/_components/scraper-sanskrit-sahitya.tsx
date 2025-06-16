@@ -384,9 +384,13 @@ export function ScraperSanskritSahitya() {
   const renderJsonPreview = () => {
     if (!rawJsonData) return null;
 
-    const { title, data } = rawJsonData;
+    const { title, data, books, chapters } = rawJsonData;
     const firstFewRecords = data.slice(0, 5); // Show first 5 records
     const totalRecords = data.length;
+
+    // Check if this appears to be a split file by looking at the file name
+    const isSplitFile = selectedFile.match(/\d+\.json$/);
+    const baseFileName = selectedFile.replace(/\d+\.json$/, "");
 
     return (
       <Card>
@@ -397,11 +401,23 @@ export function ScraperSanskritSahitya() {
           </CardTitle>
           <CardDescription>
             Showing first {firstFewRecords.length} of {totalRecords} records
-            from the JSON file.
+            from the JSON file
+            {isSplitFile ? " (combined from multiple split files)" : ""}.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          {isSplitFile && (
+            <Alert>
+              <AlertDescription>
+                <strong>Split File Detected:</strong> This work is split across
+                multiple files ({baseFileName}1.json, {baseFileName}2.json,
+                etc.). All files have been automatically combined, showing{" "}
+                {totalRecords} total verses from all parts.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <Badge variant="secondary">Title</Badge>
               <p className="mt-1 font-medium">{title}</p>
@@ -410,7 +426,30 @@ export function ScraperSanskritSahitya() {
               <Badge variant="secondary">Total Records</Badge>
               <p className="mt-1 font-medium">{totalRecords} verses</p>
             </div>
+            {isSplitFile && (
+              <div>
+                <Badge variant="secondary">File Type</Badge>
+                <p className="mt-1 font-medium">Split File (Combined)</p>
+              </div>
+            )}
           </div>
+
+          {(books?.length > 0 || chapters?.length > 0) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {books?.length > 0 && (
+                <div>
+                  <Badge variant="outline">Books</Badge>
+                  <p className="mt-1">{books.length} books available</p>
+                </div>
+              )}
+              {chapters?.length > 0 && (
+                <div>
+                  <Badge variant="outline">Chapters</Badge>
+                  <p className="mt-1">{chapters.length} chapters available</p>
+                </div>
+              )}
+            </div>
+          )}
 
           <Separator />
 
@@ -652,7 +691,7 @@ export function ScraperSanskritSahitya() {
               <div className="space-y-2">
                 <Badge className="mb-2">Book Entities ({books.length})</Badge>
                 {books.slice(0, 3).map((book, index) => (
-                  <div key={index} className="p-2 bg-gray-50 rounded">
+                  <div key={index} className="p-2 border rounded-lg">
                     <div className="text-sm space-y-1">
                       <p>
                         <strong>Type:</strong> {book.type}
@@ -745,9 +784,27 @@ export function ScraperSanskritSahitya() {
 
           <Alert>
             <AlertDescription>
-              Total entities to be created: 1 book + {chapters.length} chapters
-              + {verses.length} verses = {1 + chapters.length + verses.length}{" "}
-              entities
+              {parsedData.metadata.hasHierarchicalBooks && (
+                <>
+                  Total entities to be created: 1 root + {books.length} books +{" "}
+                  {chapters.length} chapters + {verses.length} verses ={" "}
+                  {parsedData.metadata.totalEntities} entities
+                </>
+              )}
+              {!parsedData.metadata.hasHierarchicalBooks && (
+                <>
+                  Total entities to be created: 1 root + {chapters.length}{" "}
+                  chapters + {verses.length} verses ={" "}
+                  {parsedData.metadata.totalEntities} entities
+                </>
+              )}
+              {selectedFile.match(/\d+\.json$/) && (
+                <>
+                  <br />
+                  <strong>Note:</strong> This data was combined from multiple
+                  split files to create {verses.length} total verses.
+                </>
+              )}
             </AlertDescription>
           </Alert>
 

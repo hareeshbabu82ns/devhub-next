@@ -51,7 +51,7 @@ const VerseDataSchema = z.object({
   anv: z.string().optional(), // anuvada (word-by-word meaning)
   md: z.string().optional(), // additional meaning
   vd: z.string().optional(), // additional meaning - verse description
-  ch: ChandasSchema.optional(), // chandas information
+  ch: z.union([ChandasSchema, z.null()]).optional(), // chandas information - can be null
   xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
 });
 
@@ -116,16 +116,19 @@ export interface ParsedHierarchy {
 
 export const BOOK_SG_ENTITY_TYPE_MAP: Record<string, string> = {
   काण्डम्: "KAANDAM",
+  खण्डः: "KAANDAM",
   पर्व: "PARVAM",
   default: "KAANDAM",
 };
 export const BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP: Record<string, string> = {
   काण्डम्: "SARGA",
+  खण्डः: "SARGA",
   पर्व: "ADHYAAYAM",
   default: "ADHYAAYAM",
 };
 export const CHAPTER_SG_ENTITY_TYPE_MAP: Record<string, string> = {
   अध्यायः: "ADHYAAYAM",
+  भागः: "ADHYAAYAM",
   सर्गः: "SARGA",
   default: "ADHYAAYAM",
 };
@@ -274,6 +277,7 @@ function createBookEntities(
   const bookEntities: ParsedEntity[] = [];
   // Use bookSg from terms if available, otherwise default to appropriate type
   const bookType = BOOK_SG_ENTITY_TYPE_MAP[data.terms?.bookSg || "default"];
+  let index = 1;
 
   for (const book of data.books) {
     const textData: LanguageValueType[] = [
@@ -291,7 +295,8 @@ function createBookEntities(
       meaning: [],
       attributes,
       bookmarked,
-      order: parseFloat(book.number) || 0,
+      order: index++,
+      // order: parseFloat(book.number) || index,
       notes: `Book from ${data.title}`,
       parentRelation: { type: "root" },
     };
@@ -339,11 +344,13 @@ function createChapterEntities(
     let parentRelation: ParsedEntity["parentRelation"];
     const entityType: string = defaultChapterType;
 
-    if (hasHierarchicalBooks) {
-      // In hierarchical structure, chapters belong to books
-      // Handle notation like "3.1" where "3" is book number and "1" is chapter number
-      const isSubChapter = chapter.number.includes(".");
+    // In hierarchical structure, chapters belong to books
+    // Handle notation like "3.1" where "3" is book number and "1" is chapter number
+    // Flat structure: chapters belong to root
+    // Determine if this is a sub-chapter (contains dot notation like "3.1")
+    const isSubChapter = chapter.number.includes(".");
 
+    if (hasHierarchicalBooks) {
       if (isSubChapter) {
         const [bookNum, chapterNum] = chapter.number.split(".");
         const parentBook = bookEntities.find((book) =>
@@ -379,9 +386,6 @@ function createChapterEntities(
         }
       }
     } else {
-      // Flat structure: chapters belong to root
-      // Determine if this is a sub-chapter (contains dot notation like "3.1")
-      const isSubChapter = chapter.number.includes(".");
       // entityType = isSubChapter ? "ADHYAAYAM" : "KAANDAM";
 
       let parentChapterNumber: string | undefined;
@@ -406,13 +410,17 @@ function createChapterEntities(
       }
     }
 
+    const chapterNumber = isSubChapter
+      ? chapter.number.split(".").pop()
+      : chapter.number;
+
     const chapterEntity: ParsedEntity = {
       type: entityType,
       text: textData,
       meaning: [],
       attributes,
       bookmarked,
-      order: parseFloat(chapter.number) || 0,
+      order: parseInt(chapterNumber || "0", 10),
       notes: `Chapter from ${data.title}`,
       parentRelation,
     };
@@ -437,6 +445,8 @@ function createVerseEntities(
   hasHierarchicalBooks: boolean = false,
 ): ParsedEntity[] {
   const verseEntities: ParsedEntity[] = [];
+
+  let verseOrder = 0;
 
   for (const verse of data.data) {
     let parentRelation: ParsedEntity["parentRelation"];
@@ -653,7 +663,8 @@ function createVerseEntities(
       meaning: meaningData,
       attributes,
       bookmarked,
-      order: verse.i || 0,
+      order: verseOrder++,
+      // order: verse.i || 0,
       notes,
       parentRelation,
     };

@@ -124,3 +124,9 @@ Root Work (title)
 - **Verse Entities**: Default to SLOKAM type
 - **Parent Relations**: Tracked via `parentRelation` field with type and identifiers
 - **Attributes**: Enhanced with bookNumber, chapterNumber for proper hierarchy tracking
+- **Split Uploads**: Big files like `ramayanam1.json` are split into multiples can be identified with
+  - number at the end of file name `ramayanam1.json`, `ramayanam2.json` and so on
+  - only the first file contains header info like `books` and `chapters`
+  - all subsequent files contain `data` array of verses
+  - while processing these files, continue with all subsequent numbered files
+  - has to process memory efficient way to avoid memory errors
