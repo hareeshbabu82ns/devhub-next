@@ -37,7 +37,7 @@ export default function QuickSettingsTrigger() {
           <p>Language:</p>
           <LanguageSelector storageKey={LANGUAGE_SELECT_KEY} />
           <p>Meaning Language:</p>
-          <LanguageSelector storageKey={LANGUAGE_SELECT_KEY} />
+          <LanguageSelector storageKey={LANGUAGE_MEANING_SELECT_KEY} />
           <p>Panchangam Place:</p>
           <PanchangamPlaceSelector />
           <p>App Theme:</p>

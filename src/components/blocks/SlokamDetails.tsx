@@ -39,7 +39,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
   } = useQuery({
     queryKey: ["slokamDetails", { slokamId, language, meaningLanguage }],
     queryFn: async () => {
-      const slokam = await readEntity(slokamId, language!);
+      const slokam = await readEntity(slokamId, language!, meaningLanguage!);
       return slokam;
     },
     staleTime: QUERY_STALE_TIME_LONG,

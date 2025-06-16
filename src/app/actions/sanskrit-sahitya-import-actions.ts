@@ -36,6 +36,7 @@ const ImportSanskritSahityaSchema = z.object({
       meaningLanguage: z.string().default("ENG"), // English
       entityType: z.string().default("KAVYAM"), // Default entity type
       parentId: z.string().optional(), // Parent entity ID
+      maxRecords: z.number().optional(), // For testing: limit number of verses to process
     })
     .optional(),
 });
@@ -54,6 +55,7 @@ export async function parseSanskritSahityaFile(
     bookmarkAll?: boolean;
     entityType?: string;
     parentId?: string;
+    maxRecords?: number; // For testing: limit number of verses to process
   },
 ): Promise<SanskritSahityaImportResponse<ParsedHierarchy>> {
   try {
@@ -148,6 +150,7 @@ export async function importSanskritSahityaData(
       meaningLanguage = "ENG",
       entityType = "KAVYAM",
       parentId,
+      maxRecords,
     } = options || {};
 
     // Parse the file(s) first - this will handle split files automatically
@@ -157,6 +160,7 @@ export async function importSanskritSahityaData(
       bookmarkAll,
       entityType,
       parentId,
+      maxRecords,
     });
 
     if (parseResult.status === "error") {

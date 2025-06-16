@@ -137,6 +137,7 @@ export function ScraperSanskritSahitya() {
     meaningLanguage: "ENG",
     entityType: "KAVYAM",
     parentId: "",
+    maxRecords: undefined as number | undefined, // For testing: limit number of verses to process
   });
 
   // Step navigation functions
@@ -226,6 +227,7 @@ export function ScraperSanskritSahitya() {
         bookmarkAll: importOptions.bookmarkAll,
         entityType: importOptions.entityType,
         parentId: importOptions.parentId,
+        maxRecords: importOptions.maxRecords,
       });
 
       if (result.status === "success") {
@@ -360,6 +362,35 @@ export function ScraperSanskritSahitya() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="max-records">
+            Max Records (Testing)
+            <span className="text-muted-foreground ml-2">
+              Leave empty to process all records
+            </span>
+          </Label>
+          <Input
+            id="max-records"
+            type="number"
+            placeholder="e.g., 10"
+            min={1}
+            value={importOptions.maxRecords || ""}
+            onChange={(e) => {
+              const value = e.target.value
+                ? parseInt(e.target.value, 10)
+                : undefined;
+              setImportOptions((prev) => ({
+                ...prev,
+                maxRecords: value,
+              }));
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            For testing purposes, you can limit the number of verses to process.
+            This helps with large files like Mahabharatam or Ramayanam.
+          </p>
         </div>
 
         <div className="flex justify-end">

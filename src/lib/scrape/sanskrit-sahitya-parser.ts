@@ -1,7 +1,21 @@
 /**
  * Sanskrit Sahitya Data Parser
  *
- * Pure functions for parsing Sanskrit Sahitya JSON data into Entity structures
+ * const VerseDataSchema = z.object({
+  c: z.string().optional(), // chapter number
+  t: z.string().optional(), // introductory/explanatory text
+  n: z.union([z.string(), z.number()]).optional(), // verse number
+  i: z.number().optional(), // index in the book
+  v: z.string().optional(), // verse text
+  sp: z.string().optional(), // speaker of the verse
+  mn: z.string().optional(), // meaning
+  es: z.string().optional(), // English translation
+  anv: z.string().optional(), // anuvada (word-by-word meaning)
+  md: z.string().optional(), // additional meaning
+  vd: z.string().optional(), // additional meaning - verse description
+  ch: z.union([ChandasSchema, z.null()]).optional(), // chandas information - can be null
+  xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
+}).catchall(z.union([z.string(), z.number(), z.boolean(), z.null()])); // Allow any additional fields for custom meaningsfor parsing Sanskrit Sahitya JSON data into Entity structures
  * without database dependencies. This module handles the business logic of
  * converting the sanskritsahitya.com JSON format into our Entity hierarchy.
  */
@@ -40,23 +54,34 @@ const WordAnalysisSchema = z.object({
   g: z.number(), // gender
 });
 
-const VerseDataSchema = z.object({
-  c: z.string().optional(), // chapter number - optional when no chapters present
-  t: z.string().optional(), // introductory/explanatory text
-  n: z.union([z.string(), z.number()]).optional(), // verse number
-  i: z.number().optional(), // index in the book
-  v: z.string().optional(), // verse text
-  mn: z.string().optional(), // meaning
-  es: z.string().optional(), // English translation
-  anv: z.string().optional(), // anuvada (word-by-word meaning)
-  md: z.string().optional(), // additional meaning
-  vd: z.string().optional(), // additional meaning - verse description
-  ch: z.union([ChandasSchema, z.null()]).optional(), // chandas information - can be null
-  xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
+const VerseDataSchema = z
+  .object({
+    c: z.string().optional(), // chapter number - optional when no chapters present
+    t: z.string().optional(), // introductory/explanatory text
+    n: z.union([z.string(), z.number()]).optional(), // verse number
+    i: z.number().optional(), // index in the book
+    v: z.string().optional(), // verse text
+    sp: z.string().optional(), // speaker of the verse
+    mn: z.string().optional(), // meaning
+    es: z.string().optional(), // English translation
+    anv: z.string().optional(), // anuvada (word-by-word meaning)
+    md: z.string().optional(), // additional meaning
+    vd: z.string().optional(), // additional meaning - verse description
+    ch: z.union([ChandasSchema, z.null()]).optional(), // chandas information - can be null
+    xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
+  })
+  .catchall(z.string().optional()); // Allow any additional string fields for custom meanings
+
+const CustomFieldSchema = z.object({
+  name: z.string(), // display name for the field
+  lang: z.enum(["en", "sa"]), // language: en - english, sa - sanskrit
+  markdown: z.boolean().optional(), // boolean indicator for markdown support
+  order: z.number().optional(), // numeric ordering for display
 });
 
 export const SanskritSahityaDataSchema = z.object({
   title: z.string(),
+  custom: z.record(z.string(), CustomFieldSchema).optional(), // object with field mappings
   terms: z
     .object({
       chapterSg: z.string().optional(),
@@ -71,6 +96,7 @@ export const SanskritSahityaDataSchema = z.object({
 });
 
 export type SanskritSahityaData = z.infer<typeof SanskritSahityaDataSchema>;
+export type CustomFieldConfig = z.infer<typeof CustomFieldSchema>;
 export type BookData = z.infer<typeof BookSchema>;
 export type ChapterData = z.infer<typeof ChapterSchema>;
 export type VerseData = z.infer<typeof VerseDataSchema>;
@@ -81,6 +107,7 @@ export interface ParseOptions {
   bookmarkAll?: boolean;
   entityType?: string;
   parentId?: string;
+  maxRecords?: number;
 }
 
 export interface ParsedEntity {
@@ -164,6 +191,7 @@ export function parseSanskritSahityaData(
     bookmarkAll = false,
     entityType = "KAVYAM",
     parentId,
+    maxRecords,
   } = options;
 
   const hasBooks = data.books && data.books.length > 0;
@@ -201,6 +229,7 @@ export function parseSanskritSahityaData(
     meaningLanguage,
     bookmarkAll,
     hasHierarchicalBooks,
+    maxRecords,
   );
 
   return {
@@ -247,6 +276,14 @@ function createRootEntity(
   }
   if (data.terms?.bookPl) {
     attributes.push({ key: "bookPlural", value: data.terms.bookPl });
+  }
+
+  // Store custom field configuration for later reference
+  if (data.custom) {
+    attributes.push({
+      key: "customFieldsConfig",
+      value: JSON.stringify(data.custom),
+    });
   }
 
   return {
@@ -443,6 +480,7 @@ function createVerseEntities(
   meaningLanguage: string,
   bookmarked: boolean,
   hasHierarchicalBooks: boolean = false,
+  maxRecords?: number,
 ): ParsedEntity[] {
   const verseEntities: ParsedEntity[] = [];
 
@@ -450,7 +488,16 @@ function createVerseEntities(
   const chapterVerseCounters = new Map<string, number>();
   let globalVerseOrder = 0; // Used when no chapters exist
 
-  for (const verse of data.data) {
+  // Limit data for testing if maxRecords is specified
+  const processData = maxRecords ? data.data.slice(0, maxRecords) : data.data;
+
+  if (maxRecords) {
+    console.log(
+      `🔬 Testing mode: Processing ${processData.length} out of ${data.data.length} verses`,
+    );
+  }
+
+  for (const verse of processData) {
     let parentRelation: ParsedEntity["parentRelation"];
 
     if (hasHierarchicalBooks) {
@@ -549,37 +596,77 @@ function createVerseEntities(
       value: cleanSanskritText(textParsed),
     });
 
-    // Prepare meaning data
+    // Prepare meaning data using custom field configuration
     const meaningData: LanguageValueType[] = [];
-    if (verse.mn) {
-      meaningData.push({
-        language: meaningLanguage,
-        value: cleanSanskritText(verse.mn),
-      });
-    }
-    if (verse.es) {
-      meaningData.push({
-        language: meaningLanguage,
-        value: cleanSanskritText(verse.es),
-      });
-    }
-    if (verse.anv) {
-      meaningData.push({
-        language: meaningLanguage,
-        value: `Word-by-word:  \n\n${cleanSanskritText(verse.anv)}`,
-      });
-    }
-    if (verse.md) {
-      meaningData.push({
-        language: meaningLanguage,
-        value: `Additional:  \n\n${cleanSanskritText(verse.md)}`,
-      });
-    }
-    if (verse.vd) {
-      meaningData.push({
-        language: meaningLanguage,
-        value: `Description:  \n\n${cleanSanskritText(verse.vd)}`,
-      });
+
+    // Process custom fields if available
+    if (data.custom) {
+      const customMeaningData: Record<string, string> = {};
+
+      // Create a map of custom field configs sorted by order
+      const customFields = Object.entries(data.custom).sort(
+        ([, a], [, b]) => (a.order || 0) - (b.order || 0),
+      );
+
+      for (const [fieldKey, fieldConfig] of customFields) {
+        const fieldValue = verse[fieldKey as keyof VerseData];
+        if (fieldValue && typeof fieldValue === "string") {
+          const displayName = fieldConfig.name;
+          const languageCode =
+            fieldConfig.lang === "en"
+              ? "ENG"
+              : fieldConfig.lang === "sa"
+                ? "SAN"
+                : meaningLanguage;
+
+          let processedValue = cleanSanskritText(fieldValue);
+
+          // Add display name prefix if configured
+          if (displayName !== fieldKey) {
+            processedValue = `**${displayName}**:  \n\n${processedValue}`;
+          }
+
+          customMeaningData[languageCode] = customMeaningData[languageCode]
+            ? `${customMeaningData[languageCode]}\n\n---\n${processedValue}`
+            : processedValue;
+        }
+      }
+      // Convert custom meaning data to LanguageValueType format
+      for (const [lang, value] of Object.entries(customMeaningData)) {
+        meaningData.push({ language: lang, value });
+      }
+    } else {
+      // Fallback to default field processing when no custom config is available
+      if (verse.mn) {
+        meaningData.push({
+          language: meaningLanguage,
+          value: cleanSanskritText(verse.mn),
+        });
+      }
+      if (verse.es) {
+        meaningData.push({
+          language: meaningLanguage,
+          value: cleanSanskritText(verse.es),
+        });
+      }
+      if (verse.anv) {
+        meaningData.push({
+          language: meaningLanguage,
+          value: `Word-by-word:  \n\n${cleanSanskritText(verse.anv)}`,
+        });
+      }
+      if (verse.md) {
+        meaningData.push({
+          language: meaningLanguage,
+          value: `Additional:  \n\n${cleanSanskritText(verse.md)}`,
+        });
+      }
+      if (verse.vd) {
+        meaningData.push({
+          language: meaningLanguage,
+          value: `Description:  \n\n${cleanSanskritText(verse.vd)}`,
+        });
+      }
     }
 
     // Prepare attributes
