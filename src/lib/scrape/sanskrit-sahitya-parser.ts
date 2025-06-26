@@ -429,9 +429,11 @@ function createChapterEntities(
   const chapterEntities: ParsedEntity[] = [];
   // Use chapterSg from terms if available
   const defaultChapterType = data.terms?.chapterSg
-    ? CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.chapterSg || "default"]
+    ? CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.chapterSg] ||
+      CHAPTER_SG_ENTITY_TYPE_MAP["default"]
     : data.terms?.bookSg
-      ? BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.bookSg || "default"]
+      ? BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP[data.terms.bookSg] ||
+        BOOK_SG_CHAPTER_SG_ENTITY_TYPE_MAP["default"]
       : "ADHYAAYAM";
 
   for (const chapter of data.chapters) {

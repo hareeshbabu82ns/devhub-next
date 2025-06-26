@@ -97,6 +97,10 @@ const AVAILABLE_FILES: FileItem[] = [
     path: "naishadhiyacaritam/naishadhiyacaritam.json",
     name: "Naishadhiyacaritam",
   },
+  {
+    path: "natyashastram/natyashastram.json",
+    name: "Natyashastram",
+  },
   { path: "pancatantram/pancatantram.json", name: "Pancatantram" },
   { path: "raghuvansham/raghuvansham.json", name: "Raghuvansham" },
   { path: "ramayanam/ramayanam1.json", name: "Ramayanam" },
@@ -104,6 +108,7 @@ const AVAILABLE_FILES: FileItem[] = [
   { path: "shakuntalam/shakuntalam.json", name: "Shakuntalam" },
   { path: "shatakatrayam/shatakatrayam.json", name: "Shatakatrayam" },
   { path: "shishupalavadham/shishupalavadham.json", name: "Shishupalavadham" },
+  { path: "shringaraprakash/shringaraprakash.json", name: "Shringaraprakash" },
   {
     path: "srimadbhagavadgita/srimadbhagavadgita.json",
     name: "Srimad Bhagavad Gita",
