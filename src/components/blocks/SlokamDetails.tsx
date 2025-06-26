@@ -123,7 +123,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
 
       {/* Notes & Attributes */}
       <div className="grid grid-cols-1 @5xl/slokamDetails:grid-cols-2 gap-4 pt-6">
-        <div className="flex flex-1 flex-col p-4 rounded-md border">
+        <div className="flex flex-1 flex-col p-4 rounded-md border overflow-x-auto">
           <p className="text-secondary pb-2">Notes:</p>
           <div
             className={`flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest markdown-content`}
@@ -131,7 +131,7 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
             <Markdown remarkPlugins={[remarkGfm]}>{slokam.notes}</Markdown>
           </div>
         </div>
-        <div className="flex flex-1 flex-col p-4 rounded-md border">
+        <div className="flex flex-1 flex-col p-4 rounded-md border overflow-x-auto">
           <p className="text-secondary pb-2">Attributes:</p>
           <div className="flex flex-col">
             {slokam.attributes?.map((attr, idx) => (

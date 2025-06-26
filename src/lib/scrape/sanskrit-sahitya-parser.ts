@@ -45,14 +45,81 @@ const ChandasSchema = z.object({
   ), // syllable splits
 });
 
-const WordAnalysisSchema = z.object({
-  w: z.string(), // word
-  l: z.string(), // lemma
-  pos: z.string(), // part of speech
-  c: z.number(), // case
-  n: z.number(), // number
-  g: z.number(), // gender
-});
+const WORD_KEYS_TITLES = {
+  w: {
+    long: "Word",
+    short: "Word",
+    description: "The word in the verse",
+    codeToDescr: undefined,
+  },
+  l: {
+    long: "Root",
+    short: "Root",
+    description: "The root form of the word",
+    codeToDescr: undefined,
+  },
+  pos: {
+    long: "Part of Speech",
+    short: "POS",
+    description: "The grammatical category of the word",
+    codeToDescr: {
+      n: {
+        long: "Noun",
+        short: "Noun",
+      },
+      v: {
+        long: "Verb",
+        short: "Verb",
+      },
+      adj: {
+        long: "Adjective",
+        short: "Adj",
+      },
+      ad: {
+        long: "Adverb",
+        short: "Adv",
+      },
+      pr: {
+        long: "Pronoun",
+        short: "Pron",
+      },
+      con: {
+        long: "Conjunction",
+        short: "Conj",
+      },
+      int: {
+        long: "Interjection",
+        short: "Interj",
+      },
+      prep: {
+        long: "Preposition",
+        short: "Prep",
+      },
+    },
+  },
+  c: {
+    long: "Case",
+    short: "Case",
+    description: "The grammatical case of the word",
+    codeToDescr: undefined,
+  },
+  n: {
+    long: "SG/DU/PL",
+    short: "Num",
+    description: "The grammatical number of the word",
+    codeToDescr: undefined,
+  },
+};
+const WordAnalysisSchema = z
+  .object({
+    w: z.string(), // word
+    l: z.string(), // lemma
+    pos: z.string(), // part of speech
+    c: z.number(), // case
+    n: z.number(), // number
+    g: z.number(), // gender
+  })
+  .catchall(z.union([z.string(), z.number()]).optional()); // Allow any additional string or number fields
 
 const VerseDataSchema = z
   .object({
@@ -701,21 +768,101 @@ function createVerseEntities(
       // notes += ` | Contains word analysis`;
       //"w": "धर्मक्षेत्रे", "l": "धर्म", "pos": "mn", "c": 0, "n": 0, "g": 1
       // prepare markdown table for word analysis
-      const wordAnalysis = verse.xx
-        .map((wordGroup) =>
-          wordGroup
-            .map((words) =>
-              words
-                .map(
-                  (word) =>
-                    `| ${word.w} | ${word.l} | ${word.pos} | ${word.c} | ${word.n} | ${word.g} |\n`,
-                )
-                .join(""),
+
+      // const wordAnalysis = verse.xx
+      //   .map((wordGroup) =>
+      //     wordGroup
+      //       .map((words) =>
+      //         words
+      //           .map(
+      //             (word) =>
+      //               `| ${word.w} | ${word.l} | ${word.pos} | ${word.c} | ${word.n} | ${word.g} |\n`,
+      //           )
+      //           .join(""),
+      //       )
+      //       .join(""),
+      //   )
+      //   .join("");
+      // notes += `\n\n### Word Analysis:\n\n| Word | Lemma | POS | Case | Number | Gender |\n|------|-------|-----|------|--------|--------|\n${wordAnalysis}`;
+
+      // Process word analysis data if available
+      if (verse.xx && verse.xx.length > 0) {
+        // Track which keys have actual data
+        const keysWithData = new Set<string>();
+
+        // Scan all words to find keys with data
+        verse.xx.forEach((wordGroup) => {
+          wordGroup.forEach((words) => {
+            words.forEach((word) => {
+              Object.entries(word).forEach(([key, value]) => {
+                if (
+                  // key in WORD_KEYS_TITLES &&
+                  value !== undefined &&
+                  value !== null &&
+                  value !== ""
+                ) {
+                  keysWithData.add(key);
+                }
+              });
+            });
+          });
+        });
+
+        // Convert to array of keys that exist in WORD_KEYS_TITLES
+        const columnsToInclude = Array.from(keysWithData);
+
+        if (columnsToInclude.length > 0) {
+          // Build header and separator rows
+          const headerRow = columnsToInclude
+            .map(
+              (key) =>
+                WORD_KEYS_TITLES[key as keyof typeof WORD_KEYS_TITLES]?.short ||
+                key,
             )
-            .join(""),
-        )
-        .join("");
-      notes += `\n\n### Word Analysis:\n\n| Word | Lemma | POS | Case | Number | Gender |\n|------|-------|-----|------|--------|--------|\n${wordAnalysis}`;
+            .join(" | ");
+
+          const separatorRow = columnsToInclude.map(() => "---").join(" | ");
+
+          // Build table rows
+          const wordAnalysis = verse.xx
+            .map((wordGroup) =>
+              wordGroup
+                .map((words) =>
+                  words
+                    .map((word) => {
+                      const cells = columnsToInclude.map((key) => {
+                        const value = word[key as keyof typeof word];
+                        const codeToDescr =
+                          WORD_KEYS_TITLES[key as keyof typeof WORD_KEYS_TITLES]
+                            ?.codeToDescr;
+                        if (codeToDescr) {
+                          const mappedValue =
+                            (
+                              codeToDescr[
+                                value as keyof typeof codeToDescr
+                              ] as any
+                            )?.short || value;
+                          return mappedValue !== undefined &&
+                            mappedValue !== null
+                            ? String(mappedValue)
+                            : "";
+                        } else {
+                          return value !== undefined && value !== null
+                            ? String(value)
+                            : "";
+                        }
+                      });
+                      return `| ${cells.join(" | ")} |`;
+                    })
+                    .join("\n"),
+                )
+                .join("\n"),
+            )
+            .join("\n");
+
+          notes += `\n\n### Word Analysis:\n\n| ${headerRow} |\n| ${separatorRow} |\n${wordAnalysis}`;
+        }
+      }
     }
     if (verse.ch?.n) {
       notes += `  \n\nChandas: ${verse.ch.n}`;
