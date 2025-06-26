@@ -9,6 +9,7 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import AudioPlayer from "../audio-player/player";
 // Import the new playlist components
@@ -18,6 +19,7 @@ import { PlaylistTrigger } from "../audio-player/PlaylistTrigger";
 import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 import { useSidebarMinimized } from "@/hooks/use-config";
+import { cn } from "@/lib/utils";
 
 const WithDefaultLayout = ({
   children,
@@ -54,13 +56,17 @@ const WithDefaultLayout = ({
 };
 
 const TopNavBar = () => {
+  const { open: isSidebarOpened } = useSidebar();
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
       <div className="flex flex-1 items-center gap-2 px-4 justify-between">
         <div className="flex items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <AudioPlayer className="hidden md:flex xl:hidden" isMini />
+          <AudioPlayer
+            className={cn("hidden md:flex ", isSidebarOpened && "xl:hidden")}
+            isMini
+          />
         </div>
         <div className="flex flex-row gap-2">
           {/* Use the simplified PlaylistTrigger component */}

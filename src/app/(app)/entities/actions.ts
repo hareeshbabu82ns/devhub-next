@@ -15,11 +15,14 @@ import { columns } from "./columns";
 import { Prisma, Entity } from "@/app/generated/prisma";
 import { EntityTypeEnum, EntityWithRelations } from "@/lib/types";
 import { transliteratedText } from "../sanscript/_components/utils";
-import { mapDbToEntity } from "./utils";
+import { callTTSApi, mapDbToEntity } from "./utils";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   LANGUAGE_SELECT_DEFAULT,
 } from "@/lib/constants";
+import path from "path";
+import config from "@/config";
+import { mkdir, writeFile } from "fs/promises";
 
 export const fetchAudioLinksIncludingChildren = async ({
   id,
@@ -667,4 +670,46 @@ export async function fetchEntitySiblings(entityId: string): Promise<{
     prev: prevSibling,
     next: nextSibling,
   };
+}
+
+export async function generateAudioForEntity(
+  entityId: string,
+): Promise<string | null> {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const entity = await db.entity.findUnique({
+    where: { id: entityId },
+  });
+
+  if (!entity) return null;
+
+  const telText = entity.text.find((t) => t.language === "TEL")?.value;
+  if (!telText) return null;
+  console.log(`Generating audio for entity: ${entityId}`);
+
+  // Call TTS API to generate audio
+  const audioBase64 = await callTTSApi({
+    text: telText,
+    // voiceKey: "tel_m_wiki_00001",
+  });
+  if (!audioBase64) return null;
+
+  // save to base64 audio to data folder
+  const audioBuffer = Buffer.from(audioBase64, "base64");
+  const audioFolder = path.resolve(`${config.dataFolder}/uploads/audios`);
+  await mkdir(audioFolder, { recursive: true });
+  const audioPath = path.join(audioFolder, `${entityId}.wav`);
+  await writeFile(audioPath, audioBuffer);
+  const audioUrl = `/api/assets/uploads/audios/${entityId}.wav`;
+
+  // Update entity with audio URL
+  await db.entity.update({
+    where: { id: entityId },
+    data: { audio: audioUrl },
+  });
+
+  return audioUrl;
 }

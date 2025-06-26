@@ -10,10 +10,13 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { BaseHeader } from "./components/base-header";
 import { Icons } from "../utils/icons";
 import AudioPlayer from "../audio-player/player";
+import { cn } from "@/lib/utils";
+import { useSidebarMinimized } from "@/hooks/use-config";
 
 const data = {
   navMain: [
@@ -91,6 +94,7 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { open: isSidebarOpened } = useSidebar();
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
@@ -102,7 +106,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       <SidebarFooter className="">
         {/* <SidebarDocs /> */}
-        <AudioPlayer className="hidden xl:flex" isSidebar />
+        <AudioPlayer
+          className={cn("hidden", !isSidebarOpened ? "xl:hidden" : "xl:flex")}
+          isSidebar
+        />
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

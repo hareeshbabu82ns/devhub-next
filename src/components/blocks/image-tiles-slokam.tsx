@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useParams, useRouter } from "next/navigation";
+import AudioGenPlayPauseButton from "./AudioGenPlayPauseButton";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -121,6 +122,12 @@ export const ArtSlokamTile = ({
                 url={model.audio}
                 id={model.id}
                 title={`${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
+              />
+            )}
+            {!model.audio && (
+              <AudioGenPlayPauseButton
+                id={model.id}
+                title={`Generate Audio: ${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
               />
             )}
             <Button

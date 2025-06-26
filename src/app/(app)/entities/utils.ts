@@ -1,5 +1,5 @@
 import { saveAs } from "file-saver";
-import { fetchEntityHierarchy, uploadEntityWithChildren } from "./actions";
+import { uploadEntityWithChildren } from "./actions";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   ENTITY_TYPES_LANGUAGE_MAP,
@@ -227,5 +227,57 @@ export async function handleEntityFileUpload(
 
   if (file) {
     await processEntityFile(file, parentId);
+  }
+}
+
+export async function callTTSApi({
+  text,
+  voiceKey = "PAN_F_HAPPY_00001",
+}: {
+  text: string;
+  voiceKey?: string;
+}): Promise<string | null> {
+  try {
+    if (!process.env.TTS_UTILS_URL) {
+      throw new Error("TTS_UTILS_URL environment variable is not set");
+    }
+    if (!text || typeof text !== "string") {
+      throw new Error("Invalid text input for TTS conversion");
+    }
+    if (!voiceKey || typeof voiceKey !== "string") {
+      throw new Error("Invalid voice key for TTS conversion");
+    }
+    // process text to remove extra characters and trim whitespace
+    text = text
+      .replace(/\s+/g, " ")
+      .replace(/[।]/g, " , ")
+      .replace(/[॥]/g, " . ")
+      .trim();
+    if (text.length === 0) {
+      throw new Error("Text input cannot be empty for TTS conversion");
+    }
+
+    const response = await fetch(`${process.env.TTS_UTILS_URL}/tts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        reference_voice_key: voiceKey,
+        save_to_file: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "TTS API request failed");
+    }
+
+    const data = await response.json();
+    return data.audio_base64 || null;
+  } catch (error) {
+    console.error("Failed to call TTS API:", error);
+    throw error;
   }
 }
