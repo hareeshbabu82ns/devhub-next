@@ -14,10 +14,6 @@ export default function SimpleAlert({
   variant?:
     | "default"
     | "destructive"
-    | "success"
-    | "warning"
-    | "primary"
-    | "secondary"
     | null
     | undefined;
 }) {

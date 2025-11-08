@@ -45,17 +45,24 @@ export async function GET(request: NextRequest) {
       console.error("No data returned from ZIP generation");
       return NextResponse.json({ error: "No data returned" }, { status: 500 });
     }
+    // Convert to Buffer if it's a string (base64)
+    const buffer = typeof data === 'string' ? Buffer.from(data, 'base64') : data!;
+    
     console.log(
-      `Generated ZIP for entity ${validation.data.entityId} with size: ${(data!.length / 1024).toFixed(2)}KB`,
+      `Generated ZIP for entity ${validation.data.entityId} with size: ${(buffer.length / 1024).toFixed(2)}KB`,
     );
 
     // Return ZIP file as response
-    return new Response(data, {
+    // Convert Buffer to Uint8Array, then to Blob for Next.js 16 compatibility
+    const uint8Array = new Uint8Array(buffer);
+    const blob = new Blob([uint8Array], { type: 'application/zip' });
+    
+    return new NextResponse(blob, {
       status: 200,
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${filename}"`,
-        "Content-Length": data!.length.toString(),
+        "Content-Length": buffer.length.toString(),
       },
     });
   } catch (error) {
