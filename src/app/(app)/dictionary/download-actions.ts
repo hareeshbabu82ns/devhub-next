@@ -306,7 +306,7 @@ export async function downloadDictionary(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 

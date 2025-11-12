@@ -308,7 +308,7 @@ devhub/
         if (error instanceof z.ZodError) {
           return {
             status: "error",
-            error: `Validation error: ${error.errors
+            error: `Validation error: ${error.issues
               .map((e) => e.message)
               .join(", ")}`,
           };

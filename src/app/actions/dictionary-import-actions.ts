@@ -158,7 +158,7 @@ export async function importSingleDictionary(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 
@@ -227,7 +227,7 @@ export async function importMultipleDictionariesAction(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 
@@ -306,7 +306,7 @@ export async function getDictionaryStatus(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 
@@ -393,7 +393,7 @@ export async function deleteDictionaryWords(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 
@@ -512,7 +512,7 @@ export async function reprocessDictionaryWords(
     if (error instanceof z.ZodError) {
       return {
         status: "error",
-        error: `Validation error: ${error.errors.map((e) => e.message).join(", ")}`,
+        error: `Validation error: ${error.issues.map((e) => e.message).join(", ")}`,
       };
     }
 

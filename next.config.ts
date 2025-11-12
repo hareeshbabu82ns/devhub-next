@@ -1,10 +1,21 @@
-import type { NextConfig } from "next";
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+  enabled: process.env.NODE_ENV === "development",
+});
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
   // swcMinify: true,
   images: {
+    localPatterns: [
+      {
+        pathname: "**/assets/**",
+      },
+      {
+        pathname: "/**",
+      },
+    ],
     remotePatterns: [
       {
         protocol: "https",
@@ -28,4 +39,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);
