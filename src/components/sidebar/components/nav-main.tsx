@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/collapsible";
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -38,50 +37,52 @@ export type NavItemProps = {
   }[];
 };
 
-export function NavMain( {
-  items,
-}: {
-  items: NavItemProps[];
-} ) {
+export function NavMain({ items }: { items: NavItemProps[] }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const checkSearchParamsMatch = ( activeSearchParams?: Record<string, string | string[]> ): boolean => {
-    if ( !activeSearchParams ) return false;
+  const checkSearchParamsMatch = (
+    activeSearchParams?: Record<string, string | string[]>,
+  ): boolean => {
+    if (!activeSearchParams) return false;
 
-    return Object.entries( activeSearchParams ).some( ( [ key, expectedValue ] ) => {
-      const paramValue = searchParams.get( key );
+    return Object.entries(activeSearchParams).some(([key, expectedValue]) => {
+      const paramValue = searchParams.get(key);
 
-      if ( !paramValue ) return false;
+      if (!paramValue) return false;
 
-      if ( Array.isArray( expectedValue ) ) {
-        return expectedValue.includes( paramValue );
+      if (Array.isArray(expectedValue)) {
+        return expectedValue.includes(paramValue);
       }
 
       return paramValue === expectedValue;
-    } );
+    });
   };
 
-  const itemsWithActiveState = useMemo( () => {
-    return items.map( item => {
+  const itemsWithActiveState = useMemo(() => {
+    return items.map((item) => {
       const isPathActive = item.exact
         ? pathname === item.path
-        : pathname.startsWith( item.path );
+        : pathname.startsWith(item.path);
 
-      const isSearchParamsActive = checkSearchParamsMatch( item.activeSearchParams );
+      const isSearchParamsActive = checkSearchParamsMatch(
+        item.activeSearchParams,
+      );
 
       let isItemActive = isPathActive || isSearchParamsActive;
 
-      if ( item.items && item.items.length > 0 ) {
-        const hasActiveSubItem = item.items.some( subItem => {
+      if (item.items && item.items.length > 0) {
+        const hasActiveSubItem = item.items.some((subItem) => {
           const isSubPathActive = subItem.exact
             ? pathname === subItem.path
-            : pathname.startsWith( subItem.path );
+            : pathname.startsWith(subItem.path);
 
-          const isSubSearchParamsActive = checkSearchParamsMatch( subItem.activeSearchParams );
+          const isSubSearchParamsActive = checkSearchParamsMatch(
+            subItem.activeSearchParams,
+          );
 
           return isSubPathActive || isSubSearchParamsActive;
-        } );
+        });
 
         isItemActive = isItemActive || hasActiveSubItem;
       }
@@ -89,26 +90,28 @@ export function NavMain( {
       return {
         ...item,
         isActive: isItemActive,
-        items: item.items?.map( subItem => {
+        items: item.items?.map((subItem) => {
           const isSubPathActive = subItem.exact
             ? pathname === subItem.path
-            : pathname.startsWith( subItem.path );
+            : pathname.startsWith(subItem.path);
 
-          const isSubSearchParamsActive = checkSearchParamsMatch( subItem.activeSearchParams );
+          const isSubSearchParamsActive = checkSearchParamsMatch(
+            subItem.activeSearchParams,
+          );
 
           return {
             ...subItem,
             isActive: isSubPathActive || isSubSearchParamsActive,
           };
-        } ),
+        }),
       };
-    } );
-  }, [ pathname, searchParams, items ] );
+    });
+  }, [pathname, searchParams, items]);
 
   return (
     <SidebarGroup>
       <SidebarMenu>
-        {itemsWithActiveState.map( ( item ) =>
+        {itemsWithActiveState.map((item) =>
           item.items && item.items.length > 0 ? (
             <Collapsible
               key={item.title}
@@ -121,8 +124,8 @@ export function NavMain( {
                 <CollapsibleTrigger asChild>
                   <SidebarMenuButton
                     tooltip={item.title}
-                    className="text-md"
-                  // isActive={item.isActive}
+                    className="text-sm sm:text-base min-h-10 touch-manipulation"
+                    // isActive={item.isActive}
                   >
                     {item.icon}
                     <span>{item.title}</span>
@@ -131,18 +134,19 @@ export function NavMain( {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {item.items?.map( ( subItem ) => (
+                    {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         <SidebarMenuSubButton
                           asChild
                           isActive={subItem.isActive}
+                          className="min-h-9 touch-manipulation"
                         >
                           <Link href={subItem.path}>
                             <span>{subItem.title}</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>
-                    ) )}
+                    ))}
                   </SidebarMenuSub>
                 </CollapsibleContent>
               </SidebarMenuItem>
@@ -153,7 +157,7 @@ export function NavMain( {
                 asChild
                 tooltip={item.title}
                 isActive={item.isActive}
-                className="text-md"
+                className="text-sm sm:text-base min-h-10 touch-manipulation"
               >
                 <Link href={item.path}>
                   {item.icon}

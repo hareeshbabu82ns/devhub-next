@@ -23,20 +23,30 @@ export default function QuickAccessMenuTrigger() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <SettingsIcon className="size-6" />
+        <Button
+          variant="outline"
+          size="icon"
+          className="min-h-6 min-w-6 sm:h-10 sm:w-10 touch-manipulation"
+        >
+          <SettingsIcon className="size-5 sm:size-6" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
         <DropdownMenuLabel>Quick Access</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => setDictOpen((open) => !open)}>
-          <DictionaryIcon className="mr-2 h-4 w-4" />
+        <DropdownMenuItem
+          onClick={() => setDictOpen((open) => !open)}
+          className="min-h-10 touch-manipulation"
+        >
+          <DictionaryIcon className="mr-2 h-4 w-4 shrink-0" />
           <span>Dictionary</span>
           <DropdownMenuShortcut>^D</DropdownMenuShortcut>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setSansConvOpen((open) => !open)}>
-          <SanscriptIcon className="mr-2 h-4 w-4" />
+        <DropdownMenuItem
+          onClick={() => setSansConvOpen((open) => !open)}
+          className="min-h-10 touch-manipulation"
+        >
+          <SanscriptIcon className="mr-2 h-4 w-4 shrink-0" />
           <span>Sanscript</span>
           <DropdownMenuShortcut>^S</DropdownMenuShortcut>
         </DropdownMenuItem>

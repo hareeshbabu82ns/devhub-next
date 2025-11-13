@@ -124,7 +124,7 @@ const getNavItems = (isAdmin: boolean): NavItemProps[] => {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { open: isSidebarOpened } = useSidebar();
+  const { open: isSidebarOpened, isMobile } = useSidebar();
   const session = useSession();
   const isAdmin = session?.data?.user?.role === "ADMIN";
 
@@ -132,17 +132,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+      <SidebarHeader className="border-b px-0">
         <BaseHeader />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="gap-0">
         <NavMain items={navItems} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
-      <SidebarFooter className="">
+      <SidebarFooter className="border-t mt-auto">
         {/* <SidebarDocs /> */}
         <AudioPlayer
-          className={cn("hidden", !isSidebarOpened ? "xl:hidden" : "xl:flex")}
+          className={cn(
+            "hidden",
+            !isMobile && (!isSidebarOpened ? "xl:hidden" : "xl:flex"),
+          )}
           isSidebar
         />
         <NavUser />

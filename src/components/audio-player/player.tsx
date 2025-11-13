@@ -86,8 +86,10 @@ const AudioPlayer = ({ className, isMini, isSidebar }: AudioPlayerProps) => {
   return (
     <div
       className={cn(
-        "flex gap-2 border bg-muted rounded-sm p-1",
-        isMini ? "flex-row items-center" : "flex-col",
+        "flex border bg-muted rounded-sm",
+        isMini
+          ? "flex-row items-center gap-1 sm:gap-2 p-1 min-w-0"
+          : "flex-col gap-2 p-2",
         className,
       )}
       role="region"
@@ -96,8 +98,10 @@ const AudioPlayer = ({ className, isMini, isSidebar }: AudioPlayerProps) => {
       {/* Player Controls layout adapts based on props */}
       <div
         className={cn(
-          "flex gap-2",
-          isSidebar ? "flex-col" : "flex-row flex-wrap justify-center",
+          "flex min-w-0",
+          isSidebar
+            ? "flex-col gap-2"
+            : "flex-row flex-wrap justify-center gap-1 sm:gap-2",
           isMini ? "items-center" : "",
         )}
       >
@@ -116,7 +120,7 @@ const AudioPlayer = ({ className, isMini, isSidebar }: AudioPlayerProps) => {
 
       {/* Extended Controls - hide in mini mode */}
       {!isMini && (
-        <div className="flex flex-col flex-1 gap-2">
+        <div className="flex flex-col flex-1 gap-2 min-w-0">
           <Separator />
           <AudioPlayExtrasBar isSidebar={isSidebar} />
         </div>

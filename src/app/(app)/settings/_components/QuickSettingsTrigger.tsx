@@ -21,26 +21,30 @@ export default function QuickSettingsTrigger() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="icon">
-          <SettingsIcon className="size-6" />
+        <Button
+          variant="outline"
+          size="icon"
+          className="min-h-9 min-w-9 sm:h-10 sm:w-10 touch-manipulation"
+        >
+          <SettingsIcon className="size-5 sm:size-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent>
+      <SheetContent className="overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Quick Settings</SheetTitle>
         </SheetHeader>
-        <div className="grid grid-cols-2 gap-4 py-4 pl-4">
-          <p>Results Page Size:</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 py-4 pl-2 sm:pl-4">
+          <p className="self-center text-sm sm:text-base">Results Page Size:</p>
           <QueryResultsLimitSelector />
-          <p>Text Size:</p>
+          <p className="self-center text-sm sm:text-base">Text Size:</p>
           <TextSizeSelector />
-          <p>Language:</p>
+          <p className="self-center text-sm sm:text-base">Language:</p>
           <LanguageSelector storageKey={LANGUAGE_SELECT_KEY} />
-          <p>Meaning Language:</p>
+          <p className="self-center text-sm sm:text-base">Meaning Language:</p>
           <LanguageSelector storageKey={LANGUAGE_MEANING_SELECT_KEY} />
-          <p>Panchangam Place:</p>
+          <p className="self-center text-sm sm:text-base">Panchangam Place:</p>
           <PanchangamPlaceSelector />
-          <p>App Theme:</p>
+          <p className="self-center text-sm sm:text-base">App Theme:</p>
           <ThemeModeToggle />
         </div>
       </SheetContent>

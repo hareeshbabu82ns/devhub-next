@@ -44,18 +44,18 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground min-h-10 touch-manipulation"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg shrink-0 group-data-[collapsible=icon]:size-8">
                 <AvatarImage
                   src={session?.data?.user.image}
                   alt={session?.data?.user.name || ""}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {avatarAltName( session?.data?.user.name || "" )}
+                  {avatarAltName(session?.data?.user.name || "")}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                 <span className="truncate font-semibold">
                   {session?.data?.user.name
                     ? session?.data?.user.name
@@ -65,7 +65,7 @@ export function NavUser() {
                   {session?.data?.user.email}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4 shrink-0" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -75,17 +75,17 @@ export function NavUser() {
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+              <div className="flex items-center gap-2 px-2 py-2 text-left text-sm">
+                <Avatar className="h-8 w-8 rounded-lg shrink-0">
                   <AvatarImage
                     src={session?.data?.user.image}
                     alt={session?.data?.user.name || ""}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {avatarAltName( session?.data?.user.name || "" )}
+                    {avatarAltName(session?.data?.user.name || "")}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
+                <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
                   <span className="truncate font-semibold">
                     {session?.data?.user.name
                       ? session?.data?.user.name
@@ -99,23 +99,28 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {isLoading ? "Loading version..." : `Version: ${version}`}
+              <DropdownMenuItem className="min-h-10 touch-manipulation">
+                <Sparkles className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">
+                  {isLoading ? "Loading version..." : `Version: ${version}`}
+                </span>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push( "/settings" )}>
-                <BadgeCheck className="mr-2 h-4 w-4" />
+              <DropdownMenuItem
+                onClick={() => router.push("/settings")}
+                className="min-h-10 touch-manipulation"
+              >
+                <BadgeCheck className="mr-2 h-4 w-4 shrink-0" />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="min-h-10 touch-manipulation">
+                <CreditCard className="mr-2 h-4 w-4 shrink-0" />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
+              <DropdownMenuItem className="min-h-10 touch-manipulation">
+                <Bell className="mr-2 h-4 w-4 shrink-0" />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -123,10 +128,11 @@ export function NavUser() {
             <DropdownMenuItem
               onClick={async () => {
                 await signOut();
-                router.push( "/" );
+                router.push("/");
               }}
+              className="min-h-10 touch-manipulation"
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-2 h-4 w-4 shrink-0" />
               Log out
             </DropdownMenuItem>
           </DropdownMenuContent>

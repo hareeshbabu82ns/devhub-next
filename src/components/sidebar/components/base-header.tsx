@@ -16,19 +16,21 @@ export function BaseHeader() {
     <SidebarMenu className="pb-2">
       <SidebarMenuItem>
         <SidebarMenuButton
-          size="lg"
+          size="default"
           className={cn(
-            "gap-3 transition-all duration-200 ease-in-out",
+            "gap-2 sm:gap-3 transition-all duration-200 ease-in-out min-h-8 touch-manipulation",
             "hover:bg-sidebar-accent/20",
-            "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            "data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground",
           )}
-          onClick={() => router.push( "/dashboard" )}
+          onClick={() => router.push("/dashboard")}
         >
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm">
-            <Icons.logo className="size-6 text-secondary-foreground" />
+          <div className="flex aspect-square items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-sm group-data-[collapsible=icon]:size-8">
+            <Icons.logo className="text-secondary-foreground group-data-[collapsible=icon]:size-6" />
           </div>
-          <div className="flex flex-col flex-1 text-left justify-center">
-            <span className="font-bold text-xl leading-tight text-sidebar-primary">DevHub</span>
+          <div className="flex flex-col flex-1 text-left justify-center min-w-0 group-data-[collapsible=icon]:hidden">
+            <span className="font-bold text-lg sm:text-xl leading-tight text-sidebar-primary truncate">
+              DevHub
+            </span>
           </div>
         </SidebarMenuButton>
       </SidebarMenuItem>
