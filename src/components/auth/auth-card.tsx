@@ -1,6 +1,5 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
@@ -9,13 +8,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/shared/logo";
 
 interface AuthCardProps {
   title: string;
   description?: string;
   children: React.ReactNode;
   className?: string;
-  logoSrc?: string;
 }
 
 export function AuthCard({
@@ -23,26 +22,27 @@ export function AuthCard({
   description,
   children,
   className,
-  logoSrc = "/icon-192.png",
 }: AuthCardProps) {
   return (
-    <Card
-      className={cn(
-        "min-w-lg m-auto rounded-lg p-2 md:min-w-[500px]",
-        className,
-      )}
-    >
-      <CardHeader>
-        <div className="flex items-center justify-center pb-2">
-          <Avatar className="size-16">
-            <AvatarImage src={logoSrc} alt="Logo" />
-            <AvatarFallback>Logo</AvatarFallback>
-          </Avatar>
+    <Card className={cn("w-full rounded-lg border shadow-sm", className)}>
+      <CardHeader className="space-y-4 text-center">
+        <div className="flex items-center justify-center">
+          <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
+            <Logo size={40} className="text-primary" />
+          </div>
         </div>
-        <CardTitle className="text-2xl">{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        <div className="space-y-2">
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            {title}
+          </CardTitle>
+          {description && (
+            <CardDescription className="text-sm text-muted-foreground">
+              {description}
+            </CardDescription>
+          )}
+        </div>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="px-6 pb-6">{children}</CardContent>
     </Card>
   );
 }

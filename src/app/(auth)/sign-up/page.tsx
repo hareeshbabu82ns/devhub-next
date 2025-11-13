@@ -75,76 +75,69 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <AuthCard
-        title="Sign Up"
-        description="Create your account to get started"
-      >
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                placeholder="John Doe"
-                disabled={isLoading}
-                {...register("name")}
-              />
-              {errors.name && (
-                <p className="text-sm text-red-500">{errors.name.message}</p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="m@example.com"
-                disabled={isLoading}
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                disabled={isLoading}
-                {...register("password")}
-              />
-              {errors.password && (
-                <p className="text-sm text-red-500">
-                  {errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && (
-                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              Create account
-            </Button>
-
-            <AuthDivider />
-
-            <SocialSignIn mode="signup" />
+    <AuthCard title="Sign Up" description="Create your account to get started">
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Full Name</Label>
+            <Input
+              id="name"
+              placeholder="John Doe"
+              disabled={isLoading}
+              {...register("name")}
+            />
+            {errors.name && (
+              <p className="text-sm text-red-500">{errors.name.message}</p>
+            )}
           </div>
-        </form>
 
-        <div className="mt-4 text-center text-sm">
-          Already have an account?{" "}
-          <Link href="/sign-in" className="underline hover:text-primary">
-            Sign in
-          </Link>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              disabled={isLoading}
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email.message}</p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Enter your password"
+              disabled={isLoading}
+              {...register("password")}
+            />
+            {errors.password && (
+              <p className="text-sm text-red-500">{errors.password.message}</p>
+            )}
+          </div>
+
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && (
+              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Create account
+          </Button>
+
+          <AuthDivider />
+
+          <SocialSignIn mode="signup" />
         </div>
-      </AuthCard>
-    </div>
+      </form>
+
+      <div className="mt-4 text-center text-sm">
+        Already have an account?{" "}
+        <Link href="/sign-in" className="underline hover:text-primary">
+          Sign in
+        </Link>
+      </div>
+    </AuthCard>
   );
 }

@@ -165,158 +165,151 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <AuthCard
-        title="Sign In"
-        description="Sign in to your account to continue"
-      >
-        <Tabs defaultValue="credentials" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="credentials">Password</TabsTrigger>
-            <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
-          </TabsList>
+    <AuthCard title="Sign In" description="Sign in to your account to continue">
+      <Tabs defaultValue="credentials" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="credentials">Password</TabsTrigger>
+          <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="credentials">
-            <form onSubmit={handleSubmit(onCredentialsSubmit)}>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="cred-email">Email</Label>
-                  <Input
-                    id="cred-email"
-                    type="email"
-                    placeholder="m@example.com"
-                    disabled={isLoading}
-                    {...register("email")}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-red-500">
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-sm underline hover:text-primary"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    disabled={isLoading}
-                    {...register("password")}
-                  />
-                  {errors.password && (
-                    <p className="text-sm text-red-500">
-                      {errors.password.message}
-                    </p>
-                  )}
-                </div>
-
-                {needsTOTP && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="totpCode">Authentication Code</Label>
-                    <Input
-                      id="totpCode"
-                      type="text"
-                      placeholder="123456"
-                      maxLength={6}
-                      disabled={isLoading}
-                      {...register("totpCode")}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Enter the 6-digit code from your authenticator app
-                    </p>
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && (
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  Sign in
-                </Button>
-
-                <AuthDivider />
-
-                <SocialSignIn mode="signin" />
-              </div>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="magic-link">
+        <TabsContent value="credentials" className="space-y-4">
+          <form onSubmit={handleSubmit(onCredentialsSubmit)}>
             <div className="grid gap-4">
-              <div className="flex flex-row gap-2">
-                <div className="grid grow gap-2">
-                  <Label htmlFor="magic-email">Email</Label>
-                  <Input
-                    id="magic-email"
-                    type="email"
-                    placeholder="m@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="h-3"></div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={sendEmailToken}
-                    title="Send Token"
-                  >
-                    <Icons.email className="size-4" />
-                  </Button>
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="cred-email">Email</Label>
+                <Input
+                  id="cred-email"
+                  type="email"
+                  placeholder="m@example.com"
+                  disabled={isLoading}
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                )}
               </div>
 
-              <div className="flex flex-row gap-2">
-                <div className="grid grow gap-2">
-                  <Label htmlFor="emailToken">Token</Label>
-                  <Input
-                    id="emailToken"
-                    type="text"
-                    placeholder="Enter token from email"
-                    value={emailToken}
-                    onChange={(e) => setEmailToken(e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="h-3"></div>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
                   <Link
-                    title="Login with Token"
-                    href={
-                      emailToken && email
-                        ? `/api/auth/callback/resend?callbackUrl=/dashboard&token=${emailToken}&email=${email}`
-                        : ""
-                    }
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                    href="/forgot-password"
+                    className="text-sm underline hover:text-primary"
                   >
-                    <Icons.login className="size-4" />
+                    Forgot password?
                   </Link>
                 </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  disabled={isLoading}
+                  {...register("password")}
+                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">
+                    {errors.password.message}
+                  </p>
+                )}
               </div>
+
+              {needsTOTP && (
+                <div className="grid gap-2">
+                  <Label htmlFor="totpCode">Authentication Code</Label>
+                  <Input
+                    id="totpCode"
+                    type="text"
+                    placeholder="123456"
+                    maxLength={6}
+                    disabled={isLoading}
+                    {...register("totpCode")}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter the 6-digit code from your authenticator app
+                  </p>
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && (
+                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Sign in
+              </Button>
 
               <AuthDivider />
 
               <SocialSignIn mode="signin" />
             </div>
-          </TabsContent>
-        </Tabs>
+          </form>
+        </TabsContent>
 
-        <div className="mt-4 text-center text-sm">
-          Don&apos;t have an account?{" "}
-          <Link href="/sign-up" className="underline hover:text-primary">
-            Sign up
-          </Link>
-        </div>
-      </AuthCard>
-    </div>
+        <TabsContent value="magic-link" className="space-y-4">
+          <div className="grid gap-4">
+            <div className="flex flex-row gap-2">
+              <div className="grid grow gap-2">
+                <Label htmlFor="magic-email">Email</Label>
+                <Input
+                  id="magic-email"
+                  type="email"
+                  placeholder="m@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <div className="h-3"></div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={sendEmailToken}
+                  title="Send Token"
+                >
+                  <Icons.email className="size-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-row gap-2">
+              <div className="grid grow gap-2">
+                <Label htmlFor="emailToken">Token</Label>
+                <Input
+                  id="emailToken"
+                  type="text"
+                  placeholder="Enter token from email"
+                  value={emailToken}
+                  onChange={(e) => setEmailToken(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <div className="h-3"></div>
+                <Link
+                  title="Login with Token"
+                  href={
+                    emailToken && email
+                      ? `/api/auth/callback/resend?callbackUrl=/dashboard&token=${emailToken}&email=${email}`
+                      : ""
+                  }
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  <Icons.login className="size-4" />
+                </Link>
+              </div>
+            </div>
+
+            <AuthDivider />
+
+            <SocialSignIn mode="signin" />
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      <div className="mt-4 text-center text-sm">
+        Don&apos;t have an account?{" "}
+        <Link href="/sign-up" className="underline hover:text-primary">
+          Sign up
+        </Link>
+      </div>
+    </AuthCard>
   );
 }
