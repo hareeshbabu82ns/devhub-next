@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { Icons } from "@/components/utils/icons";
 import { TOTPSetupFlow } from "@/components/auth/totp-setup-flow";
@@ -432,71 +433,97 @@ export default function SecuritySettingsPage() {
       {/* Regenerate Backup Codes Dialog */}
       <Dialog
         open={regenerateCodesDialog}
-        onOpenChange={setRegenerateCodesDialog}
+        onOpenChange={(open) => {
+          setRegenerateCodesDialog(open);
+          if (!open) {
+            // Reset state when dialog closes
+            setRegeneratePassword("");
+            setBackupCodes([]);
+          }
+        }}
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Regenerate Backup Codes</DialogTitle>
+            <DialogTitle>
+              {backupCodes.length === 0
+                ? "Regenerate Backup Codes"
+                : "Your New Backup Codes"}
+            </DialogTitle>
             <DialogDescription>
-              Generate new backup codes. Old codes will no longer work.
+              {backupCodes.length === 0
+                ? "Generate new backup codes. Old codes will no longer work."
+                : "Save these codes in a secure location. Each code can only be used once."}
             </DialogDescription>
           </DialogHeader>
           {backupCodes.length === 0 ? (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="regenerate-password">Password</Label>
-                <Input
-                  id="regenerate-password"
-                  type="password"
-                  value={regeneratePassword}
-                  onChange={(e) => setRegeneratePassword(e.target.value)}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4 py-4">
-              <div className="bg-muted p-4 rounded-lg">
-                <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                  {backupCodes.map((code, index) => (
-                    <div key={index} className="text-center">
-                      {code}
-                    </div>
-                  ))}
+            <>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="regenerate-password">Password</Label>
+                  <Input
+                    id="regenerate-password"
+                    type="password"
+                    value={regeneratePassword}
+                    onChange={(e) => setRegeneratePassword(e.target.value)}
+                    placeholder="Enter your password"
+                  />
                 </div>
               </div>
-              <Button
-                onClick={copyBackupCodes}
-                variant="outline"
-                className="w-full"
-              >
-                <Icons.clipboard className="mr-2 h-4 w-4" />
-                Copy Codes
-              </Button>
-            </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setRegenerateCodesDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleRegenerateBackupCodes}
+                  disabled={isProcessing || !regeneratePassword}
+                >
+                  {isProcessing && (
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Generate Codes
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <Alert>
+                  <Icons.warning className="h-4 w-4" />
+                  <AlertDescription>
+                    Make sure to copy these codes before closing this dialog.
+                  </AlertDescription>
+                </Alert>
+                <div className="bg-muted p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-2 font-mono text-sm">
+                    {backupCodes.map((code, index) => (
+                      <div key={index} className="text-center">
+                        {code}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="flex-col space-y-2 sm:flex-col sm:space-y-2">
+                <Button
+                  onClick={copyBackupCodes}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Icons.clipboard className="mr-2 h-4 w-4" />
+                  Copy All Codes
+                </Button>
+                <Button
+                  onClick={() => setRegenerateCodesDialog(false)}
+                  className="w-full"
+                >
+                  I've Saved My Codes
+                </Button>
+              </DialogFooter>
+            </>
           )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRegenerateCodesDialog(false);
-                setRegeneratePassword("");
-                setBackupCodes([]);
-              }}
-            >
-              {backupCodes.length === 0 ? "Cancel" : "Close"}
-            </Button>
-            {backupCodes.length === 0 && (
-              <Button
-                onClick={handleRegenerateBackupCodes}
-                disabled={isProcessing}
-              >
-                {isProcessing && (
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Regenerate Codes
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

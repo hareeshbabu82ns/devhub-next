@@ -8,12 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Icons } from "@/components/utils/icons";
 import { setupTOTP, enableTOTP } from "@/app/actions/totp-actions";
@@ -131,17 +130,17 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
+    <>
       {step === "generate" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Enable Two-Factor Authentication</CardTitle>
-            <CardDescription>
+        <>
+          <DialogHeader>
+            <DialogTitle>Enable Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
               Add an extra layer of security to your account by requiring a
               verification code in addition to your password.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             <Alert>
               <Icons.help className="h-4 w-4" />
               <AlertDescription>
@@ -149,6 +148,8 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
                 Authy, or 1Password to scan the QR code.
               </AlertDescription>
             </Alert>
+          </div>
+          <DialogFooter>
             <Button
               onClick={handleGenerateQR}
               disabled={isLoading}
@@ -159,20 +160,20 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
               )}
               Generate QR Code
             </Button>
-          </CardContent>
-        </Card>
+          </DialogFooter>
+        </>
       )}
 
       {step === "verify" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Scan QR Code</CardTitle>
-            <CardDescription>
+        <>
+          <DialogHeader>
+            <DialogTitle>Scan QR Code</DialogTitle>
+            <DialogDescription>
               Scan this QR code with your authenticator app, then enter the
               6-digit code to verify.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             {qrCodeUrl && (
               <div className="flex flex-col items-center space-y-4">
                 <div className="bg-white p-4 rounded-lg">
@@ -213,7 +214,8 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
                 Enter the 6-digit code from your authenticator app
               </p>
             </div>
-
+          </div>
+          <DialogFooter className="flex-col space-y-2 sm:flex-col sm:space-y-2">
             <Button
               onClick={handleVerifyAndEnable}
               disabled={isLoading || verificationCode.length !== 6}
@@ -224,7 +226,6 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
               )}
               Verify and Enable
             </Button>
-
             <Button
               variant="ghost"
               onClick={() => setStep("generate")}
@@ -232,20 +233,20 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
             >
               Back
             </Button>
-          </CardContent>
-        </Card>
+          </DialogFooter>
+        </>
       )}
 
       {step === "backup" && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Save Your Backup Codes</CardTitle>
-            <CardDescription>
+        <>
+          <DialogHeader>
+            <DialogTitle>Save Your Backup Codes</DialogTitle>
+            <DialogDescription>
               Store these backup codes in a safe place. You can use them to
               access your account if you lose your authenticator device.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
             <Alert>
               <Icons.warning className="h-4 w-4" />
               <AlertDescription>
@@ -263,23 +264,22 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
                 ))}
               </div>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={copyBackupCodes}
-                variant="outline"
-                className="flex-1"
-              >
-                <Icons.clipboard className="mr-2 h-4 w-4" />
-                Copy Codes
-              </Button>
-              <Button onClick={handleComplete} className="flex-1">
-                I've Saved My Codes
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+          <DialogFooter className="flex-col space-y-2 sm:flex-col sm:space-y-2">
+            <Button
+              onClick={copyBackupCodes}
+              variant="outline"
+              className="w-full"
+            >
+              <Icons.clipboard className="mr-2 h-4 w-4" />
+              Copy Codes
+            </Button>
+            <Button onClick={handleComplete} className="w-full">
+              I've Saved My Codes
+            </Button>
+          </DialogFooter>
+        </>
       )}
-    </div>
+    </>
   );
 }

@@ -1,42 +1,94 @@
-# Next.js Authentication System Implementation Guide
+# Next.js Authentication System - Complete Implementation Guide
 
-This guide provides a complete authentication system for Next.js 15+ with App Router, featuring NextAuth v5, TOTP (Two-Factor Authentication), multiple OAuth providers, magic link email authentication, and comprehensive security features.
+> **A production-ready, enterprise-grade authentication system for Next.js 15+ applications**
 
-## Overview
+This comprehensive guide enables you to implement a complete, secure authentication system in any Next.js 15+ project with App Router. The implementation follows security best practices and provides a consistent, maintainable architecture that can be adapted to your specific requirements.
 
-A production-ready authentication system with:
+## 🎯 What You'll Build
 
-- ✅ Credentials-based authentication (email/password)
-- ✅ OAuth providers (Google, GitHub)
-- ✅ Magic link email authentication (Resend)
-- ✅ TOTP (Time-based One-Time Password) 2FA
-- ✅ Backup codes for 2FA recovery
-- ✅ Role-based access control (USER, ADMIN)
-- ✅ Signup restrictions (email whitelist, domain whitelist)
-- ✅ Encrypted TOTP secrets
-- ✅ Session management with JWT
-- ✅ Protected routes with middleware
-- ✅ Email notifications (welcome emails, magic links)
+A fully-featured authentication system with:
 
-## Tech Stack
+- ✅ **Multiple Authentication Methods**
+  - Credentials-based (email/password)
+  - OAuth providers (Google, GitHub, extendable to others)
+  - Magic link email authentication (passwordless)
+- ✅ **Two-Factor Authentication (TOTP)**
+  - QR code generation for authenticator apps
+  - Backup codes for account recovery
+  - Encrypted secret storage
+- ✅ **Access Control & Security**
+  - Role-based access control (USER, ADMIN, extendable)
+  - Signup restrictions (email/domain whitelists)
+  - Protected routes with middleware
+  - Session management with JWT
+- ✅ **User Experience**
+  - Responsive, accessible UI components
+  - Email notifications (welcome, magic links)
+  - Loading states and error handling
+  - Mobile-optimized dialogs and forms
+
+## 🏗️ Architecture Overview
+
+The authentication system is built with a modular, layered architecture:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Presentation Layer                       │
+│  (UI Components, Forms, Pages)                              │
+├─────────────────────────────────────────────────────────────┤
+│                     Application Layer                        │
+│  (Server Actions, API Routes, Middleware)                   │
+├─────────────────────────────────────────────────────────────┤
+│                     Business Logic Layer                     │
+│  (Auth Configuration, TOTP Utils, Validation)               │
+├─────────────────────────────────────────────────────────────┤
+│                     Data Access Layer                        │
+│  (Prisma Client, Database Models)                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Design Principles
+
+1. **Separation of Concerns**: Clear boundaries between UI, business logic, and data access
+2. **Type Safety**: Full TypeScript support with discriminated unions for responses
+3. **Security First**: Encryption, hashing, and validation at every layer
+4. **Extensibility**: Easy to add new auth providers or modify existing flows
+5. **Testability**: Modular components that can be tested independently
+6. **User-Centric**: Accessible, responsive, and intuitive user interfaces
+
+## 📋 Prerequisites
+
+Before starting, ensure you have:
+
+- **Node.js** 18.17 or later
+- **Package Manager**: npm, yarn, pnpm, or bun
+- **Database**: MongoDB, PostgreSQL, MySQL, or SQLite (this guide uses MongoDB)
+- **Basic Knowledge**: Next.js App Router, TypeScript, React
+
+### Tech Stack
+
+This implementation uses:
+
+| Package                     | Version      | Purpose                                           |
+| --------------------------- | ------------ | ------------------------------------------------- |
+| **next**                    | 15.x+        | Web framework                                     |
+| **react**                   | 19.x+        | UI library                                        |
+| **next-auth**               | 5.0.0-beta.x | Authentication framework                          |
+| **@auth/prisma-adapter**    | 2.x+         | Database adapter                                  |
+| **@prisma/client**          | 5.x or 6.x+  | Database ORM                                      |
+| **bcryptjs**                | 2.4.x+       | Password hashing                                  |
+| **otpauth**                 | 9.x+         | TOTP generation                                   |
+| **qrcode**                  | 1.5.x+       | QR code generation                                |
+| **zod**                     | 3.x or 4.x+  | Schema validation                                 |
+| **resend**                  | 3.x or 4.x+  | Email service (optional, can use other providers) |
+| **@react-email/components** | 0.0.x+       | Email templates (optional)                        |
+| **react-hook-form**         | 7.x+         | Form management                                   |
+| **@hookform/resolvers**     | 3.x or 5.x+  | Form validation resolvers                         |
+
+### Optional Dependencies
 
 ```json
 {
-  "dependencies": {
-    "next": "15.3.1",
-    "react": "^19.2.0",
-    "next-auth": "5.0.0-beta.27",
-    "@auth/prisma-adapter": "^2.11.1",
-    "@prisma/client": "6.19.0",
-    "bcryptjs": "^3.0.3",
-    "otpauth": "^9.4.1",
-    "qrcode": "^1.5.4",
-    "zod": "^4.1.12",
-    "resend": "^4.5.0",
-    "@react-email/components": "^1.0.0",
-    "react-hook-form": "^7.66.0",
-    "@hookform/resolvers": "^5.2.2"
-  },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/qrcode": "^1.5.6"
@@ -44,52 +96,309 @@ A production-ready authentication system with:
 }
 ```
 
-## Environment Variables
+## 🚀 Quick Start (TL;DR)
 
-Create a `.env` file with the following variables:
+For experienced developers who want to get started quickly:
+
+1. **Install Dependencies**:
+
+   ```bash
+   pnpm install next-auth@beta @auth/prisma-adapter @prisma/client bcryptjs otpauth qrcode zod resend @react-email/components react-hook-form @hookform/resolvers
+   pnpm install -D @types/bcryptjs @types/qrcode prisma
+   ```
+
+2. **Setup Database**: Configure Prisma schema (see Database Schema section)
+
+3. **Configure Environment**: Copy environment variables (see Environment Variables section)
+
+4. **Copy Core Files**: Implement the files in the order shown in the Implementation Steps section
+
+5. **Test**: Run the application and test each authentication flow
+
+> **💡 Tip**: Follow the detailed Implementation Steps section for production deployments
+
+## 🔧 Environment Variables
+
+Create a `.env` file in your project root with the following variables:
+
+### Core Configuration (Required)
 
 ```bash
-# Database
-DATABASE_URL="mongodb+srv://username:password@cluster.mongodb.net/dbname"
+# Database Connection
+# MongoDB example: mongodb+srv://username:password@cluster.mongodb.net/dbname
+# PostgreSQL example: postgresql://username:password@localhost:5432/dbname
+DATABASE_URL="your-database-connection-string"
 
-# NextAuth Configuration
-AUTH_SECRET="your-random-secret-key-here-generate-with-openssl"
-NEXTAUTH_URL="http://localhost:3000"
+# NextAuth Secret (Generate with: openssl rand -base64 32)
+AUTH_SECRET="your-random-secret-key-here-minimum-32-characters"
 
-# OAuth Providers
-AUTH_GOOGLE_ID="your-google-oauth-client-id"
-AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
-AUTH_GITHUB_ID="your-github-oauth-client-id"
-AUTH_GITHUB_SECRET="your-github-oauth-client-secret"
+# Base URL for callbacks
+NEXTAUTH_URL="http://localhost:3000"  # Production: https://yourdomain.com
 
-# Email Provider (Resend)
-AUTH_RESEND_KEY="your-resend-api-key"
-SMTP_FROM="noreply@yourdomain.com"
+# Application Base URL (for emails, redirects)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"  # Production: https://yourdomain.com
 
-# TOTP Encryption
-TOTP_ENCRYPTION_KEY="your-totp-encryption-key-32-characters-min"
-
-# Admin Configuration
-ADMIN_EMAILS="admin@example.com,admin2@example.com"
-
-# Application
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-NODE_ENV="development"
+# Environment
+NODE_ENV="development"  # production | development | test
 ```
 
-## Database Schema (Prisma)
+### TOTP/2FA Configuration (Required for TOTP)
+
+```bash
+# TOTP Secret Encryption Key (Minimum 32 characters)
+# Generate with: openssl rand -base64 32
+TOTP_ENCRYPTION_KEY="your-totp-encryption-key-minimum-32-characters-required"
+```
+
+### Admin Configuration (Optional)
+
+```bash
+# Comma-separated list of admin emails
+# Users with these emails will be automatically assigned ADMIN role
+ADMIN_EMAILS="admin@example.com,admin2@example.com"
+```
+
+### OAuth Providers (Optional - configure the ones you need)
+
+#### Google OAuth
+
+```bash
+# Get from: https://console.cloud.google.com/
+AUTH_GOOGLE_ID="your-google-oauth-client-id.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="your-google-oauth-client-secret"
+```
+
+**Setup Instructions**:
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select existing
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URI: `{NEXTAUTH_URL}/api/auth/callback/google`
+
+#### GitHub OAuth
+
+```bash
+# Get from: https://github.com/settings/developers
+AUTH_GITHUB_ID="your-github-oauth-client-id"
+AUTH_GITHUB_SECRET="your-github-oauth-client-secret"
+```
+
+**Setup Instructions**:
+
+1. Go to GitHub Settings > Developer settings > OAuth Apps
+2. Click "New OAuth App"
+3. Set Authorization callback URL: `{NEXTAUTH_URL}/api/auth/callback/github`
+
+### Email Provider (Optional - for magic links and notifications)
+
+#### Resend (Recommended)
+
+```bash
+# Get from: https://resend.com/api-keys
+AUTH_RESEND_KEY="re_xxxxxxxxxxxxxxxxxxxx"
+SMTP_FROM="noreply@yourdomain.com"  # Must be verified domain
+```
+
+**Setup Instructions**:
+
+1. Sign up at [Resend](https://resend.com)
+2. Verify your sending domain
+3. Create an API key
+
+#### Alternative Email Providers
+
+You can use any email provider supported by NextAuth:
+
+- **SendGrid**: Configure `sendgrid` provider
+- **Nodemailer**: Use custom nodemailer configuration
+- **AWS SES**: Configure `ses` provider
+
+### Example .env File
+
+```bash
+# Core (Required)
+DATABASE_URL="mongodb+srv://user:pass@cluster.mongodb.net/myapp"
+AUTH_SECRET="32-character-minimum-random-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+NODE_ENV="development"
+
+# TOTP (Required for 2FA)
+TOTP_ENCRYPTION_KEY="another-32-character-minimum-key-here"
+
+# Admin (Optional)
+ADMIN_EMAILS="admin@example.com"
+
+# OAuth (Optional)
+AUTH_GOOGLE_ID="xxxxx.apps.googleusercontent.com"
+AUTH_GOOGLE_SECRET="xxxxx"
+AUTH_GITHUB_ID="xxxxx"
+AUTH_GITHUB_SECRET="xxxxx"
+
+# Email (Optional)
+AUTH_RESEND_KEY="re_xxxxx"
+SMTP_FROM="noreply@example.com"
+```
+
+### Security Notes
+
+> **🔒 Important Security Considerations**:
+>
+> - Never commit `.env` files to version control
+> - Use different secrets for each environment (dev, staging, prod)
+> - Rotate secrets regularly in production
+> - Use minimum 32-character random strings for secrets
+> - In production, use environment variables from your hosting provider
+> - Consider using secret management services (AWS Secrets Manager, Azure Key Vault, etc.)
+
+## 📝 Implementation Steps
+
+Follow these steps in order to implement the authentication system. Each step builds on the previous one.
+
+### Step 1: Initialize Next.js Project (If Starting Fresh)
+
+```bash
+# Create new Next.js app
+npx create-next-app@latest my-app --typescript --tailwind --eslint --app
+cd my-app
+
+# Or if adding to existing project, skip this step
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Core authentication dependencies
+pnpm install next-auth@5.0.0-beta.27 @auth/prisma-adapter
+
+# Database ORM
+pnpm install @prisma/client
+pnpm install -D prisma
+
+# Security & Crypto
+pnpm install bcryptjs otpauth qrcode
+pnpm install -D @types/bcryptjs @types/qrcode
+
+# Validation & Forms
+pnpm install zod react-hook-form @hookform/resolvers
+
+# Email (optional, if using magic links)
+pnpm install resend @react-email/components
+
+# Utility (if not already installed)
+pnpm install date-fns
+```
+
+### Step 3: Setup Database Schema
+
+Initialize Prisma and configure your database schema (next section).
+
+### Step 4: Configure Environment Variables
+
+Create `.env` file with all required variables (previous section).
+
+### Step 5: Implement Core Authentication
+
+Implement files in this order:
+
+1. **Database Client** (`lib/db/index.ts`) - Singleton Prisma client
+2. **Configuration** (`config/routes.ts`, `config/site.ts`) - App configuration
+3. **Validation Schemas** (`lib/validations/user.ts`) - Zod schemas
+4. **Auth Utilities** (`lib/auth/utils.ts`) - Type extensions and partial config
+5. **TOTP Utilities** (`lib/auth/totp.ts`) - TOTP generation and verification
+6. **Signup Validation** (`lib/auth/signup-validation.ts`) - Email restrictions
+7. **Auth Actions** (`lib/auth/actions.ts`) - Server actions for auth
+8. **Main Auth Config** (`lib/auth/index.ts`) - NextAuth configuration
+9. **TOTP Actions** (`app/actions/totp-actions.ts`) - TOTP management
+
+### Step 6: Setup Middleware
+
+Implement route protection:
+
+1. **Auth Proxy** (`src/proxy.ts`) - Middleware implementation
+2. **Root Middleware** (`middleware.ts`) - Export from proxy
+
+### Step 7: Create API Routes
+
+1. **NextAuth Route** (`app/api/auth/[...nextauth]/route.ts`) - API handler
+
+### Step 8: Build UI Components
+
+Implement in this order:
+
+1. **Session Provider** (`components/auth/Provider.tsx`) - Context provider
+2. **Reusable Components** - Auth card, dividers, social buttons
+3. **Sign-In Page** (`app/(auth)/sign-in/page.tsx`) - Login form
+4. **Sign-Up Page** (`app/(auth)/sign-up/page.tsx`) - Registration form
+5. **Auth Layout** (`app/(auth)/layout.tsx`) - Auth pages layout
+6. **TOTP Setup Component** - Two-factor authentication setup
+
+### Step 9: Add Email Templates (Optional)
+
+If using email authentication:
+
+1. **Magic Link Email** (`components/emails/MagicLoginLinkEmail.tsx`)
+2. **Welcome Email** (`components/emails/WelcomeEmail.tsx`)
+3. **Email Actions** (`lib/email/actions.ts`) - Email sending utilities
+
+### Step 10: Wrap Your App
+
+Update root layout to include session provider:
+
+```tsx
+// app/layout.tsx
+import NextAuthProvider from "@/components/auth/Provider";
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <NextAuthProvider>{children}</NextAuthProvider>
+      </body>
+    </html>
+  );
+}
+```
+
+### Step 11: Run Database Migrations
+
+```bash
+# Generate Prisma Client
+npx prisma generate
+
+# Push schema to database (development)
+npx prisma db push
+
+# Or create migration (production)
+npx prisma migrate dev --name init
+```
+
+### Step 12: Test Each Flow
+
+Test all authentication methods (see Testing section).
+
+## 🗄️ Database Schema (Prisma)
 
 Create `prisma/schema.prisma`:
 
 ```prisma
+// Choose your database provider
 datasource db {
-  provider = "mongodb"
+  provider = "mongodb"  // or "postgresql", "mysql", "sqlite", "sqlserver", "cockroachdb"
   url      = env("DATABASE_URL")
 }
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../app/generated/prisma"
+  // Optional: Custom output path
+  // Default is node_modules/.prisma/client
+  // Uncomment and adjust if you need a custom location:
+  // output   = "./generated/prisma"
 }
 
 enum UserRole {
@@ -241,8 +550,12 @@ src/
 ### 1. Database Client (`lib/db/index.ts`)
 
 ```typescript
-import { PrismaClient } from "@/app/generated/prisma";
+// Import from default location or your custom output path
+// Default: import { PrismaClient } from "@prisma/client";
+// Custom: import { PrismaClient } from "@/generated/prisma";
+import { PrismaClient } from "@prisma/client";
 
+// Prevent multiple instances of Prisma Client in development
 declare const global: {
   db: PrismaClient | undefined;
 };
@@ -258,6 +571,12 @@ export const db: PrismaClient =
 
 if (process.env.NODE_ENV !== "production") global.db = db;
 ```
+
+> **💡 Note on Prisma Client Import**:
+>
+> - If using default Prisma generator (no custom `output`), import from `@prisma/client`
+> - If using custom output path in `schema.prisma`, adjust the import path accordingly
+> - Update `tsconfig.json` paths if needed for custom locations
 
 ### 2. Routes Configuration (`config/routes.ts`)
 
@@ -281,19 +600,26 @@ export type SiteConfig = {
   address: string;
   defaultUserImg: string;
   emailVerificationDuration: number;
-  // ... other site configs
+  // Add other site-specific configs as needed
 };
 
 export const siteConfig: SiteConfig = {
-  name: "YourApp",
-  description: "Your App Description",
-  url: "https://yourapp.com",
-  address: "Your Address",
-  defaultUserImg: "/default-user.png",
-  emailVerificationDuration: 15, // minutes
-  // ... other configs
+  name: process.env.NEXT_PUBLIC_APP_NAME || "My App",
+  description: process.env.NEXT_PUBLIC_APP_DESCRIPTION || "Welcome to my app",
+  url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+  address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS || "Your Company Address",
+  defaultUserImg: "/default-avatar.png", // or use a placeholder service
+  emailVerificationDuration: 15, // minutes before allowing resend
+  // Add other configs as needed for your application
 };
 ```
+
+> **💡 Configuration Tips**:
+>
+> - Store sensitive or environment-specific values in `.env`
+> - Use `NEXT_PUBLIC_` prefix for client-accessible values
+> - Add type-safe getters for complex configuration logic
+> - Consider using a config validation library like `zod` for runtime checks
 
 ### 4. Auth Utilities (`lib/auth/utils.ts`)
 
@@ -1853,30 +2179,417 @@ Test magic link:
 2. Check email inbox for magic link
 3. Click link to sign in
 
-## Troubleshooting
+## 🧪 Testing Your Authentication System
 
-**Issue: "Invalid callback URL" error**
+### Manual Testing Checklist
 
-- Ensure `NEXTAUTH_URL` matches your actual URL
-- Check OAuth provider redirect URIs
+#### 1. Credentials Authentication
 
-**Issue: TOTP codes not working**
+- [ ] Sign up with valid email/password
+- [ ] Sign up with existing email (should fail)
+- [ ] Sign up with invalid email (should fail)
+- [ ] Sign up with weak password (should fail if validation added)
+- [ ] Sign in with correct credentials
+- [ ] Sign in with wrong password (should fail)
+- [ ] Sign in with non-existent email (should fail)
 
-- Ensure system time is synchronized
-- Check TOTP window parameter (default: 1)
-- Verify encryption key is consistent
+#### 2. TOTP/2FA Testing
 
-**Issue: Emails not sending**
+- [ ] Enable TOTP during signup
+- [ ] Scan QR code with authenticator app (Google Authenticator, Authy, etc.)
+- [ ] Verify TOTP code successfully
+- [ ] Save backup codes
+- [ ] Sign out and sign in with TOTP code
+- [ ] Sign in with backup code
+- [ ] Verify backup code is consumed (can't use twice)
+- [ ] Disable TOTP from settings
+- [ ] Re-enable TOTP (new QR code generated)
+- [ ] Regenerate backup codes
 
-- Verify Resend API key
-- Check SMTP_FROM email is verified
-- Check email provider logs
+#### 3. OAuth Authentication
 
-**Issue: Session not persisting**
+- [ ] Sign in with Google OAuth
+- [ ] Sign in with GitHub OAuth
+- [ ] Sign up with Google OAuth
+- [ ] Sign up with GitHub OAuth
+- [ ] Link multiple OAuth accounts to same email
+- [ ] OAuth callback redirects correctly
 
-- Verify AUTH_SECRET is set
-- Check cookie settings in browser
-- Ensure middleware is properly configured
+#### 4. Magic Link Authentication
+
+- [ ] Request magic link with valid email
+- [ ] Receive email with magic link
+- [ ] Click magic link (should sign in)
+- [ ] Copy token from email and paste manually
+- [ ] Request magic link too quickly (rate limit)
+- [ ] Use expired token (should fail)
+
+#### 5. Session Management
+
+- [ ] Session persists after browser refresh
+- [ ] Session expires after configured duration
+- [ ] Sign out clears session
+- [ ] Multiple tabs/windows share same session
+- [ ] Session cookie is secure (httpOnly, secure flags)
+
+#### 6. Route Protection
+
+- [ ] Access protected route without auth (redirects to sign-in)
+- [ ] Access sign-in while authenticated (redirects to dashboard)
+- [ ] Callback URL works after sign-in
+- [ ] Public routes accessible without auth
+- [ ] API routes protected appropriately
+
+#### 7. Role-Based Access
+
+- [ ] Admin email automatically gets ADMIN role
+- [ ] Regular users get USER role
+- [ ] Admin-only pages restrict non-admin access
+- [ ] Role persists in session
+
+#### 8. Email Restrictions (if enabled)
+
+- [ ] Whitelist email can sign up
+- [ ] Non-whitelist email rejected
+- [ ] Domain whitelist allows signup
+- [ ] Restrictions apply to OAuth signups
+
+### Automated Testing
+
+Create test files for core functionality:
+
+```typescript
+// __tests__/auth/totp.test.ts
+import {
+  generateTOTPSecret,
+  verifyTOTP,
+  generateBackupCodes,
+} from "@/lib/auth/totp";
+
+describe("TOTP Utilities", () => {
+  it("should generate valid TOTP secret", () => {
+    const secret = generateTOTPSecret();
+    expect(secret).toHaveLength(32);
+  });
+
+  it("should verify valid TOTP token", () => {
+    const secret = generateTOTPSecret();
+    // Generate token for testing
+    // Verify it works
+  });
+
+  it("should generate 10 unique backup codes", () => {
+    const codes = generateBackupCodes(10);
+    expect(codes).toHaveLength(10);
+    expect(new Set(codes).size).toBe(10); // All unique
+  });
+});
+```
+
+## 🐛 Troubleshooting & Common Issues
+
+### Authentication Errors
+
+#### Issue: "Invalid callback URL" error
+
+**Symptoms**: OAuth redirect fails with callback URL error
+
+**Solutions**:
+
+- Verify `NEXTAUTH_URL` in `.env` matches your actual application URL
+- Check OAuth provider console has correct redirect URI: `{NEXTAUTH_URL}/api/auth/callback/{provider}`
+- For Google: Ensure redirect URI includes protocol (http/https)
+- For GitHub: Check Authorization callback URL exactly matches
+- In development, ensure both provider and `.env` use `http://localhost:3000`
+- In production, ensure both use `https://yourdomain.com`
+
+#### Issue: "Error: [next-auth][error][SIGNIN_OAUTH_ERROR]"
+
+**Symptoms**: OAuth sign-in fails with generic error
+
+**Solutions**:
+
+- Check browser console and server logs for detailed error
+- Verify OAuth credentials (CLIENT_ID and CLIENT_SECRET) are correct
+- Ensure OAuth app is not suspended or has restrictions
+- Check OAuth scopes requested (email, profile usually required)
+- Verify authorized domains in OAuth console
+- Clear browser cookies and try again
+
+#### Issue: "Credentials sign-in not working"
+
+**Symptoms**: Email/password authentication fails
+
+**Solutions**:
+
+- Check database connection is working
+- Verify user exists in database with `password` field populated
+- Check password hashing is working (bcrypt)
+- Ensure `CredentialsProvider` is properly configured
+- Verify `authorize` function returns user object
+- Check for async/await issues in authorize function
+- Look for validation errors in form submission
+
+### TOTP/2FA Issues
+
+#### Issue: TOTP codes not working
+
+**Symptoms**: Valid codes from authenticator app rejected
+
+**Solutions**:
+
+- **Time Synchronization**: Ensure server and device time are synchronized
+  ```bash
+  # Check server time
+  date
+  # Sync time on Linux
+  sudo ntpdate -s time.nist.gov
+  ```
+- Verify TOTP secret is correctly encrypted/decrypted
+- Check `TOTP_ENCRYPTION_KEY` environment variable is set and consistent
+- Verify TOTP algorithm parameters (SHA1, 6 digits, 30-second period)
+- Increase time window in `verifyTOTP` function (default: 1, try: 2)
+- Check authenticator app is using correct secret (regenerate if needed)
+- Verify QR code generation is working properly
+
+#### Issue: Backup codes not working
+
+**Symptoms**: Backup codes rejected during sign-in
+
+**Solutions**:
+
+- Verify backup codes are hashed before storage
+- Check bcrypt comparison is working
+- Ensure backup code hasn't been used already (should be removed after use)
+- Verify input format (usually 8 uppercase characters: ABCD1234)
+- Check database has backup codes array populated
+- Look for case sensitivity issues
+
+#### Issue: "TypeError: Cannot read property 'totpSecret' of null"
+
+**Symptoms**: TOTP operations fail with null user
+
+**Solutions**:
+
+- Ensure user is properly authenticated before TOTP operations
+- Check session contains user ID
+- Verify database query for user is successful
+- Add null checks before accessing user properties
+- Ensure TOTP actions check for authenticated session
+
+### Email Issues
+
+#### Issue: Emails not sending
+
+**Symptoms**: Magic links or welcome emails not received
+
+**Solutions**:
+
+- **Check API Key**: Verify `AUTH_RESEND_KEY` is correct and active
+- **Verify Domain**: Ensure `SMTP_FROM` domain is verified in Resend
+- **Check Logs**: Look at Resend dashboard for send errors
+- **Rate Limits**: Check if you've hit API rate limits
+- **Spam Folder**: Check recipient's spam/junk folder
+- **DNS Records**: Verify SPF, DKIM records are properly configured
+- **Test Mode**: In development, emails might not send (check `NODE_ENV`)
+- **Error Handling**: Add try-catch and log email send errors
+
+```typescript
+// Enhanced error logging for email
+try {
+  await sendMail({
+    to: [email],
+    subject: "Test",
+    react: <TestEmail />
+  });
+} catch (error) {
+  console.error("Email send error:", error);
+  // Check error.message for specific failure reason
+}
+```
+
+#### Issue: Magic link token invalid or expired
+
+**Symptoms**: Clicking magic link shows error
+
+**Solutions**:
+
+- Check token expiration time (default: 24 hours)
+- Verify token is correctly extracted from URL
+- Ensure database token matches URL token
+- Check for URL encoding issues with token
+- Verify verification token model and database queries
+- Look for clock skew between email send and verification
+
+### Session & Cookie Issues
+
+#### Issue: Session not persisting
+
+**Symptoms**: User logged out on page refresh
+
+**Solutions**:
+
+- **Verify AUTH_SECRET**: Ensure it's set and at least 32 characters
+- **Check Cookies**: Browser must allow cookies
+  - Open DevTools > Application > Cookies
+  - Look for `next-auth.session-token` or `__Secure-next-auth.session-token`
+- **Cookie Settings**: Verify secure flag matches environment
+  ```typescript
+  // In production with HTTPS, cookies are secure
+  // In development with HTTP, secure flag should be false
+  ```
+- **Samite Settings**: Check `sameSite` cookie attribute
+- **Domain Issues**: Ensure cookie domain matches your domain
+- **Middleware**: Verify middleware is properly configured
+- **Session Strategy**: Confirm using `jwt` strategy in config
+
+#### Issue: "Error: [next-auth][error][JWT_SESSION_ERROR]"
+
+**Symptoms**: JWT session errors in logs
+
+**Solutions**:
+
+- Verify `AUTH_SECRET` is set and consistent across deployments
+- Check JWT token isn't malformed or tampered with
+- Ensure session callback returns proper user data
+- Verify token signing and encryption is working
+- Clear all cookies and sign in again
+- Check for character encoding issues in secret
+
+### Database Issues
+
+#### Issue: Prisma Client errors
+
+**Symptoms**: Database operations fail
+
+**Solutions**:
+
+- **Generate Client**: Run `npx prisma generate`
+- **Check Connection**: Verify `DATABASE_URL` is correct
+- **Migrations**: Run `npx prisma db push` or `npx prisma migrate dev`
+- **Import Path**: Verify Prisma Client import path matches generator output
+- **Type Errors**: Regenerate client after schema changes
+- **Connection Pooling**: Check database connection limits
+
+#### Issue: Duplicate key errors
+
+**Symptoms**: "Unique constraint failed" errors
+
+**Solutions**:
+
+- Check for existing user with same email
+- Handle unique constraint violations in code
+- Implement proper error handling for signup
+- Verify database indexes are correct
+- Look for race conditions in concurrent signups
+
+### Middleware & Routing Issues
+
+#### Issue: Middleware not protecting routes
+
+**Symptoms**: Can access protected pages without auth
+
+**Solutions**:
+
+- Verify `middleware.ts` is in project root (or `src/` folder)
+- Check `matcher` config includes your routes
+- Ensure middleware returns proper Response objects
+- Verify auth check is working (`const isLoggedIn = !!req.auth`)
+- Check route arrays (`publicRoutes`, `privateRoutes`) are correct
+- Look for incorrect redirect logic
+
+#### Issue: Infinite redirect loops
+
+**Symptoms**: Browser shows "Too many redirects"
+
+**Solutions**:
+
+- Check middleware doesn't redirect authenticated users from sign-in to sign-in
+- Verify `DEFAULT_LOGIN_REDIRECT` is accessible
+- Ensure public routes include sign-in and sign-up pages
+- Look for conflicting redirects in multiple places
+- Check middleware matcher doesn't exclude necessary paths
+
+### Development & Build Issues
+
+#### Issue: Build fails with auth errors
+
+**Symptoms**: `next build` fails
+
+**Solutions**:
+
+- Ensure all environment variables are set
+- Check for server-only code in client components
+- Verify "use client" and "use server" directives
+- Check for circular dependencies
+- Ensure Prisma Client is generated
+- Verify all imports are correct
+
+#### Issue: TypeScript errors after setup
+
+**Symptoms**: TS errors in auth code
+
+**Solutions**:
+
+- Install type definitions: `pnpm install -D @types/bcryptjs @types/qrcode`
+- Verify NextAuth type augmentations in `lib/auth/utils.ts`
+- Check Prisma types are generated
+- Ensure `tsconfig.json` includes proper paths
+- Restart TypeScript server in IDE
+
+### Production Issues
+
+#### Issue: Auth works locally but not in production
+
+**Symptoms**: Authentication fails after deployment
+
+**Solutions**:
+
+- **Environment Variables**: Verify all .env values are set in production
+- **NEXTAUTH_URL**: Must match production domain (https://)
+- **OAuth Callbacks**: Update OAuth provider redirect URIs for production domain
+- **Cookies**: Ensure secure cookies work with HTTPS
+- **Build Output**: Check server logs for errors
+- **Database**: Verify production database is accessible
+- **Secrets**: Ensure all secrets are different from development
+
+### Performance Issues
+
+#### Issue: Slow authentication operations
+
+**Symptoms**: Sign-in/sign-up takes too long
+
+**Solutions**:
+
+- Check database query performance
+- Optimize bcrypt rounds (10 is recommended)
+- Implement caching for repeated queries
+- Use database indexes on email field
+- Consider Redis for session storage
+- Monitor API response times
+- Check for N+1 query problems
+
+### Getting Help
+
+If you're still stuck:
+
+1. **Check Logs**: Server logs often contain detailed error messages
+2. **Browser DevTools**: Network tab shows API call failures
+3. **Documentation**:
+   - [NextAuth.js Docs](https://authjs.dev)
+   - [Prisma Docs](https://www.prisma.io/docs)
+   - [Resend Docs](https://resend.com/docs)
+4. **Community**:
+   - NextAuth.js Discord
+   - GitHub Discussions
+   - Stack Overflow
+5. **Debug Mode**: Enable NextAuth debug mode in development:
+   ```typescript
+   export const authOptions: NextAuthConfig = {
+     debug: process.env.NODE_ENV === "development",
+     // ... rest of config
+   };
+   ```
 
 ## UI Components
 
@@ -2933,25 +3646,655 @@ export async function checkTOTPByEmail(
 }
 ```
 
-## Additional Features to Implement
+## 🔧 Customization & Extension Guide
 
-1. **Password Reset**: Add password reset functionality
-2. **Email Change**: Allow users to change their email
-3. **Session Management**: Show active sessions and allow revocation
-4. **Audit Logging**: Log authentication events
-5. **Account Linking**: Allow linking multiple OAuth providers
-6. **WebAuthn**: Add passkey/fingerprint authentication
-7. **Rate Limiting**: Implement rate limiting on auth routes
-8. **IP Whitelisting**: Add IP-based restrictions
+### Adding New OAuth Providers
 
-## Support
+NextAuth supports many OAuth providers. To add a new one:
 
-For issues or questions:
+1. **Install Provider** (if not built-in):
 
-- NextAuth Documentation: https://authjs.dev
-- Prisma Documentation: https://www.prisma.io/docs
-- TOTP (OTPAuth): https://github.com/hectorm/otpauth
+   ```bash
+   pnpm install next-auth@beta
+   ```
+
+2. **Add Environment Variables**:
+
+   ```bash
+   AUTH_PROVIDER_ID="your-client-id"
+   AUTH_PROVIDER_SECRET="your-client-secret"
+   ```
+
+3. **Update Auth Configuration** (`lib/auth/index.ts`):
+
+   ```typescript
+   import TwitterProvider from "next-auth/providers/twitter";
+
+   providers: [
+     // ... existing providers
+     TwitterProvider({
+       clientId: process.env.AUTH_TWITTER_ID,
+       clientSecret: process.env.AUTH_TWITTER_SECRET,
+     }),
+   ];
+   ```
+
+4. **Add Button to UI** (Sign-In/Sign-Up pages):
+   ```tsx
+   <Button onClick={() => handleOAuthSignIn("twitter")}>
+     <Icons.twitter className="mr-2 size-5" />
+     Twitter
+   </Button>
+   ```
+
+### Adding Custom User Fields
+
+1. **Update Prisma Schema**:
+
+   ```prisma
+   model User {
+     // ... existing fields
+     phoneNumber  String?
+     company      String?
+     customField  String?
+   }
+   ```
+
+2. **Run Migration**:
+
+   ```bash
+   npx prisma db push
+   # or
+   npx prisma migrate dev --name add_user_fields
+   ```
+
+3. **Update Type Definitions** (`lib/auth/utils.ts`):
+
+   ```typescript
+   declare module "next-auth" {
+     interface User {
+       role: UserRole;
+       phoneNumber?: string;
+       company?: string;
+     }
+   }
+   ```
+
+4. **Update JWT Callback**:
+   ```typescript
+   jwt: async ({ token, user }) => {
+     if (user) {
+       token.phoneNumber = user.phoneNumber;
+       token.company = user.company;
+     }
+     return token;
+   };
+   ```
+
+### Customizing Email Templates
+
+Create new email components in `components/emails/`:
+
+```tsx
+// components/emails/CustomEmail.tsx
+import {
+  Html,
+  Head,
+  Preview,
+  Body,
+  Container,
+  Text,
+} from "@react-email/components";
+
+interface CustomEmailProps {
+  userName: string;
+  customData: string;
+}
+
+export default function CustomEmail({
+  userName,
+  customData,
+}: CustomEmailProps) {
+  return (
+    <Html>
+      <Head />
+      <Preview>Your Custom Email Preview</Preview>
+      <Body style={main}>
+        <Container>
+          <Text>Hello {userName},</Text>
+          <Text>{customData}</Text>
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+
+const main = {
+  backgroundColor: "#ffffff",
+  fontFamily: "sans-serif",
+};
+```
+
+### Adding Password Reset
+
+1. **Create Password Reset Token Model**:
+
+   ```prisma
+   model PasswordResetToken {
+     id         String   @id @default(auto()) @map("_id") @db.ObjectId
+     email      String
+     token      String   @unique
+     expires    DateTime
+     createdAt  DateTime @default(now())
+
+     @@index([email])
+     @@index([token])
+   }
+   ```
+
+2. **Create Reset Actions** (`lib/auth/password-reset.ts`):
+
+   ```typescript
+   export async function requestPasswordReset(email: string) {
+     // Generate token
+     // Save to database
+     // Send email with reset link
+   }
+
+   export async function resetPassword(token: string, newPassword: string) {
+     // Verify token
+     // Update user password
+     // Delete token
+   }
+   ```
+
+3. **Create Reset UI Pages**:
+   - Request reset: `app/(auth)/forgot-password/page.tsx`
+   - Reset form: `app/(auth)/reset-password/page.tsx`
+
+### Implementing Rate Limiting
+
+Use a rate limiting library:
+
+```bash
+pnpm install @upstash/ratelimit @upstash/redis
+```
+
+Create rate limit utility (`lib/rate-limit.ts`):
+
+```typescript
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+
+export const ratelimit = new Ratelimit({
+  redis: redis,
+  limiter: Ratelimit.slidingWindow(5, "1 m"), // 5 requests per minute
+});
+
+export async function checkRateLimit(identifier: string) {
+  const { success, remaining } = await ratelimit.limit(identifier);
+  return { success, remaining };
+}
+```
+
+Apply to auth actions:
+
+```typescript
+export async function signUp(values: SignupValues) {
+  const { success } = await checkRateLimit(values.email);
+  if (!success) {
+    return {
+      status: "error",
+      error: "Too many requests. Please try again later.",
+    };
+  }
+  // ... rest of signup logic
+}
+```
+
+### Adding Audit Logging
+
+1. **Create Audit Log Model**:
+
+   ```prisma
+   model AuditLog {
+     id        String   @id @default(auto()) @map("_id") @db.ObjectId
+     userId    String?  @db.ObjectId
+     action    String   // "LOGIN", "LOGOUT", "SIGNUP", "PASSWORD_CHANGE"
+     ipAddress String?
+     userAgent String?
+     metadata  Json?
+     createdAt DateTime @default(now())
+
+     @@index([userId, createdAt])
+     @@index([action, createdAt])
+   }
+   ```
+
+2. **Create Logging Utility** (`lib/audit-log.ts`):
+
+   ```typescript
+   export async function logAuthEvent(params: {
+     userId?: string;
+     action: string;
+     ipAddress?: string;
+     userAgent?: string;
+     metadata?: Record<string, any>;
+   }) {
+     await db.auditLog.create({
+       data: {
+         ...params,
+         createdAt: new Date(),
+       },
+     });
+   }
+   ```
+
+3. **Integrate into Auth Callbacks**:
+   ```typescript
+   callbacks: {
+     signIn: async ({ user, account }) => {
+       await logAuthEvent({
+         userId: user.id,
+         action: 'LOGIN',
+         metadata: { provider: account?.provider },
+       });
+       return true;
+     },
+   }
+   ```
+
+### Adding More User Roles
+
+1. **Update Prisma Enum**:
+
+   ```prisma
+   enum UserRole {
+     USER
+     ADMIN
+     MODERATOR
+     EDITOR
+     VIEWER
+   }
+   ```
+
+2. **Create Role Guard Utilities** (`lib/auth/role-guards.ts`):
+
+   ```typescript
+   export function hasRole(session: Session, roles: UserRole[]) {
+     return session?.user?.role && roles.includes(session.user.role);
+   }
+
+   export function requireRole(roles: UserRole[]) {
+     return async function () {
+       const session = await auth();
+       if (!session || !hasRole(session, roles)) {
+         redirect("/unauthorized");
+       }
+       return session;
+     };
+   }
+   ```
+
+3. **Use in Server Components**:
+   ```typescript
+   export default async function ModeratorPage() {
+     await requireRole(['ADMIN', 'MODERATOR'])();
+     return <div>Moderator Dashboard</div>;
+   }
+   ```
+
+### Integration with Third-Party Services
+
+#### Segment Analytics
+
+```typescript
+// lib/analytics.ts
+import { Analytics } from '@segment/analytics-node';
+
+const analytics = new Analytics({
+  writeKey: process.env.SEGMENT_WRITE_KEY!,
+});
+
+export async function trackAuthEvent(userId: string, event: string, properties?: object) {
+  analytics.track({
+    userId,
+    event,
+    properties,
+  });
+}
+
+// Use in auth callbacks
+callbacks: {
+  signIn: async ({ user }) => {
+    await trackAuthEvent(user.id, 'User Signed In', {
+      method: 'credentials',
+    });
+    return true;
+  },
+}
+```
+
+#### Sentry Error Tracking
+
+```typescript
+// Add to auth error handlers
+import * as Sentry from "@sentry/nextjs";
+
+try {
+  // auth operation
+} catch (error) {
+  Sentry.captureException(error, {
+    tags: {
+      section: "authentication",
+    },
+  });
+  throw error;
+}
+```
+
+## 🚀 Advanced Features to Implement
+
+### 1. **Password Reset & Recovery**
+
+- Forgot password flow with email token
+- Password strength requirements
+- Password history (prevent reuse)
+
+### 2. **Email Verification**
+
+- Verify email before account activation
+- Resend verification email
+- Change email with re-verification
+
+### 3. **Session Management**
+
+- View active sessions across devices
+- Revoke specific sessions
+- "Sign out all devices" functionality
+
+### 4. **Account Linking**
+
+- Link multiple OAuth providers to one account
+- Unlink OAuth providers
+- Primary authentication method
+
+### 5. **Security Enhancements**
+
+- WebAuthn/Passkey support
+- SMS-based 2FA (alternative to TOTP)
+- Security questions
+- Login notifications
+- Suspicious activity detection
+
+### 6. **User Profile Management**
+
+- Avatar upload and management
+- Profile customization
+- Privacy settings
+- Account deletion
+
+### 7. **Admin Dashboard**
+
+- User management interface
+- Role assignment
+- Session monitoring
+- Audit log viewing
+- Signup restriction management
+
+### 8. **Rate Limiting & Protection**
+
+- Request rate limiting
+- CAPTCHA integration
+- IP-based restrictions
+- Brute force protection
+
+### 9. **Multi-Tenancy Support**
+
+- Organization/tenant model
+- Tenant-specific roles
+- Tenant invitation system
+
+### 10. **Compliance Features**
+
+- GDPR data export
+- Account deletion (right to be forgotten)
+- Cookie consent management
+- Privacy policy acceptance tracking
+
+## 🎯 Best Practices & Security Recommendations
+
+### Security Best Practices
+
+1. **Environment Variables**
+   - Never commit `.env` files to version control
+   - Use different secrets for each environment
+   - Rotate secrets regularly in production
+   - Use secret management services (AWS Secrets Manager, Azure Key Vault)
+
+2. **Password Security**
+   - Enforce strong password policies (minimum length, complexity)
+   - Use bcrypt with appropriate cost factor (10-12 rounds)
+   - Implement password history to prevent reuse
+   - Add password strength indicators in UI
+
+3. **Session Management**
+   - Use secure, httpOnly cookies
+   - Implement session timeout
+   - Allow users to view and revoke sessions
+   - Use JWT with reasonable expiration times
+
+4. **TOTP/2FA Security**
+   - Always encrypt TOTP secrets at rest
+   - Use strong encryption keys (32+ characters)
+   - Implement backup codes for recovery
+   - Allow users to regenerate backup codes
+   - Consider requiring 2FA for admins
+
+5. **Rate Limiting**
+   - Implement rate limiting on all auth endpoints
+   - Use exponential backoff for failed attempts
+   - Consider CAPTCHA for repeated failures
+   - Log suspicious activity
+
+6. **Database Security**
+   - Use parameterized queries (Prisma handles this)
+   - Implement proper access controls
+   - Encrypt sensitive data at rest
+   - Regular backups and disaster recovery plan
+   - Use connection pooling appropriately
+
+7. **API Security**
+   - Validate all inputs (use Zod or similar)
+   - Sanitize user-provided data
+   - Use CSRF protection (NextAuth provides this)
+   - Implement proper CORS policies
+   - Use HTTPS in production (always)
+
+8. **Error Handling**
+   - Don't expose sensitive information in error messages
+   - Log errors securely (avoid logging sensitive data)
+   - Provide user-friendly error messages
+   - Implement proper error boundaries
+
+### Code Quality Best Practices
+
+1. **Type Safety**
+   - Use TypeScript strict mode
+   - Define proper types for all functions
+   - Use discriminated unions for responses
+   - Avoid `any` type
+
+2. **Error Handling**
+   - Always use try-catch for async operations
+   - Return typed error responses
+   - Log errors appropriately
+   - Provide meaningful error messages
+
+3. **Code Organization**
+   - Follow the layered architecture
+   - Keep files focused and small
+   - Use consistent naming conventions
+   - Document complex logic
+
+4. **Testing**
+   - Write unit tests for utilities
+   - Integration tests for auth flows
+   - E2E tests for critical paths
+   - Test error scenarios
+
+5. **Performance**
+   - Implement caching where appropriate
+   - Optimize database queries
+   - Use database indexes
+   - Monitor performance metrics
+
+### Deployment Checklist
+
+Before deploying to production:
+
+- [ ] All environment variables configured correctly
+- [ ] AUTH_SECRET is strong and unique
+- [ ] NEXTAUTH_URL points to production domain
+- [ ] OAuth redirect URIs updated for production
+- [ ] Database backups configured
+- [ ] HTTPS/SSL certificate installed
+- [ ] Error logging configured (Sentry, etc.)
+- [ ] Rate limiting implemented
+- [ ] Security headers configured
+- [ ] Cookie settings appropriate for production
+- [ ] Email sending works and domain verified
+- [ ] Tested all authentication flows
+- [ ] Reviewed and removed debug code
+- [ ] Performance optimized
+- [ ] Monitoring and alerts set up
+
+### Maintenance Checklist
+
+Regular maintenance tasks:
+
+- [ ] Review and update dependencies monthly
+- [ ] Rotate secrets quarterly
+- [ ] Review audit logs for suspicious activity
+- [ ] Test disaster recovery procedures
+- [ ] Review and update security policies
+- [ ] Check for security advisories
+- [ ] Monitor error rates and fix issues
+- [ ] Review and optimize performance
+- [ ] Update documentation
+
+## 📚 Additional Resources
+
+### Official Documentation
+
+- **NextAuth.js**: https://authjs.dev
+  - Complete auth framework documentation
+  - Provider configurations
+  - Advanced features
+
+- **Prisma**: https://www.prisma.io/docs
+  - Database setup and migrations
+  - Schema design patterns
+  - Performance optimization
+
+- **Next.js**: https://nextjs.org/docs
+  - App Router documentation
+  - Middleware configuration
+  - API routes
+
+### Libraries Used
+
+- **bcryptjs**: https://github.com/dcodeIO/bcrypt.js
+  - Password hashing documentation
+
+- **OTPAuth**: https://github.com/hectorm/otpauth
+  - TOTP implementation details
+  - QR code generation
+
+- **QRCode**: https://github.com/soldair/node-qrcode
+  - QR code customization options
+
+- **Zod**: https://zod.dev
+  - Schema validation patterns
+  - Type inference
+
+- **React Hook Form**: https://react-hook-form.com
+  - Form management patterns
+  - Validation integration
+
+- **Resend**: https://resend.com/docs
+  - Email API documentation
+  - Email templates
+
+### Community & Support
+
+- **GitHub Discussions**: Ask questions and share solutions
+- **Discord Communities**:
+  - NextAuth.js Discord
+  - Next.js Discord
+- **Stack Overflow**: Search existing questions or ask new ones
+- **Twitter/X**: Follow maintainers for updates
+
+### Learning Resources
+
+- **OWASP Authentication Cheat Sheet**: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+- **Web Authentication API**: https://webauthn.guide
+- **JWT Best Practices**: https://datatracker.ietf.org/doc/html/rfc8725
+
+## 📄 License & Attribution
+
+This implementation guide is provided as-is for educational and commercial use. Feel free to adapt it to your needs.
+
+### Credits
+
+- Built with Next.js, NextAuth.js, and Prisma
+- Inspired by modern authentication best practices
+- Community contributions welcome
+
+## 🎉 Conclusion
+
+You now have a comprehensive, production-ready authentication system for your Next.js application. This implementation provides:
+
+✅ **Security**: Enterprise-grade security with encryption, hashing, and proper session management
+✅ **Flexibility**: Multiple authentication methods (credentials, OAuth, magic links, TOTP)
+✅ **Scalability**: Built on solid architecture that grows with your application
+✅ **Maintainability**: Clean, typed code with clear separation of concerns
+✅ **User Experience**: Responsive, accessible UI components
+
+### Next Steps
+
+1. **Customize**: Adapt the UI and flows to match your brand
+2. **Extend**: Add additional features from the advanced features list
+3. **Test**: Thoroughly test all authentication flows
+4. **Deploy**: Follow the deployment checklist
+5. **Monitor**: Set up logging and monitoring
+6. **Iterate**: Gather user feedback and improve
+
+### Stay Updated
+
+Authentication best practices and libraries evolve. Regularly:
+
+- Check for security updates
+- Review new NextAuth features
+- Update dependencies
+- Monitor security advisories
+
+### Contributing
+
+Found an issue or want to improve this guide? Contributions are welcome:
+
+- Report bugs and issues
+- Suggest improvements
+- Share your implementations
+- Help others in the community
 
 ---
 
-This authentication system provides enterprise-grade security with modern authentication methods. Customize it according to your specific requirements and always follow security best practices.
+**Happy Building! 🚀**
+
+_This authentication system provides enterprise-grade security with modern authentication methods. Customize it according to your specific requirements and always follow security best practices._
