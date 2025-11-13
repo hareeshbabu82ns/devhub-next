@@ -21,7 +21,10 @@ export default auth((req) => {
     return;
   }
 
-  if (isLoggedIn && nextUrl.pathname === "/sign-in") {
+  if (
+    isLoggedIn &&
+    (nextUrl.pathname === "/sign-in" || nextUrl.pathname === "/sign-up")
+  ) {
     const from = queryParams.has("from")
       ? decodeURIComponent(queryParams.get("from") || DEFAULT_LOGIN_REDIRECT)
       : queryParams.has("callbackUrl")

@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const SettingsPage = ( {
+const SettingsPage = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
-}> ) => {
+}>) => {
   const pathname = usePathname();
   const pathPrefix = pathname === "/settings" ? `${pathname}/` : "";
 
-  const isActivePath = ( path: string ): boolean => {
-    if ( pathname === "/settings" && path === "general" ) {
+  const isActivePath = (path: string): boolean => {
+    if (pathname === "/settings" && path === "profile") {
       return true;
     }
-    return pathname.endsWith( `/${path}` );
+    return pathname.endsWith(`/${path}`);
   };
 
   return (
@@ -26,20 +26,34 @@ const SettingsPage = ( {
       <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
         <nav className="grid gap-4 text-sm text-muted-foreground">
           <Link
+            href={`${pathPrefix}profile`}
+            className={
+              isActivePath("profile") ? "font-semibold text-primary" : ""
+            }
+          >
+            Profile
+          </Link>
+          <Link
             href={`${pathPrefix}general`}
-            className={isActivePath( "general" ) ? "font-semibold text-primary" : ""}
+            className={
+              isActivePath("general") ? "font-semibold text-primary" : ""
+            }
           >
             General
           </Link>
           <Link
             href={`${pathPrefix}security`}
-            className={isActivePath( "security" ) ? "font-semibold text-primary" : ""}
+            className={
+              isActivePath("security") ? "font-semibold text-primary" : ""
+            }
           >
             Security
           </Link>
           <Link
             href={`${pathPrefix}advanced`}
-            className={isActivePath( "advanced" ) ? "font-semibold text-primary" : ""}
+            className={
+              isActivePath("advanced") ? "font-semibold text-primary" : ""
+            }
           >
             Advanced
           </Link>

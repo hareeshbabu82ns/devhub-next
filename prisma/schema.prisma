@@ -12,6 +12,7 @@ datasource db {
 enum UserRole {
   USER
   ADMIN
+  MEMBER // Legacy role - consider migrating to USER
 }
 
 model User {
@@ -20,14 +21,20 @@ model User {
   email         String?         @unique
   emailVerified DateTime?
   image         String?
+  password      String?
   role          UserRole        @default(USER)
   accounts      Account[]
   sessions      Session[]
   // Optional for WebAuthn support
   Authenticator Authenticator[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // TOTP (Time-based One-Time Password) fields
+  totpSecret      String? // Encrypted TOTP secret
+  totpEnabled     Boolean  @default(false)
+  totpBackupCodes String[] @default([]) // Array of hashed backup codes
+
+  createdAt DateTime? @default(now())
+  updatedAt DateTime? @updatedAt
 
   Playlist Playlist[]
 }
@@ -241,3 +248,20 @@ model PlaylistSong {
 }
 
 //********** Playlist End **********//
+
+//********** App Settings Begin **********//
+model AppSettings {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  // Signup restriction settings
+  restrictSignup       Boolean  @default(false)
+  allowedSignupEmails  String[] @default([])
+  allowedSignupDomains String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("AppSettings")
+}
+
+//********** App Settings End **********//

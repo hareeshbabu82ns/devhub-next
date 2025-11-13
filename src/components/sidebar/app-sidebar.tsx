@@ -17,9 +17,11 @@ import { Icons } from "../utils/icons";
 import AudioPlayer from "../audio-player/player";
 import { cn } from "@/lib/utils";
 import { useSidebarMinimized } from "@/hooks/use-config";
+import { useSession } from "next-auth/react";
+import type { NavItemProps } from "./components/nav-main";
 
-const data = {
-  navMain: [
+const getNavItems = (isAdmin: boolean): NavItemProps[] => {
+  const baseNavItems: NavItemProps[] = [
     {
       title: "Dashboard",
       path: "/dashboard",
@@ -70,38 +72,71 @@ const data = {
         },
       ],
     },
-    {
-      title: "Settings",
+  ];
+
+  // Add admin-only menu items
+  if (isAdmin) {
+    baseNavItems.push({
+      title: "Admin",
       path: "#",
-      icon: <Icons.settings className="size-4 stroke-2 text-inherit" />,
+      icon: <Icons.users className="size-4 stroke-2 text-inherit" />,
       isActive: true,
       items: [
         {
-          title: "General",
-          path: "/settings/general",
+          title: "Users",
+          path: "/admin/users",
         },
         {
-          title: "Security",
-          path: "/settings/security",
-        },
-        {
-          title: "Advanced",
-          path: "/settings/advanced",
+          title: "Settings",
+          path: "/admin/settings",
         },
       ],
-    },
-  ],
+    });
+  }
+
+  // Add settings at the end
+  baseNavItems.push({
+    title: "Settings",
+    path: "#",
+    icon: <Icons.settings className="size-4 stroke-2 text-inherit" />,
+    isActive: true,
+    items: [
+      {
+        title: "Profile",
+        path: "/settings/profile",
+      },
+      {
+        title: "General",
+        path: "/settings/general",
+      },
+      {
+        title: "Security",
+        path: "/settings/security",
+      },
+      {
+        title: "Advanced",
+        path: "/settings/advanced",
+      },
+    ],
+  });
+
+  return baseNavItems;
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { open: isSidebarOpened } = useSidebar();
+  const session = useSession();
+  const isAdmin = session?.data?.user?.role === "ADMIN";
+
+  const navItems = React.useMemo(() => getNavItems(isAdmin), [isAdmin]);
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <BaseHeader />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
         {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
       <SidebarFooter className="">
