@@ -369,3 +369,10 @@ export const PANCHANGAM_PLACE_IDS_MAP = {
   tirupati: 1254360,
   calgary: 5913490,
 } as Record<string, number>;
+
+export const PANCHANGAM_TIMELINE_VIEW_MODES = ["advanced", "legacy"] as const;
+export type PanchangamTimelineViewMode =
+  (typeof PANCHANGAM_TIMELINE_VIEW_MODES)[number];
+export const PANCHANGAM_TIMELINE_VIEW_KEY = "panchangamTimelineView";
+export const PANCHANGAM_TIMELINE_VIEW_DEFAULT: PanchangamTimelineViewMode =
+  "advanced";

@@ -1,5 +1,6 @@
 import LanguageSelector from "@/components/blocks/language-selector";
 import PanchangamPlaceSelector from "@/components/blocks/panchangam-place-selector";
+import PanchangamTimelineViewSelector from "@/components/blocks/panchangam-timeline-view-selector";
 import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
 import TextSizeSelector from "@/components/blocks/text-size-selector";
 import ThemeModeToggle from "@/components/blocks/theme-mode-toggle";
@@ -44,6 +45,8 @@ export default function QuickSettingsTrigger() {
           <LanguageSelector storageKey={LANGUAGE_MEANING_SELECT_KEY} />
           <p className="self-center text-sm sm:text-base">Panchangam Place:</p>
           <PanchangamPlaceSelector />
+          <p className="self-center text-sm sm:text-base">Timeline View:</p>
+          <PanchangamTimelineViewSelector />
           <p className="self-center text-sm sm:text-base">App Theme:</p>
           <ThemeModeToggle />
         </div>

@@ -139,11 +139,12 @@ export async function getDayPanchangam({
         };
         break;
       case "Lunar Month and Samvat":
+      case "Lunar Month, Samvat and Brihaspati Samvatsara":
         consizeInfo.year = element.cellInfos.find(
           (i: any) => i.key === "Shaka Samvat",
         ).value;
         consizeInfo.month = element.cellInfos
-          .find((i: any) => i.value.endsWith("Amanta"))
+          .find((i: any) => i.value.includes("- Amanta"))
           .value.split(" - ")[0];
         break;
       case "Ritu and Ayana":

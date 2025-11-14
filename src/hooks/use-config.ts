@@ -5,6 +5,9 @@ import {
   LANGUAGE_SELECT_KEY,
   PANCHANGAM_PLACE_SELECT_DEFAULT,
   PANCHANGAM_PLACE_SELECT_KEY,
+  PANCHANGAM_TIMELINE_VIEW_DEFAULT,
+  PANCHANGAM_TIMELINE_VIEW_KEY,
+  PanchangamTimelineViewMode,
   QUERY_RESULT_LIMIT_DEFAULT,
   QUERY_RESULT_LIMIT_KEY,
   TEXT_SIZE_SELECT_DEFAULT,
@@ -85,6 +88,18 @@ export function usePanchangamPlaceAtom() {
 }
 export function usePanchangamPlaceAtomValue() {
   return useAtomValue(panchangamPlaceAtom);
+}
+
+export const panchangamTimelineViewAtom =
+  atomWithStorage<PanchangamTimelineViewMode>(
+    PANCHANGAM_TIMELINE_VIEW_KEY,
+    PANCHANGAM_TIMELINE_VIEW_DEFAULT,
+  );
+export function usePanchangamTimelineViewAtom() {
+  return useAtom(panchangamTimelineViewAtom);
+}
+export function usePanchangamTimelineViewAtomValue() {
+  return useAtomValue(panchangamTimelineViewAtom);
 }
 
 export function useSidebarMinimized() {
