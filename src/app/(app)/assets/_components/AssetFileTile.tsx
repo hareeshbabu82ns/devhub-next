@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Icons } from "@/components/utils/icons";
-import Image from "next/image";
+import OptimizedImage from "@/components/utils/optimized-image";
 import { FolderIcon, FileIcon, MoreVertical, Maximize2 } from "lucide-react";
 import { FileAttributes } from "../utils";
 import { useCopyToClipboard } from "usehooks-ts";
@@ -16,12 +16,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useEffect, useRef, useState } from "react";
 
-const AssetFileTile = ( {
+const AssetFileTile = ({
   file,
   path,
   onDeleteFile,
@@ -32,38 +32,40 @@ const AssetFileTile = ( {
   path: string;
   file: FileAttributes;
   asFileSelector?: boolean;
-  onDeleteFile?: ( path: string ) => void;
-  onClick?: ( file: FileAttributes ) => void;
+  onDeleteFile?: (path: string) => void;
+  onClick?: (file: FileAttributes) => void;
   onOpenFullscreen?: () => void;
-} ) => {
-  const [ , copyToClipboard ] = useCopyToClipboard();
-  const isTouchDevice = useMediaQuery( "(pointer: coarse)" );
-  const [ isFocused, setIsFocused ] = useState( false );
-  const tileRef = useRef<HTMLDivElement>( null );
-  const audioRef = useRef<HTMLButtonElement>( null );
+}) => {
+  const [, copyToClipboard] = useCopyToClipboard();
+  const isTouchDevice = useMediaQuery("(pointer: coarse)");
+  const [isFocused, setIsFocused] = useState(false);
+  const tileRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLButtonElement>(null);
 
-  const isImage = [ "jpg", "jpeg", "png", "svg", "webp", "gif" ].includes( file.ext.toLowerCase() );
-  const isAudio = [ "mp3", "wav", "ogg" ].includes( file.ext.toLowerCase() );
+  const isImage = ["jpg", "jpeg", "png", "svg", "webp", "gif"].includes(
+    file.ext.toLowerCase(),
+  );
+  const isAudio = ["mp3", "wav", "ogg"].includes(file.ext.toLowerCase());
 
   // Handle keyboard events for the tile
-  useEffect( () => {
-    if ( !isFocused ) return;
+  useEffect(() => {
+    if (!isFocused) return;
 
-    const handleKeyDown = ( e: KeyboardEvent ) => {
-      switch ( e.key ) {
-        case " ":  // Space key
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case " ": // Space key
           e.preventDefault(); // Prevent scrolling
-          if ( isImage && onOpenFullscreen ) {
+          if (isImage && onOpenFullscreen) {
             onOpenFullscreen();
-          } else if ( isAudio && audioRef.current ) {
+          } else if (isAudio && audioRef.current) {
             audioRef.current.click();
           }
           break;
 
         case "Enter":
-          if ( file.isDirectory || asFileSelector ) {
-            onClick?.( file );
-          } else if ( isImage && onOpenFullscreen ) {
+          if (file.isDirectory || asFileSelector) {
+            onClick?.(file);
+          } else if (isImage && onOpenFullscreen) {
             onOpenFullscreen();
           }
           break;
@@ -71,11 +73,19 @@ const AssetFileTile = ( {
     };
 
     const element = tileRef.current;
-    if ( element ) {
-      element.addEventListener( "keydown", handleKeyDown );
-      return () => element.removeEventListener( "keydown", handleKeyDown );
+    if (element) {
+      element.addEventListener("keydown", handleKeyDown);
+      return () => element.removeEventListener("keydown", handleKeyDown);
     }
-  }, [ isFocused, file, isImage, isAudio, asFileSelector, onClick, onOpenFullscreen ] );
+  }, [
+    isFocused,
+    file,
+    isImage,
+    isAudio,
+    asFileSelector,
+    onClick,
+    onOpenFullscreen,
+  ]);
 
   // Audio component for both inline and dropdown use
   const audioComponent = isAudio && (
@@ -96,7 +106,7 @@ const AssetFileTile = ( {
           size="icon"
           variant="ghost"
           className="h-8 w-8 bg-background/80"
-          onClick={( e ) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
         >
           <MoreVertical className="size-4" />
           <span className="sr-only">Actions</span>
@@ -104,9 +114,9 @@ const AssetFileTile = ( {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
-          onClick={( e ) => {
+          onClick={(e) => {
             e.stopPropagation();
-            copyToClipboard( file.downloadURL );
+            copyToClipboard(file.downloadURL);
           }}
         >
           <Icons.clipboard className="size-4 mr-1" /> Copy URL
@@ -118,22 +128,26 @@ const AssetFileTile = ( {
         )}
         {onDeleteFile && (
           <DeleteConfirmDlgTrigger
-            onConfirm={() => onDeleteFile( file.name )}
+            onConfirm={() => onDeleteFile(file.name)}
             title="Delete Asset"
             description={
               <>
-                Are you sure you want to delete? <br /><span className="text-primary font-semibold text-lg">{file.name}</span>
+                Are you sure you want to delete? <br />
+                <span className="text-primary font-semibold text-lg">
+                  {file.name}
+                </span>
               </>
             }
           >
             <DropdownMenuItem
-              onSelect={( e ) => {
+              onSelect={(e) => {
                 // Prevent dropdown from closing
                 e.preventDefault();
               }}
               className="text-destructive focus:text-destructive"
             >
-              <Icons.trash className="size-4 mr-1" />Delete
+              <Icons.trash className="size-4 mr-1" />
+              Delete
             </DropdownMenuItem>
           </DeleteConfirmDlgTrigger>
         )}
@@ -149,9 +163,9 @@ const AssetFileTile = ( {
         size="icon"
         variant="ghost"
         className="h-8 w-8"
-        onClick={( e ) => {
+        onClick={(e) => {
           e.stopPropagation();
-          copyToClipboard( file.downloadURL );
+          copyToClipboard(file.downloadURL);
         }}
         title="Copy URL to clipboard"
       >
@@ -160,12 +174,15 @@ const AssetFileTile = ( {
       {onDeleteFile && (
         <DeleteConfirmDlgTrigger
           onConfirm={() => {
-            if ( onDeleteFile ) onDeleteFile( file.name );
+            if (onDeleteFile) onDeleteFile(file.name);
           }}
           title="Delete Asset"
           description={
             <>
-              Are you sure you want to delete? <br /><span className="text-primary font-semibold text-lg">{file.name}</span>
+              Are you sure you want to delete? <br />
+              <span className="text-primary font-semibold text-lg">
+                {file.name}
+              </span>
             </>
           }
         >
@@ -174,7 +191,7 @@ const AssetFileTile = ( {
             size="icon"
             variant="ghost"
             className="h-8 w-8"
-            onClick={( e ) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             title="Delete Asset"
           >
             <Icons.trash className="size-4 text-destructive" />
@@ -187,7 +204,9 @@ const AssetFileTile = ( {
   // Choose which action display to use based on device type
   const fileActions = isTouchDevice ? (
     <div className="absolute right-2 top-2 z-10">{actionDropdown}</div>
-  ) : desktopActions;
+  ) : (
+    desktopActions
+  );
 
   const fileName = (
     <div className="w-full truncate text-sm font-medium text-center p-2 bg-muted/50">
@@ -206,18 +225,20 @@ const AssetFileTile = ( {
   const tileProps = {
     ref: tileRef,
     tabIndex: 0,
-    onFocus: () => setIsFocused( true ),
-    onBlur: () => setIsFocused( false ),
+    onFocus: () => setIsFocused(true),
+    onBlur: () => setIsFocused(false),
     className: cn(
       "border rounded-md overflow-hidden group relative flex flex-col h-full transition-all",
-      ( asFileSelector || file.isDirectory ) ? "cursor-pointer" : "",
+      asFileSelector || file.isDirectory ? "cursor-pointer" : "",
       isFocused ? "ring-2 ring-ring" : "hover:shadow-md",
     ),
-    onClick: ( asFileSelector || file.isDirectory ) ?
-      ( e: React.MouseEvent ) => onClick && onClick( file ) : undefined
+    onClick:
+      asFileSelector || file.isDirectory
+        ? (e: React.MouseEvent) => onClick && onClick(file)
+        : undefined,
   };
 
-  if ( file.isDirectory ) {
+  if (file.isDirectory) {
     return (
       <div {...tileProps}>
         <div className="flex-1 flex items-center justify-center p-4 min-h-[180px]">
@@ -228,21 +249,21 @@ const AssetFileTile = ( {
     );
   }
 
-  if ( isImage ) {
+  if (isImage) {
     return (
       <div
         {...tileProps}
-        onClick={( e ) => {
+        onClick={(e) => {
           e.stopPropagation();
-          if ( asFileSelector && onClick ) {
-            onClick( file );
-          } else if ( onOpenFullscreen ) {
+          if (asFileSelector && onClick) {
+            onClick(file);
+          } else if (onOpenFullscreen) {
             onOpenFullscreen();
           }
         }}
       >
         <div className="relative flex-1 aspect-square">
-          <Image
+          <OptimizedImage
             src={file.downloadURL}
             alt={file.name}
             fill

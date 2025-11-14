@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
   const filePath = resolve(path);
   const fileName = path.split("/").pop() || "file";
 
+  // Check if download is explicitly requested
+  const shouldDownload = reqUrl.searchParams.get("download") === "true";
+
   try {
     const fileStat = await stat(filePath);
     if (!fileStat.isFile()) {
@@ -29,10 +32,19 @@ export async function GET(request: NextRequest) {
     const fileExt = extname(fileName).toLowerCase();
     const mimeType = mime.getType(fileExt) || "application/octet-stream";
 
+    // Use inline disposition for images unless download is explicitly requested
+    const isImage = mimeType.startsWith("image/");
+    const disposition =
+      shouldDownload || !isImage
+        ? `attachment; filename=${fileName}`
+        : `inline; filename=${fileName}`;
+
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": mimeType,
-        "Content-Disposition": `attachment; filename=${fileName}`,
+        "Content-Disposition": disposition,
+        // Add cache headers for better performance
+        "Cache-Control": "public, max-age=31536000, immutable",
       },
       status: 200,
     });

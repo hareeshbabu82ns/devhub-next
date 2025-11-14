@@ -8,7 +8,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useCopyToClipboard } from "usehooks-ts";
 import AudioPlayPauseButton from "./AudioPlayPauseButton";
-import Image from "next/image";
+import OptimizedImage from "../utils/optimized-image";
 // import SlokamDisplayDlgTrigger from "./SlokamDisplayDlgTrigger";
 import { Icons } from "../utils/icons";
 import { TileModel } from "@/types/entities";
@@ -62,9 +62,8 @@ export const ArtSlokamTile = ({
     >
       {model.src && model.src !== ENTITY_DEFAULT_IMAGE_THUMBNAIL && (
         <div className="aspect-[9/11] w-[150px] rounded-md transform overflow-hidden shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
-          <Image
+          <OptimizedImage
             alt={model.title}
-            decoding="async"
             loading="lazy"
             height={300}
             width={200}

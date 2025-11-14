@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Image from "next/image";
+import OptimizedImage from "@/components/utils/optimized-image";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -20,7 +20,7 @@ interface FullscreenImageViewerProps {
   hasPrevious?: boolean;
 }
 
-export default function FullscreenImageViewer( {
+export default function FullscreenImageViewer({
   imageUrl,
   alt,
   isOpen,
@@ -29,67 +29,67 @@ export default function FullscreenImageViewer( {
   onPrevious,
   hasNext = false,
   hasPrevious = false,
-}: FullscreenImageViewerProps ) {
-  const [ isLoading, setIsLoading ] = useState( true );
-  const [ scale, setScale ] = useState( 1 );
-  const [ position, setPosition ] = useState( { x: 0, y: 0 } );
-  const [ isDragging, setIsDragging ] = useState( false );
-  const [ dragStart, setDragStart ] = useState( { x: 0, y: 0 } );
-  const containerRef = useRef<HTMLDivElement>( null );
+}: FullscreenImageViewerProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
   // Add animation frame ref for smoother dragging
-  const animationRef = useRef<number | null>( null );
-  const positionRef = useRef( { x: 0, y: 0 } );
+  const animationRef = useRef<number | null>(null);
+  const positionRef = useRef({ x: 0, y: 0 });
 
   // Reset scale and position when image changes
-  useEffect( () => {
-    setScale( 1 );
-    setPosition( { x: 0, y: 0 } );
+  useEffect(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
     positionRef.current = { x: 0, y: 0 };
-    setIsLoading( true );
-  }, [ imageUrl ] );
+    setIsLoading(true);
+  }, [imageUrl]);
 
   // Handle mouse/touch events for panning
-  const handleMouseDown = ( e: React.MouseEvent | React.TouchEvent ) => {
+  const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     // Only enable panning when zoomed in
-    if ( scale <= 1 ) return;
+    if (scale <= 1) return;
 
-    setIsDragging( true );
+    setIsDragging(true);
 
     // Get current pointer position
-    const clientX = 'touches' in e ? e.touches[ 0 ].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[ 0 ].clientY : e.clientY;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
 
-    setDragStart( {
+    setDragStart({
       x: clientX - positionRef.current.x,
-      y: clientY - positionRef.current.y
-    } );
+      y: clientY - positionRef.current.y,
+    });
 
     // Prevent default behaviors that might interfere with dragging
     e.preventDefault();
   };
 
-  const handleMouseMove = ( e: MouseEvent | TouchEvent ) => {
-    if ( !isDragging ) return;
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (!isDragging) return;
 
     // Get current pointer position
-    const clientX = 'touches' in e ? e.touches[ 0 ].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[ 0 ].clientY : e.clientY;
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
 
     // Calculate new position
     const newPosition = {
       x: clientX - dragStart.x,
-      y: clientY - dragStart.y
+      y: clientY - dragStart.y,
     };
 
     // Update position ref immediately for smooth tracking
     positionRef.current = newPosition;
 
     // Use requestAnimationFrame for smoother updates
-    if ( animationRef.current === null ) {
-      animationRef.current = requestAnimationFrame( () => {
-        setPosition( newPosition );
+    if (animationRef.current === null) {
+      animationRef.current = requestAnimationFrame(() => {
+        setPosition(newPosition);
         animationRef.current = null;
-      } );
+      });
     }
 
     // Prevent default behaviors
@@ -97,83 +97,85 @@ export default function FullscreenImageViewer( {
   };
 
   const handleMouseUp = () => {
-    setIsDragging( false );
-    if ( animationRef.current ) {
-      cancelAnimationFrame( animationRef.current );
+    setIsDragging(false);
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
       animationRef.current = null;
     }
   };
 
   // Add event listeners for drag operations
-  useEffect( () => {
+  useEffect(() => {
     const options = { passive: false }; // Improve touch performance
 
-    window.addEventListener( 'mousemove', handleMouseMove, options );
-    window.addEventListener( 'mouseup', handleMouseUp );
-    window.addEventListener( 'touchmove', handleMouseMove, options );
-    window.addEventListener( 'touchend', handleMouseUp );
+    window.addEventListener("mousemove", handleMouseMove, options);
+    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("touchmove", handleMouseMove, options);
+    window.addEventListener("touchend", handleMouseUp);
 
     return () => {
-      window.removeEventListener( 'mousemove', handleMouseMove );
-      window.removeEventListener( 'mouseup', handleMouseUp );
-      window.removeEventListener( 'touchmove', handleMouseMove );
-      window.removeEventListener( 'touchend', handleMouseUp );
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("touchmove", handleMouseMove);
+      window.removeEventListener("touchend", handleMouseUp);
 
       // Clean up any pending animation frames
-      if ( animationRef.current ) {
-        cancelAnimationFrame( animationRef.current );
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [ isDragging, dragStart ] );
+  }, [isDragging, dragStart]);
 
   // Reset position when scale changes to 1 or below
-  useEffect( () => {
-    if ( scale <= 1 ) {
-      setPosition( { x: 0, y: 0 } );
+  useEffect(() => {
+    if (scale <= 1) {
+      setPosition({ x: 0, y: 0 });
     }
-  }, [ scale ] );
+  }, [scale]);
 
   // Handle keyboard navigation
-  useEffect( () => {
-    const handleKeyDown = ( e: KeyboardEvent ) => {
-      if ( !isOpen ) return;
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
 
-      switch ( e.key ) {
+      switch (e.key) {
         case "Escape": // Close fullscreen
           onClose();
           break;
         case "ArrowRight": // Next image
-          if ( onNext && hasNext ) onNext();
+          if (onNext && hasNext) onNext();
           break;
         case "ArrowLeft": // Previous image
-          if ( onPrevious && hasPrevious ) onPrevious();
+          if (onPrevious && hasPrevious) onPrevious();
           break;
         case "+": // Zoom in
-          setScale( prev => Math.min( prev + 0.25, 3 ) );
+          setScale((prev) => Math.min(prev + 0.25, 3));
           break;
         case "-": // Zoom out
-          setScale( prev => Math.max( prev - 0.25, 0.5 ) );
+          setScale((prev) => Math.max(prev - 0.25, 0.5));
           break;
         case "0": // Reset zoom
-          setScale( 1 );
-          setPosition( { x: 0, y: 0 } );
+          setScale(1);
+          setPosition({ x: 0, y: 0 });
           break;
       }
     };
 
-    window.addEventListener( "keydown", handleKeyDown );
-    return () => window.removeEventListener( "keydown", handleKeyDown );
-  }, [ isOpen, onClose, onNext, onPrevious, hasNext, hasPrevious ] );
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose, onNext, onPrevious, hasNext, hasPrevious]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={( open ) => !open && onClose()} modal={true}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => !open && onClose()}
+      modal={true}
+    >
       <DialogContent
         className="grid w-full h-full max-w-none sm:max-w-none flex-col border-none bg-background/90 p-0 shadow-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-1/2 data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-1/2"
-        onPointerDownOutside={( e ) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
       >
-        <DialogTitle className="sr-only">
-          {alt}
-        </DialogTitle>
+        <DialogTitle className="sr-only">{alt}</DialogTitle>
         <div className="flex flex-col items-center justify-center">
           {/* Close button */}
           <Button
@@ -215,7 +217,7 @@ export default function FullscreenImageViewer( {
           {/* Zoom and pan controls */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 flex items-center gap-4 bg-background/20 backdrop-blur-md p-3 rounded-full">
             <Button
-              onClick={() => setScale( prev => Math.max( prev - 0.25, 0.5 ) )}
+              onClick={() => setScale((prev) => Math.max(prev - 0.25, 0.5))}
               size="icon"
               variant="outline"
               className="h-10 w-10"
@@ -224,10 +226,10 @@ export default function FullscreenImageViewer( {
               <span className="sr-only">Zoom out</span>
             </Button>
             <span className="text-base font-medium min-w-14 text-center text-white">
-              {Math.round( scale * 100 )}%
+              {Math.round(scale * 100)}%
             </span>
             <Button
-              onClick={() => setScale( prev => Math.min( prev + 0.25, 3 ) )}
+              onClick={() => setScale((prev) => Math.min(prev + 0.25, 3))}
               size="icon"
               variant="outline"
               className="h-10 w-10"
@@ -237,8 +239,8 @@ export default function FullscreenImageViewer( {
             </Button>
             <Button
               onClick={() => {
-                setScale( 1 );
-                setPosition( { x: 0, y: 0 } );
+                setScale(1);
+                setPosition({ x: 0, y: 0 });
               }}
               size="icon"
               variant="outline"
@@ -258,30 +260,33 @@ export default function FullscreenImageViewer( {
           )}
 
           {/* Image with panning capability */}
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden" ref={containerRef}>
+          <div
+            className="absolute inset-0 flex items-center justify-center overflow-hidden"
+            ref={containerRef}
+          >
             <div
               style={{
                 transform: `scale(${scale}) translate3d(${position.x / scale}px, ${position.y / scale}px, 0)`,
-                cursor: scale > 1 ? ( isDragging ? 'grabbing' : 'grab' ) : 'default',
-                willChange: isDragging ? 'transform' : 'auto',
-                transition: isDragging ? 'none' : 'transform 200ms ease-out'
+                cursor:
+                  scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+                willChange: isDragging ? "transform" : "auto",
+                transition: isDragging ? "none" : "transform 200ms ease-out",
               }}
               className="origin-center"
               onMouseDown={handleMouseDown}
               onTouchStart={handleMouseDown}
             >
-              <Image
+              <OptimizedImage
                 src={imageUrl}
                 alt={alt}
                 width={1200}
                 height={800}
-                quality={100}
                 className={cn(
                   "max-h-[85vh] max-w-[85vw] object-contain transition-opacity duration-300 select-none",
                   isLoading ? "opacity-0" : "opacity-100",
-                  "will-change-transform"
+                  "will-change-transform",
                 )}
-                onLoad={() => setIsLoading( false )}
+                onLoad={() => setIsLoading(false)}
                 priority
                 draggable={false}
               />
@@ -291,7 +296,7 @@ export default function FullscreenImageViewer( {
           {/* Pan instruction */}
           {scale > 1 && (
             <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-black/30 text-white px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm opacity-80 transition-opacity duration-300 hover:opacity-100">
-              {isDragging ? 'Moving image...' : 'Drag to pan image'}
+              {isDragging ? "Moving image..." : "Drag to pan image"}
             </div>
           )}
         </div>
