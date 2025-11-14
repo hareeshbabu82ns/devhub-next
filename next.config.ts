@@ -2,10 +2,15 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
   enabled: process.env.NODE_ENV === "development",
 });
 
+const packageJson = require("./package.json");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
   reactStrictMode: true,
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+  },
   // swcMinify: true,
   images: {
     localPatterns: [
