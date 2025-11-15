@@ -46,6 +46,31 @@ npm run dev
   - [flowbite](https://flowbite.com/docs/components/pagination/)
   - [React Icons](https://react-icons.github.io/react-icons/search/#q=)
 
+## Init SpecKit
+
+```sh
+# install UV package manager for python
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+vi ~/.bashrc
+export PATH=$HOME/.local/bin:$PATH
+
+# install spec kit
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+
+# init kit
+specify init --here --ai copilot
+```
+
+- sequence
+  - /speckit.constitution - per project with essentials base rules
+  - /speckit.specify - per functional requirement/functionality/feature
+  - /speckit.clarify - optional - clarify or elaborate spec
+  - /speckit.plan - to create technical requirements
+  - /speckit.tasks - to create technical tasks
+  - /speckit.analyze - optional - validate for consistency of tasks before implement
+  - /speckit.implement - implement all tasks
+
 ## Icon Generation
 
 - tool: https://icon.kitchen
