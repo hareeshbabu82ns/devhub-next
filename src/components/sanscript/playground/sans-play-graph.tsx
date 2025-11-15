@@ -142,34 +142,41 @@ export default function SanscriptPlayGraph() {
   );
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      onConnect={onConnect}
-      // onReconnect={onReconnect}
-      nodeOrigin={nodeOrigin}
-      connectionLineStyle={connectionLineStyle}
-      defaultEdgeOptions={defaultEdgeOptions}
-      connectionLineType={ConnectionLineType.SmoothStep}
-      maxZoom={4}
-      fitView
+    <div
+      style={{
+        width: "100%",
+        height: "calc(100vh - 200px)",
+      }}
     >
-      {flowPanel}
-      <DevTools
-        showChangeLogger={false}
-        showNodeInspector={false}
-        showViewportLogger={false}
-      />
-      <Controls
-        style={{ backgroundColor: "white", color: "black" }}
-        showInteractive={false}
-      />
-      <MiniMap zoomable pannable />
-      <Background />
-    </ReactFlow>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onConnect={onConnect}
+        // onReconnect={onReconnect}
+        nodeOrigin={nodeOrigin}
+        connectionLineStyle={connectionLineStyle}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionLineType={ConnectionLineType.SmoothStep}
+        maxZoom={4}
+        fitView
+      >
+        {flowPanel}
+        <DevTools
+          showChangeLogger={false}
+          showNodeInspector={false}
+          showViewportLogger={false}
+        />
+        <Controls
+          style={{ backgroundColor: "white", color: "black" }}
+          showInteractive={false}
+        />
+        <MiniMap zoomable pannable />
+        <Background />
+      </ReactFlow>
+    </div>
   );
 }
