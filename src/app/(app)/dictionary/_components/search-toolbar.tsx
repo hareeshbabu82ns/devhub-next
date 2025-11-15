@@ -17,6 +17,7 @@ import {
   ArrowDownUpIcon,
   DownloadIcon,
   FilterIcon,
+  BookmarkPlusIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -50,21 +51,37 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SavedSearchesDropdown from "./SavedSearchesDropdown";
+import { useSession } from "next-auth/react";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
   onFilterToggle?: () => void;
+  onSaveSearch?: () => void;
+  onSelectSearch?: (search: {
+    queryText: string;
+    filters?: Record<string, any>;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => void;
 }
 
 /**
  * T096-T097: Refactored to use hooks exclusively
  * Removed inline logic for validation, filtering, and query building
  * T80: Added filter toggle button
+ * T100: Added Save Search button and Saved Searches dropdown
  */
-export const SearchToolBar = ({ asBrowse, onFilterToggle }: SearchToolBarProps) => {
+export const SearchToolBar = ({ 
+  asBrowse, 
+  onFilterToggle, 
+  onSaveSearch,
+  onSelectSearch,
+}: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
+  const { data: session } = useSession();
 
   // T089: Use hook-managed state instead of inline parsing
   const localOrigins =
@@ -155,6 +172,25 @@ export const SearchToolBar = ({ asBrowse, onFilterToggle }: SearchToolBarProps) 
           >
             <FilterIcon className="h-4 w-4" />
           </Button>
+        )}
+
+        {/* T100: Save Search button - only for authenticated users */}
+        {session?.user && onSaveSearch && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onSaveSearch}
+            title="Save current search"
+            aria-label="Save current search"
+            className="min-w-[44px] min-h-[44px]"
+          >
+            <BookmarkPlusIcon className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* T99-T111: Saved Searches Dropdown */}
+        {session?.user && onSelectSearch && (
+          <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
         )}
 
         <CollapsibleTrigger asChild>
