@@ -14,16 +14,17 @@ export interface ScheduleItem {
 
 export interface DayOverviewProps {
   schedules: ScheduleItem[];
+  place?: string; // Optional place identifier for timezone info
 }
 
-const DayOverview: React.FC<DayOverviewProps> = ({ schedules }) => {
+const DayOverview: React.FC<DayOverviewProps> = ({ schedules, place }) => {
   const timelineView = usePanchangamTimelineViewAtomValue();
 
   if (timelineView === "legacy") {
-    return <DayOverviewLegacy schedules={schedules} />;
+    return <DayOverviewLegacy schedules={schedules} place={place} />;
   }
 
-  return <DayOverviewAdvanced schedules={schedules} />;
+  return <DayOverviewAdvanced schedules={schedules} place={place} />;
 };
 
 export default DayOverview;

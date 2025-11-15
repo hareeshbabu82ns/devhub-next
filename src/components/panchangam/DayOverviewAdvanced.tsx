@@ -21,6 +21,7 @@ import {
 } from "../ui/tooltip";
 import { Clock } from "lucide-react";
 import type { DayOverviewProps, ScheduleItem } from "./DayOverview";
+import { PANCHANGAM_PLACE_TIMEZONES } from "@/lib/constants";
 
 const hours = Array.from(
   { length: 24 },
@@ -42,9 +43,43 @@ const calculateHeight = (
   return endMinutes - startMinutes;
 };
 
-const getCurrentTimePosition = (fromHour: number = 0) => {
-  const now = new Date();
-  const currentMinutes = (now.getHours() - fromHour) * 60 + now.getMinutes();
+/**
+ * Get current time components (hours, minutes) in a specific timezone
+ */
+const getTimeInTimezone = (timeZone: string) => {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const hour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+  const minute = parseInt(
+    parts.find((p) => p.type === "minute")?.value || "0",
+    10,
+  );
+
+  return { hour, minute };
+};
+
+const getCurrentTimePosition = (fromHour: number = 0, timeZone?: string) => {
+  let hour: number, minute: number;
+
+  if (timeZone) {
+    // Get time in the specified timezone
+    const timeComponents = getTimeInTimezone(timeZone);
+    hour = timeComponents.hour;
+    minute = timeComponents.minute;
+  } else {
+    // Fall back to browser's local time
+    const now = new Date();
+    hour = now.getHours();
+    minute = now.getMinutes();
+  }
+
+  const currentMinutes = (hour - fromHour) * 60 + minute;
   return currentMinutes;
 };
 
@@ -109,10 +144,29 @@ const organizeSchedulesIntoColumns = (
   return columns;
 };
 
-const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({ schedules }) => {
+const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
+  schedules,
+  place,
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Get the timezone for the place
+  const placeTimezone =
+    place && PANCHANGAM_PLACE_TIMEZONES[place]
+      ? PANCHANGAM_PLACE_TIMEZONES[place]
+      : Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Update current time every minute for live clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Update container width on resize
   useEffect(() => {
@@ -137,7 +191,10 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({ schedules }) => {
   }, []);
 
   const minHour = findMinimumHour(schedules);
-  const currentTimePosition = getCurrentTimePosition(minHour);
+  const currentTimePosition = React.useMemo(
+    () => getCurrentTimePosition(minHour, placeTimezone),
+    [currentTime, minHour, placeTimezone],
+  );
   const columns = organizeSchedulesIntoColumns(schedules, minHour);
   const totalColumns = columns.length;
 
@@ -153,6 +210,15 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({ schedules }) => {
 
   return (
     <div className="w-full mx-auto py-2 px-2 sm:px-4" ref={containerRef}>
+      {/* Timezone info banner */}
+      <div className="mb-2 px-2 py-1.5 bg-muted/50 rounded-md flex items-center gap-2 text-xs text-muted-foreground">
+        <Clock className="h-3.5 w-3.5" />
+        <span>
+          Timeline for{" "}
+          {place ? place.charAt(0).toUpperCase() + place.slice(1) : "location"}{" "}
+          time ({placeTimezone})
+        </span>
+      </div>
       <ScrollArea className="h-[500px] sm:h-[600px] md:h-[700px] w-full relative">
         <div
           className="relative"
@@ -205,9 +271,10 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({ schedules }) => {
             <div className="w-16 flex items-center justify-end pr-2">
               <div className="flex items-center gap-1 bg-warning/90 text-warning-foreground px-1.5 py-0.5 rounded-md text-xs font-semibold">
                 <Clock className="h-3 w-3" />
-                {new Date().toLocaleTimeString([], {
+                {currentTime.toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
+                  timeZone: placeTimezone,
                 })}
               </div>
             </div>

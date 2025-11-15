@@ -370,6 +370,11 @@ export const PANCHANGAM_PLACE_IDS_MAP = {
   calgary: 5913490,
 } as Record<string, number>;
 
+export const PANCHANGAM_PLACE_TIMEZONES = {
+  tirupati: "Asia/Kolkata", // IST (UTC+5:30)
+  calgary: "America/Edmonton", // MST/MDT (UTC-7/-6)
+} as Record<string, string>;
+
 export const PANCHANGAM_TIMELINE_VIEW_MODES = ["advanced", "legacy"] as const;
 export type PanchangamTimelineViewMode =
   (typeof PANCHANGAM_TIMELINE_VIEW_MODES)[number];

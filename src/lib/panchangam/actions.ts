@@ -5,7 +5,10 @@ import * as cheerio from "cheerio";
 import { readFile, unlink, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-import { PANCHANGAM_PLACE_IDS_MAP } from "../constants";
+import {
+  PANCHANGAM_PLACE_IDS_MAP,
+  PANCHANGAM_PLACE_TIMEZONES,
+} from "../constants";
 import { format, previousDay, subDays } from "date-fns";
 
 // Tirupati - https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=1254360&date=20/10/2024
@@ -15,20 +18,70 @@ import { format, previousDay, subDays } from "date-fns";
 const dateFormat = "dd/MM/yyyy";
 const baseUrl = "https://www.drikpanchang.com/panchang/day-panchang.html";
 
+/**
+ * Get the date components in a specific timezone
+ * @param date - The date to convert
+ * @param timeZone - IANA timezone string (e.g., "Asia/Kolkata", "America/Edmonton")
+ * @returns Object with day, month, year in the target timezone
+ */
+function getDateInTimezone(date: Date, timeZone: string) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+
+  const parts = formatter.formatToParts(date);
+  const day = parts.find((p) => p.type === "day")?.value || "1";
+  const month = parts.find((p) => p.type === "month")?.value || "1";
+  const year = parts.find((p) => p.type === "year")?.value || "2025";
+
+  return {
+    day: parseInt(day, 10),
+    month: parseInt(month, 10),
+    year: parseInt(year, 10),
+  };
+}
+
 export async function getDayPanchangam({
   place = "calgary",
-  date = new Date(),
+  date,
+  localDateString,
 }: {
   place?: string;
   date?: Date;
+  localDateString?: string; // Format: "DD/MM/YYYY" from client's local timezone
 }) {
   const placeId = PANCHANGAM_PLACE_IDS_MAP[place];
   if (!placeId) {
     throw new Error(`Invalid place: ${place}`);
   }
 
+  // Get the timezone for the selected place
+  const placeTimezone = PANCHANGAM_PLACE_TIMEZONES[place] || "UTC";
+
+  // Use localDateString if provided (from client), otherwise fall back to date
+  let dateStr: string;
+  let actualDate: Date;
+
+  if (localDateString) {
+    // Client already provided the date string in the correct format
+    // No need to convert - just use it directly
+    dateStr = localDateString;
+    // Parse the date string to create a Date object for file path calculations
+    const [day, month, year] = localDateString.split("/").map(Number);
+    actualDate = new Date(year, month - 1, day);
+  } else {
+    // Fallback: use current date in place's timezone
+    const currentDate = date || new Date();
+    const placeDate = getDateInTimezone(currentDate, placeTimezone);
+    dateStr = `${placeDate.day}/${placeDate.month}/${placeDate.year}`;
+    actualDate = new Date(placeDate.year, placeDate.month - 1, placeDate.day);
+  }
+
   // check and delete previous day file
-  const dateYesterdayStr = format(subDays(date, 1), dateFormat);
+  const dateYesterdayStr = format(subDays(actualDate, 1), dateFormat);
   const filePrevPath = path.resolve(
     `${config.dataFolder}/0_panchangam_${placeId}_${dateYesterdayStr.replaceAll("/", "_")}.html`,
   );
@@ -37,8 +90,6 @@ export async function getDayPanchangam({
     console.log("Deleting previous day file:", filePrevPath);
     await unlink(filePrevPath);
   }
-
-  const dateStr = `${date.getUTCDate()}/${date.getUTCMonth() + 1}/${date.getUTCFullYear()}`;
 
   const url = `${baseUrl}?geoname-id=${placeId}&time-format=24hour&date=${dateStr}`;
   const filePath = path.resolve(

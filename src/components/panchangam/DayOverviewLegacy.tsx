@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { PANCHANGAM_PLACE_TIMEZONES } from "@/lib/constants";
 import {
   Dialog,
   DialogContent,
@@ -45,10 +46,42 @@ const calculateHeight = (
   return endMinutes - startMinutes; // Duration in minutes
 };
 
+/**
+ * Get current time components in a specific timezone
+ */
+const getTimeInTimezone = (timeZone: string) => {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const hour = parseInt(parts.find((p) => p.type === "hour")?.value || "0", 10);
+  const minute = parseInt(
+    parts.find((p) => p.type === "minute")?.value || "0",
+    10,
+  );
+
+  return { hour, minute };
+};
+
 // Get the current time and calculate its position on the timeline
-const getCurrentTimePosition = (fromHour: number = 0) => {
-  const now = new Date();
-  const currentMinutes = (now.getHours() - fromHour) * 60 + now.getMinutes();
+const getCurrentTimePosition = (fromHour: number = 0, timeZone?: string) => {
+  let hour: number, minute: number;
+
+  if (timeZone) {
+    const timeComponents = getTimeInTimezone(timeZone);
+    hour = timeComponents.hour;
+    minute = timeComponents.minute;
+  } else {
+    const now = new Date();
+    hour = now.getHours();
+    minute = now.getMinutes();
+  }
+
+  const currentMinutes = (hour - fromHour) * 60 + minute;
   return currentMinutes + 8;
 };
 
@@ -61,8 +94,27 @@ const findMinimumHour = (schedules: ScheduleItem[]) => {
   return minHour;
 };
 
-const DayOverviewLegacy: React.FC<DayOverviewProps> = ({ schedules }) => {
+const DayOverviewLegacy: React.FC<DayOverviewProps> = ({
+  schedules,
+  place,
+}) => {
   const scrollRef = useRef<HTMLDivElement>(null); // Ref to handle scrolling
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  // Get the timezone for the place
+  const placeTimezone =
+    place && PANCHANGAM_PLACE_TIMEZONES[place]
+      ? PANCHANGAM_PLACE_TIMEZONES[place]
+      : Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Update current time every minute for live clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
 
   // Scroll to the current time position on load
   useEffect(() => {
@@ -75,7 +127,10 @@ const DayOverviewLegacy: React.FC<DayOverviewProps> = ({ schedules }) => {
   }, []);
 
   const minHour = findMinimumHour(schedules); // Minimum hour for the timeline
-  const currentTimePosition = getCurrentTimePosition(minHour); // Current time for the dotted line
+  const currentTimePosition = React.useMemo(
+    () => getCurrentTimePosition(minHour, placeTimezone),
+    [currentTime, minHour, placeTimezone],
+  ); // Current time for the dotted line
 
   return (
     <div className="w-full min-w-[500px] mx-auto py-2 px-4 overflow-x-auto no-scrollbar">

@@ -29,43 +29,114 @@ import {
 } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
-import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import {
+  QUERY_STALE_TIME_LONG,
+  PANCHANGAM_PLACE_TIMEZONES,
+} from "@/lib/constants";
 
-// const schedules = [
-//   { title: "Team Meeting", startTime: "09:00", endTime: "10:30" },
-//   { title: "Client Call", startTime: "11:15", endTime: "12:00" },
-//   { title: "Lunch Break", startTime: "13:00", endTime: "14:00" },
-//   { title: "Project Discussion", startTime: "15:45", endTime: "16:30" },
-// ];
+/**
+ * Get the current date in a specific timezone
+ */
+function getTodayInTimezone(timeZone: string): Date {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const day = parseInt(parts.find((p) => p.type === "day")?.value || "1", 10);
+  const month = parseInt(
+    parts.find((p) => p.type === "month")?.value || "1",
+    10,
+  );
+  const year = parseInt(
+    parts.find((p) => p.type === "year")?.value || "2025",
+    10,
+  );
+
+  return new Date(year, month - 1, day);
+}
 
 interface PanchangamInfoProps {
   className?: string;
 }
 
 const PanchangamInfo: React.FC<PanchangamInfoProps> = ({ className }) => {
-  const [date, setDate] = React.useState<Date | undefined>(new Date());
-
   const cityId = usePanchangamPlaceAtomValue();
+
+  // Get the timezone for the selected place
+  const placeTimezone =
+    PANCHANGAM_PLACE_TIMEZONES[cityId] ||
+    Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Initialize with today's date in the place's timezone
+  const [date, setDate] = React.useState<Date | undefined>(() =>
+    getTodayInTimezone(placeTimezone),
+  );
+
+  // Update date when place changes to reflect the new timezone's "today"
+  React.useEffect(() => {
+    // Only update to today if the current date is actually today
+    const currentToday = getTodayInTimezone(placeTimezone);
+    const browserToday = new Date();
+    browserToday.setHours(0, 0, 0, 0);
+
+    if (date) {
+      const dateOnly = new Date(date);
+      dateOnly.setHours(0, 0, 0, 0);
+
+      // If the selected date matches browser's today, update to place's today
+      if (dateOnly.getTime() === browserToday.getTime()) {
+        setDate(currentToday);
+      }
+    }
+  }, [cityId, placeTimezone]);
 
   const { data, isFetching, isPending, isError, refetch } = useQuery({
     queryKey: ["panchangam", cityId, date],
     queryFn: async () => {
-      const response = await getDayPanchangam({ place: cityId, date });
+      // Format date in place's timezone as DD/MM/YYYY
+      let localDateString: string | undefined;
+      if (date) {
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: placeTimezone,
+          day: "numeric",
+          month: "numeric",
+          year: "numeric",
+        }).formatToParts(date);
+
+        const day = parts.find((p) => p.type === "day")?.value || "1";
+        const month = parts.find((p) => p.type === "month")?.value || "1";
+        const year = parts.find((p) => p.type === "year")?.value || "2025";
+
+        localDateString = `${day}/${month}/${year}`;
+      }
+      const response = await getDayPanchangam({
+        place: cityId,
+        date,
+        localDateString,
+      });
       return response;
     },
     staleTime: QUERY_STALE_TIME_LONG,
   });
 
   const handlePreviousDay = () => {
-    setDate((prev) => (prev ? subDays(prev, 1) : new Date()));
+    setDate((prev) =>
+      prev ? subDays(prev, 1) : getTodayInTimezone(placeTimezone),
+    );
   };
 
   const handleNextDay = () => {
-    setDate((prev) => (prev ? addDays(prev, 1) : new Date()));
+    setDate((prev) =>
+      prev ? addDays(prev, 1) : getTodayInTimezone(placeTimezone),
+    );
   };
 
   const handleToday = () => {
-    setDate(new Date());
+    setDate(getTodayInTimezone(placeTimezone));
   };
 
   if (isFetching || isPending) return <Loader />;
@@ -315,7 +386,10 @@ const PanchangamInfo: React.FC<PanchangamInfoProps> = ({ className }) => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <DayOverview schedules={data.consizeInfo.schedules} />
+                  <DayOverview
+                    schedules={data.consizeInfo.schedules}
+                    place={cityId}
+                  />
                 </CardContent>
               </Card>
             </div>
