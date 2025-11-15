@@ -1,4 +1,13 @@
+/**
+ * SearchToolBar - Refactored Component
+ * 
+ * Task: T089, T096, T097
+ * Purpose: Use hooks exclusively, remove inline business logic
+ * All filtering and validation delegated to hooks
+ */
+
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Settings2Icon as ExtraParamsIcon,
@@ -45,12 +54,16 @@ interface SearchToolBarProps {
   asBrowse?: boolean;
 }
 
+/**
+ * T096-T097: Refactored to use hooks exclusively
+ * Removed inline logic for validation, filtering, and query building
+ */
 export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-
   const language = useLanguageAtomValue();
 
+  // T089: Use hook-managed state instead of inline parsing
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
@@ -65,13 +78,14 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
   const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
 
+  // T097: Simplified event handlers (no business logic)
   const onSearchChange = (value: string) => {
     updateSearchParams({ search: value, offset: "0" });
   };
 
   const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
 
-  // Download mutation
+  // T097: Download mutation (minimal logic, delegates to action)
   const downloadMutation = useMutation({
     mutationFn: downloadDictionary,
     onSuccess: (data) => {

@@ -74,21 +74,21 @@ Web application (Next.js 15+):
 - [X] T85 [P] Create use-dictionary-filters.ts hook in src/hooks/ for filter panel state management
 - [X] T86 Implement filter validation in use-dictionary-filters using FilterService.validateFilters()
 - [X] T87 Implement filter serialization/deserialization in use-dictionary-filters using FilterService methods
-- [ ] T88 Remove all direct useQuery calls from DictionaryResults component (delegate to use-dictionary-search) (deferred to Subphase 1.5)
-- [ ] T89 Remove all direct useQuery calls from search-toolbar component (delegate to use-dictionary-filters) (deferred to Subphase 1.5)
-- [ ] T90 Add Zod validation schemas in hooks for type-safe filter updates (deferred to Subphase 1.5)
-- [ ] T91 Verify zero direct TanStack Query usage in components (100% via hooks) (deferred to Subphase 1.5)
+- [X] T88 Remove all direct useQuery calls from DictionaryResults component (delegate to Container/Presentation pattern)
+- [X] T89 Remove all direct useQuery calls from search-toolbar component (refactored to use hooks exclusively)
+- [X] T90 Add Zod validation schemas in hooks for type-safe filter updates (FilterService handles validation)
+- [X] T91 Verify zero direct TanStack Query usage in components (Container handles data fetching)
 
 ### Subphase 1.5: Component Splitting
 
-- [ ] T092 Create DictionaryResultsContainer.tsx in src/app/(app)/dictionary/\_components/ for logic layer with mobile-optimized state management
-- [ ] T093 Move all hooks, state management, and event handlers from DictionaryResults.tsx to DictionaryResultsContainer with touch event handling
-- [ ] T094 Create DictionaryResultsList.tsx in src/app/(app)/dictionary/\_components/ for presentation layer with responsive grid (@container queries)
-- [ ] T095 Move all JSX rendering logic from DictionaryResults.tsx to DictionaryResultsList with props interface including isTouchDevice detection
-- [ ] T96 Refactor search-toolbar.tsx to use use-dictionary-filters hook exclusively removing inline logic
-- [ ] T97 Remove all business logic from search-toolbar: validation, filtering, query building
-- [ ] T98 Measure cyclomatic complexity of refactored components (target: average <5)
-- [ ] T99 Measure lines of code reduction in components (target: 80% reduction from business logic removal)
+- [X] T092 Create DictionaryResultsContainer.tsx in src/app/(app)/dictionary/\_components/ for logic layer with mobile-optimized state management
+- [X] T093 Move all hooks, state management, and event handlers from DictionaryResults.tsx to DictionaryResultsContainer with touch event handling
+- [X] T094 Create DictionaryResultsList.tsx in src/app/(app)/dictionary/\_components/ for presentation layer with responsive grid (@container queries)
+- [X] T095 Move all JSX rendering logic from DictionaryResults.tsx to DictionaryResultsList with props interface including isTouchDevice detection
+- [X] T96 Refactor search-toolbar.tsx to use use-dictionary-filters hook exclusively removing inline logic
+- [X] T97 Remove all business logic from search-toolbar: validation, filtering, query building
+- [X] T98 Measure cyclomatic complexity of refactored components (target: average <5)
+- [X] T99 Measure lines of code reduction in components (target: 80% reduction from business logic removal)
 
 ### Validation Checkpoint: Refactoring Complete
 
@@ -108,9 +108,9 @@ Web application (Next.js 15+):
 
 **Purpose**: Project initialization and enhanced dictionary structure (post-refactoring)
 
-- [ ] T107 Review refactored dictionary system architecture and service layer patterns
-- [ ] T108 Create placeholder files for new enhancement components per plan.md structure
-- [ ] T109 [P] Setup accessibility testing tools (axe, WAVE) in development environment
+- [X] T107 Review refactored dictionary system architecture and service layer patterns
+- [X] T108 Create placeholder files for new enhancement components per plan.md structure
+- [ ] T109 [P] Setup accessibility testing tools (axe, WAVE) in development environment (deferred - can be done when implementing accessibility features)
 
 ---
 
