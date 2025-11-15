@@ -156,7 +156,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     if (hasAudio !== undefined) {
       // MongoDB JSON query for audio field
       if (hasAudio) {
-        where.sourceData = { path: ["audio"], not: Prisma.AnyNull };
+        where.sourceData = { path: ["audio"], not: null } as any;
       }
     }
     
@@ -260,7 +260,7 @@ export class DictionaryRepository implements IDictionaryRepository {
     }
     
     if (hasAudio !== undefined && hasAudio) {
-      where.sourceData = { path: ["audio"], not: Prisma.AnyNull };
+      where.sourceData = { path: ["audio"], not: null } as any;
     }
     
     if (hasAttributes !== undefined) {

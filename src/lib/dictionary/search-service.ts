@@ -212,7 +212,8 @@ export class SearchService {
     }
 
     const schemes = ["devanagari", "iast", "itrans", "telugu"];
-    const sourceScheme = sanscript.detect(query) || "itrans";
+    // Auto-detect source scheme using heuristic
+    const sourceScheme = this.detectScript(query);
     const variations: string[] = [query]; // Include original
 
     try {
@@ -237,7 +238,11 @@ export class SearchService {
    * Helper: Detect script of input text
    */
   private detectScript(text: string): string {
-    const detected = sanscript.detect(text);
-    return detected || "latin";
+    // Sanscript autodetect returns a scheme name or empty string
+    // We'll use a simple heuristic for detection
+    if (/[\u0900-\u097F]/.test(text)) return "devanagari";
+    if (/[\u0C00-\u0C7F]/.test(text)) return "telugu";
+    if (/[āīūṛṝḷḹēōṃḥṅñṭḍṇśṣ]/.test(text)) return "iast";
+    return "latin";
   }
 }

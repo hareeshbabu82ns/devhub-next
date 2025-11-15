@@ -43,7 +43,7 @@ export class FilterService {
       const result = UserFilterSchema.safeParse(filters);
 
       if (!result.success) {
-        const errors = result.error.errors.map(
+        const errors = result.error.issues.map(
           (err) => `${err.path.join(".")}: ${err.message}`
         );
         return { isValid: false, errors };
