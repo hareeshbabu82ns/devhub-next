@@ -16,6 +16,7 @@
 
 "use client";
 
+import { useState } from "react";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import {
@@ -36,6 +37,8 @@ import { cn } from "@/lib/utils";
 import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 import { SearchResultHighlight } from "./SearchResultHighlight";
 import { getRelevanceLabel, getRelevanceCategory } from "@/lib/dictionary/relevance-scoring";
+
+import { ViewMode } from "../types";
 
 interface DictionaryResultsListProps {
   // Data
@@ -59,6 +62,7 @@ interface DictionaryResultsListProps {
   isTouchDevice: boolean;
   asBrowse?: boolean;
   searchTerm?: string; // T123: For highlighting search matches
+  viewMode?: ViewMode; // T89: View mode for rendering
   
   // Callbacks
   onPageChange: (page: number) => void;
@@ -72,6 +76,7 @@ interface DictionaryResultsListProps {
 /**
  * T094-T095: Pure presentation component
  * Renders dictionary results with responsive grid layout
+ * T89: Added view mode support for Compact/Card/Detailed rendering
  */
 export function DictionaryResultsList({
   results,
@@ -88,6 +93,7 @@ export function DictionaryResultsList({
   isTouchDevice,
   asBrowse,
   searchTerm,
+  viewMode = "card",
   onPageChange,
   onNextPage,
   onPrevPage,
@@ -167,8 +173,15 @@ export function DictionaryResultsList({
       </CardHeader>
       
       <CardContent>
-        {/* T094: Responsive grid with @container queries */}
-        <div className="grid grid-cols-1 @6xl:grid-cols-2 gap-4">
+        {/* T089, T093: Responsive grid with @container queries - layout changes based on view mode */}
+        <div
+          className={cn(
+            "gap-4",
+            viewMode === "compact" && "flex flex-col space-y-2",
+            viewMode === "card" && "grid grid-cols-1 @6xl:grid-cols-2 @7xl:grid-cols-3",
+            viewMode === "detailed" && "flex flex-col space-y-4"
+          )}
+        >
           {results.map((item) => (
             <DictionaryResultCard
               key={item.id}
@@ -178,6 +191,7 @@ export function DictionaryResultsList({
               isTouchDevice={isTouchDevice}
               asBrowse={asBrowse}
               searchTerm={searchTerm}
+              viewMode={viewMode}
               onCopyDescription={onCopyDescription}
               onEditItem={onEditItem}
             />
@@ -205,6 +219,7 @@ export function DictionaryResultsList({
  * Individual result card component
  * Extracted for better maintainability
  * T122-T123: Enhanced with relevance scores and highlighting
+ * T89-T92: Support for different view modes (Compact/Card/Detailed)
  */
 interface DictionaryResultCardProps {
   item: Partial<DictionaryItem>;
@@ -213,6 +228,7 @@ interface DictionaryResultCardProps {
   isTouchDevice: boolean;
   asBrowse?: boolean;
   searchTerm?: string;
+  viewMode?: ViewMode;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
 }
@@ -224,9 +240,13 @@ function DictionaryResultCard({
   isTouchDevice,
   asBrowse,
   searchTerm,
+  viewMode = "card",
   onCopyDescription,
   onEditItem,
 }: DictionaryResultCardProps) {
+  // T90: Description truncation state for Compact/Card modes
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   // T122: Get relevance score and category for display
   const hasRelevanceScore = typeof item.relevanceScore === 'number';
   const relevanceScore = item.relevanceScore ?? 0;
@@ -240,8 +260,74 @@ function DictionaryResultCard({
     relevanceScore >= 50 ? 'outline' : // Fair - gray
     'destructive'; // Poor - red (shouldn't show much in results)
 
+  // T90: Description truncation logic - truncate at 200 chars for compact/card
+  const shouldTruncate = (viewMode === "compact" || viewMode === "card") && !isExpanded;
+  const description = item.description ?? '';
+  const truncatedDescription = shouldTruncate && description.length > 200
+    ? description.slice(0, 200) + '...'
+    : description;
+  const showReadMore = (viewMode === "compact" || viewMode === "card") && description.length > 200;
+
+  // T89: Different rendering based on view mode
+  if (viewMode === "compact") {
+    return (
+      <div className="group border-b py-2 flex items-center justify-between gap-4 transition-colors hover:bg-muted/30">
+        {/* Compact: single-line with word + brief meaning */}
+        <div className="flex-1 flex items-center gap-3 min-w-0">
+          <div className={cn("font-medium text-sm truncate", LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY])}>
+            {searchTerm ? (
+              <SearchResultHighlight
+                text={item.word ?? ''}
+                searchTerm={searchTerm}
+                language={language}
+                ariaLabel={`Word: ${item.word}`}
+              />
+            ) : (
+              item.word
+            )}
+          </div>
+          {hasRelevanceScore && (
+            <Badge variant="outline" className="text-xs shrink-0">
+              {relevanceScore}
+            </Badge>
+          )}
+          <span className="text-sm text-muted-foreground truncate">
+            {truncatedDescription}
+          </span>
+        </div>
+        <div className="flex gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            type="button"
+            className="h-8 w-8"
+            onClick={() => onCopyDescription(description)}
+            aria-label="Copy description"
+          >
+            <Icons.clipboard className="h-3 w-3" />
+          </Button>
+          {!asBrowse && (
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              className="h-8 w-8"
+              onClick={() => onEditItem(item.id!)}
+              aria-label="Edit"
+            >
+              <Icons.edit className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="group border rounded-sm p-4 flex flex-col transition-colors hover:bg-muted/50">
+    <div className={cn(
+      "group border rounded-sm flex flex-col transition-colors hover:bg-muted/50",
+      viewMode === "card" ? "p-4" : "p-6" // T89: Detailed mode has more padding
+    )}>
       {/* Header with word, relevance score, and actions */}
       <div className="pb-4 flex justify-between items-start gap-2">
         <div
@@ -321,14 +407,16 @@ function DictionaryResultCard({
           LANGUAGE_FONT_FAMILY[
             language as keyof typeof LANGUAGE_FONT_FAMILY
           ],
-          `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar markdown-content`
+          `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`,
+          viewMode === "card" && "max-h-48",
+          "overflow-y-auto no-scrollbar markdown-content"
         )}
       >
         {/* T123: Description with highlighting if search term provided */}
         {searchTerm && searchTerm.trim().length > 0 ? (
           <div className="prose dark:prose-invert max-w-none">
             <SearchResultHighlight
-              text={item.description ?? ''}
+              text={truncatedDescription}
               searchTerm={searchTerm}
               language={language}
               ariaLabel="Search result description"
@@ -336,10 +424,56 @@ function DictionaryResultCard({
           </div>
         ) : (
           <Markdown remarkPlugins={[remarkGfm]}>
-            {item.description}
+            {truncatedDescription}
           </Markdown>
         )}
       </div>
+
+      {/* T90: Read more / Show less button for Card mode */}
+      {showReadMore && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="mt-2 h-10 min-h-[44px] self-start"
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Show less" : "Read more"}
+        >
+          {isExpanded ? "Show less" : "Read more"}
+        </Button>
+      )}
+
+      {/* T89: Detailed mode shows additional fields */}
+      {viewMode === "detailed" && (
+        <div className="mt-4 pt-4 border-t space-y-2 text-sm">
+          {item.phonetic && (
+            <div>
+              <span className="font-medium">Phonetic: </span>
+              <span className="text-muted-foreground">{item.phonetic}</span>
+            </div>
+          )}
+          {item.attributes && item.attributes.length > 0 && (
+            <div>
+              <span className="font-medium">Attributes: </span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {item.attributes.map((attr, idx) => (
+                  <Badge key={idx} variant="outline" className="text-xs">
+                    {attr.key}: {attr.value}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {item.sourceData && (
+            <div>
+              <span className="font-medium">Source Data: </span>
+              <pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto">
+                {JSON.stringify(item.sourceData, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

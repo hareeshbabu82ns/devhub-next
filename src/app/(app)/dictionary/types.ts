@@ -116,3 +116,9 @@ export interface UserFilter {
   // Phonetic search filter
   phoneticSearch?: boolean;
 }
+
+/**
+ * View mode enumeration for dictionary results
+ * T88: Phase 6 (User Story 3)
+ */
+export type ViewMode = "compact" | "card" | "detailed";

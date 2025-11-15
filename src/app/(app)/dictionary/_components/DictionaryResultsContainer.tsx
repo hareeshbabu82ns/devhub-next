@@ -1,7 +1,7 @@
 /**
  * DictionaryResultsContainer - Logic Layer
  * 
- * Task: T092-T093
+ * Task: T092-T093, T89 (view mode management)
  * Purpose: Container component managing state, hooks, and event handlers
  * Responsibilities:
  * - All React hooks (useState, useQuery, custom hooks)
@@ -10,13 +10,14 @@
  * - Data fetching coordination
  * - Pagination logic
  * - Touch device detection
+ * - View mode management (T89)
  * 
  * This component delegates ALL rendering to DictionaryResultsList (presentation layer)
  */
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
@@ -31,17 +32,21 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { DictionaryResultsList } from "./DictionaryResultsList";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { ViewMode } from "../types";
 
 interface DictionaryResultsContainerProps {
   asBrowse?: boolean;
+  viewMode?: ViewMode;
 }
 
 /**
  * T092: Container component for dictionary results
  * Manages all state, hooks, and business logic
+ * T89: Added view mode support
  */
 export function DictionaryResultsContainer({
   asBrowse,
+  viewMode = "card",
 }: DictionaryResultsContainerProps) {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -156,6 +161,7 @@ export function DictionaryResultsContainer({
       asBrowse={asBrowse}
       originParam={originParam}
       searchTerm={searchParam}
+      viewMode={viewMode}
       onPageChange={handlePageChange}
       onNextPage={handleNextPage}
       onPrevPage={handlePrevPage}
