@@ -140,16 +140,16 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 1
 
-- [ ] T117 [P] [US1] Implement relevance scoring algorithm in src/lib/dictionary/relevance-scoring.ts with textScore, prefix match boosting, diacritic-aware matching (optimized for mobile performance)
-- [ ] T118 [P] [US1] Implement word boundary detection in src/lib/dictionary/highlight-utils.ts using Intl.Segmenter or grapheme cluster detection for Devanagari/Telugu preserving ligatures
-- [ ] T119 [P] [US1] Create SearchResultHighlight component in src/app/(app)/dictionary/\_components/SearchResultHighlight.tsx for word-level text highlighting with touch-friendly tap targets (min 44x44px)
-- [ ] T120 [US1] Integrate relevance scoring into SearchService.performSearch() method using relevance-scoring utility
-- [ ] T121 [US1] Update SearchService.calculateRelevance() to use MongoDB textScore and custom boosting algorithm
-- [ ] T122 [US1] Enhance DictionaryResultsList component to display relevance scores (0-100) with each result
-- [ ] T123 [US1] Integrate SearchResultHighlight component into DictionaryResultsList for word and description fields
-- [ ] T124 [US1] Add ARIA labels and keyboard navigation (Tab order) to search results in DictionaryResultsList
-- [ ] T125 [US1] Add screen reader announcements for relevance scores using ARIA live regions in DictionaryResultsList
-- [ ] T126 [US1] Add multi-script search normalization using sanscript library in SearchService.normalizeScripts() (Devanagari, IAST, ITRANS matching)
+- [X] T117 [P] [US1] Implement relevance scoring algorithm in src/lib/dictionary/relevance-scoring.ts with textScore, prefix match boosting, diacritic-aware matching (optimized for mobile performance)
+- [X] T118 [P] [US1] Implement word boundary detection in src/lib/dictionary/highlight-utils.ts using Intl.Segmenter or grapheme cluster detection for Devanagari/Telugu preserving ligatures
+- [X] T119 [P] [US1] Create SearchResultHighlight component in src/app/(app)/dictionary/\_components/SearchResultHighlight.tsx for word-level text highlighting with touch-friendly tap targets (min 44x44px)
+- [X] T120 [US1] Integrate relevance scoring into SearchService.performSearch() method using relevance-scoring utility
+- [X] T121 [US1] Update SearchService.calculateRelevance() to use MongoDB textScore and custom boosting algorithm
+- [X] T122 [US1] Enhance DictionaryResultsList component to display relevance scores (0-100) with each result
+- [X] T123 [US1] Integrate SearchResultHighlight component into DictionaryResultsList for word and description fields
+- [X] T124 [US1] Add ARIA labels and keyboard navigation (Tab order) to search results in DictionaryResultsList
+- [X] T125 [US1] Add screen reader announcements for relevance scores using ARIA live regions in DictionaryResultsList
+- [X] T126 [US1] Add multi-script search normalization using sanscript library in SearchService.normalizeScripts() (Devanagari, IAST, ITRANS matching)
 
 **Checkpoint**: Enhanced search with relevance ranking and highlighting should be fully functional
 

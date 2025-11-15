@@ -207,10 +207,18 @@ export const searchDictionary = async ({
     return createSearchResult([], 0, limit, offset);
   }
 
-  // Map results to DictionaryItem format for backward compatibility
-  const mappedResults: DictionaryItem[] = response.data.results.map((result) =>
-    mapDbToDictionary(result, language)
-  );
+  // Map results to DictionaryItem format, preserving relevance data
+  // T122: Include relevance scores in search results
+  const mappedResults: DictionaryItem[] = response.data.results.map((result) => {
+    const mapped = mapDbToDictionary(result, language);
+    // Preserve relevance scoring and match metadata from service layer
+    return {
+      ...mapped,
+      relevanceScore: result.relevanceScore,
+      matchType: result.matchType,
+      searchMetadata: result.searchMetadata,
+    } as DictionaryItem;
+  });
 
   return createSearchResult(
     mappedResults,

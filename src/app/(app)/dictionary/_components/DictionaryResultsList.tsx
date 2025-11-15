@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
+import { Badge } from "@/components/ui/badge";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { DictionaryItem } from "../types";
@@ -33,6 +34,8 @@ import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 import { cn } from "@/lib/utils";
 import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
+import { SearchResultHighlight } from "./SearchResultHighlight";
+import { getRelevanceLabel, getRelevanceCategory } from "@/lib/dictionary/relevance-scoring";
 
 interface DictionaryResultsListProps {
   // Data
@@ -55,6 +58,7 @@ interface DictionaryResultsListProps {
   textSize: string;
   isTouchDevice: boolean;
   asBrowse?: boolean;
+  searchTerm?: string; // T123: For highlighting search matches
   
   // Callbacks
   onPageChange: (page: number) => void;
@@ -83,6 +87,7 @@ export function DictionaryResultsList({
   textSize,
   isTouchDevice,
   asBrowse,
+  searchTerm,
   onPageChange,
   onNextPage,
   onPrevPage,
@@ -107,17 +112,46 @@ export function DictionaryResultsList({
     );
   }
 
+  // T125: Calculate average relevance score for screen reader announcement
+  const avgRelevanceScore = results.reduce((sum, item) => {
+    return sum + (item.relevanceScore ?? 0);
+  }, 0) / (results.length || 1);
+  const hasRelevanceScores = results.some(item => typeof item.relevanceScore === 'number');
+
   // Results display
   return (
     <Card className="w-full bg-transparent @container">
+      {/* T125: ARIA live region for screen reader announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {total > 0 && (
+          <>
+            {`Found ${total} results${hasRelevanceScores ? ` with average relevance score of ${Math.round(avgRelevanceScore)}` : ''}`}
+            {searchTerm && ` for search term "${searchTerm}"`}
+          </>
+        )}
+      </div>
+
       <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-2">
-        <CardDescription>Results</CardDescription>
+        <CardDescription>
+          Results
+          {hasRelevanceScores && searchTerm && (
+            <span className="ml-2 text-xs text-muted-foreground">
+              (sorted by relevance)
+            </span>
+          )}
+        </CardDescription>
         <div className="flex flex-row items-center gap-2">
           <Button
             onClick={onRefresh}
             type="button"
             variant="outline"
             size="icon"
+            aria-label="Refresh search results"
           >
             <Icons.refresh className="size-4" />
           </Button>
@@ -143,6 +177,7 @@ export function DictionaryResultsList({
               textSize={textSize}
               isTouchDevice={isTouchDevice}
               asBrowse={asBrowse}
+              searchTerm={searchTerm}
               onCopyDescription={onCopyDescription}
               onEditItem={onEditItem}
             />
@@ -169,6 +204,7 @@ export function DictionaryResultsList({
 /**
  * Individual result card component
  * Extracted for better maintainability
+ * T122-T123: Enhanced with relevance scores and highlighting
  */
 interface DictionaryResultCardProps {
   item: Partial<DictionaryItem>;
@@ -176,6 +212,7 @@ interface DictionaryResultCardProps {
   textSize: string;
   isTouchDevice: boolean;
   asBrowse?: boolean;
+  searchTerm?: string;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
 }
@@ -186,18 +223,62 @@ function DictionaryResultCard({
   textSize,
   isTouchDevice,
   asBrowse,
+  searchTerm,
   onCopyDescription,
   onEditItem,
 }: DictionaryResultCardProps) {
+  // T122: Get relevance score and category for display
+  const hasRelevanceScore = typeof item.relevanceScore === 'number';
+  const relevanceScore = item.relevanceScore ?? 0;
+  const relevanceLabel = hasRelevanceScore ? getRelevanceLabel(relevanceScore) : '';
+  const relevanceCategory = hasRelevanceScore ? getRelevanceCategory(relevanceScore) : null;
+
+  // Color coding for relevance scores
+  const relevanceBadgeVariant = 
+    relevanceScore >= 90 ? 'default' : // Excellent - green
+    relevanceScore >= 70 ? 'secondary' : // Good - blue
+    relevanceScore >= 50 ? 'outline' : // Fair - gray
+    'destructive'; // Poor - red (shouldn't show much in results)
+
   return (
     <div className="group border rounded-sm p-4 flex flex-col transition-colors hover:bg-muted/50">
-      {/* Header with word and actions */}
-      <div className="pb-4 h-12 flex justify-between items-center">
+      {/* Header with word, relevance score, and actions */}
+      <div className="pb-4 flex justify-between items-start gap-2">
         <div
-          className={`font-medium subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
+          className={`font-medium subpixel-antialiased text-${textSize} leading-loose tracking-widest flex-1`}
         >
-          <h3>{item.word}</h3>
-          <h4 className="text-muted-foreground text-sm">{item.origin}</h4>
+          {/* T123: Word with highlighting */}
+          <h3 className="flex items-center gap-2 flex-wrap">
+            {searchTerm && searchTerm.trim().length > 0 ? (
+              <SearchResultHighlight
+                text={item.word ?? ''}
+                searchTerm={searchTerm}
+                language={language}
+                ariaLabel={`Search result word: ${item.word}`}
+              />
+            ) : (
+              <span>{item.word}</span>
+            )}
+            
+            {/* T122: Relevance score badge */}
+            {hasRelevanceScore && (
+              <Badge
+                variant={relevanceBadgeVariant}
+                className="text-xs font-normal"
+                aria-label={`Relevance: ${relevanceLabel}, score ${relevanceScore}`}
+              >
+                {relevanceScore}
+              </Badge>
+            )}
+          </h3>
+          <h4 className="text-muted-foreground text-sm flex items-center gap-2">
+            <span>{item.origin}</span>
+            {item.matchType && searchTerm && (
+              <Badge variant="outline" className="text-xs">
+                {item.matchType}
+              </Badge>
+            )}
+          </h4>
         </div>
         
         {/* T095: Mobile-optimized actions (min 44x44px touch targets) */}
@@ -215,6 +296,7 @@ function DictionaryResultCard({
             type="button"
             className="p-0 min-w-[44px] min-h-[44px]"
             onClick={() => onCopyDescription(item.description ?? "")}
+            aria-label="Copy description to clipboard"
           >
             <Icons.clipboard className="size-4" />
           </Button>
@@ -225,6 +307,7 @@ function DictionaryResultCard({
               type="button"
               className="p-0 min-w-[44px] min-h-[44px]"
               onClick={() => onEditItem(item.id!)}
+              aria-label={`Edit ${item.word}`}
             >
               <Icons.edit className="size-4" />
             </Button>
@@ -232,7 +315,7 @@ function DictionaryResultCard({
         </div>
       </div>
 
-      {/* Description content */}
+      {/* Description content with highlighting */}
       <div
         className={cn(
           LANGUAGE_FONT_FAMILY[
@@ -241,9 +324,21 @@ function DictionaryResultCard({
           `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest max-h-48 overflow-y-auto no-scrollbar markdown-content`
         )}
       >
-        <Markdown remarkPlugins={[remarkGfm]}>
-          {item.description}
-        </Markdown>
+        {/* T123: Description with highlighting if search term provided */}
+        {searchTerm && searchTerm.trim().length > 0 ? (
+          <div className="prose dark:prose-invert max-w-none">
+            <SearchResultHighlight
+              text={item.description ?? ''}
+              searchTerm={searchTerm}
+              language={language}
+              ariaLabel="Search result description"
+            />
+          </div>
+        ) : (
+          <Markdown remarkPlugins={[remarkGfm]}>
+            {item.description}
+          </Markdown>
+        )}
       </div>
     </div>
   );
