@@ -11,6 +11,19 @@ export type DictionaryItem = {
   attributes: AttributeValueInput[];
   phonetic: string;
   sourceData?: Record<string, any>;
+  
+  // T122: Relevance scoring fields (optional for backward compatibility)
+  relevanceScore?: number; // 0-100 range
+  matchType?: 'exact' | 'prefix' | 'fuzzy' | 'phonetic';
+  searchMetadata?: {
+    queryLanguage: string;
+    matchedLanguage: string;
+    scoreBreakdown: {
+      textScore: number;
+      prefixBonus: number;
+      exactBonus: number;
+    };
+  };
 };
 
 export type DictionarySearchResult = {

@@ -155,6 +155,7 @@ export function DictionaryResultsContainer({
       isTouchDevice={isTouchDevice}
       asBrowse={asBrowse}
       originParam={originParam}
+      searchTerm={searchParam}
       onPageChange={handlePageChange}
       onNextPage={handleNextPage}
       onPrevPage={handlePrevPage}
