@@ -120,13 +120,13 @@ Web application (Next.js 15+):
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T110 Add SavedSearch model to prisma/schema.prisma with userId, name, queryText, filters, sortBy, sortOrder, timestamps
-- [ ] T111 Run prisma generate to update Prisma client with SavedSearch model
-- [ ] T112 [P] Create base accessibility utilities in src/lib/accessibility/focus-management.ts for focus trap and ARIA helpers
-- [ ] T113 [P] Create word boundary detection utility in src/lib/dictionary/highlight-utils.ts for Sanskrit/Telugu/Latin scripts
-- [ ] T114 [P] Create relevance scoring utility in src/lib/dictionary/relevance-scoring.ts with 0-100 score range
-- [ ] T115 Create SearchResult TypeScript type with relevance score, highlighted text snippets, match type in src/app/(app)/dictionary/types.ts
-- [ ] T116 Create UserFilter TypeScript type with origin array, language, word length range, has-audio, has-attributes, date range in src/app/(app)/dictionary/types.ts
+- [X] T110 Add SavedSearch model to prisma/schema.prisma with userId, name, queryText, filters, sortBy, sortOrder, timestamps
+- [X] T111 Run prisma generate to update Prisma client with SavedSearch model
+- [X] T112 [P] Create base accessibility utilities in src/lib/accessibility/focus-management.ts for focus trap and ARIA helpers
+- [X] T113 [P] Create word boundary detection utility in src/lib/dictionary/highlight-utils.ts for Sanskrit/Telugu/Latin scripts
+- [X] T114 [P] Create relevance scoring utility in src/lib/dictionary/relevance-scoring.ts with 0-100 score range
+- [X] T115 Create SearchResult TypeScript type with relevance score, highlighted text snippets, match type in src/app/(app)/dictionary/types.ts
+- [X] T116 Create UserFilter TypeScript type with origin array, language, word length range, has-audio, has-attributes, date range in src/app/(app)/dictionary/types.ts
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -228,8 +228,8 @@ Web application (Next.js 15+):
 - [ ] T107 [US4] Implement cross-device sync for logged-in users: save to database via SavedSearch model
 - [ ] T108 [US4] Implement localStorage fallback for anonymous users with 50 search limit
 - [ ] T109 [US4] Create migration prompt when anonymous user logs in: offer to migrate localStorage searches to account
-- [ ] T110 [US4] Add ARIA labels and keyboard navigation to saved searches dropdown
-- [ ] T111 [US4] Add context menu (right-click desktop, 500ms long-press mobile) for saved search actions (rename, delete, duplicate) with touch-optimized menu items (min 48px height)
+- [X] T110 [US4] Add ARIA labels and keyboard navigation to saved searches dropdown
+- [X] T111 [US4] Add context menu (right-click desktop, 500ms long-press mobile) for saved search actions (rename, delete, duplicate) with touch-optimized menu items (min 48px height)
 
 **Checkpoint**: Saved searches with cross-device sync should be fully functional
 
@@ -243,11 +243,11 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 7
 
-- [ ] T112 [P] [US7] Create use-keyboard-shortcut.ts hook in src/hooks/ for global keyboard shortcut handling (Ctrl/Cmd+Shift+D)
-- [ ] T113 [P] [US7] Create DictionaryPopupWidget component in src/components/features/dictionary/DictionaryPopupWidget.tsx as modal overlay (max 400px width desktop, full-screen mobile with header and close button)
-- [ ] T114 [US7] Integrate DictionaryPopupWidget into root layout or app wrapper for global availability with responsive positioning (centered desktop, full mobile)
-- [ ] T115 [US7] Implement keyboard shortcut listener (Ctrl/Cmd+Shift+D desktop only) in DictionaryPopupWidget using use-keyboard-shortcut hook
-- [ ] T116 [US7] Add search input and results display within popup using existing search logic from DictionaryResults
+- [X] T112 [P] [US7] Create use-keyboard-shortcut.ts hook in src/hooks/ for global keyboard shortcut handling (Ctrl/Cmd+Shift+D)
+- [X] T113 [P] [US7] Create DictionaryPopupWidget component in src/components/features/dictionary/DictionaryPopupWidget.tsx as modal overlay (max 400px width desktop, full-screen mobile with header and close button)
+- [X] T114 [US7] Integrate DictionaryPopupWidget into root layout or app wrapper for global availability with responsive positioning (centered desktop, full mobile)
+- [X] T115 [US7] Implement keyboard shortcut listener (Ctrl/Cmd+Shift+D desktop only) in DictionaryPopupWidget using use-keyboard-shortcut hook
+- [X] T116 [US7] Add search input and results display within popup using existing search logic from DictionaryResults
 - [ ] T117 [US7] Implement focus trap in popup: Tab/Shift+Tab cycles within popup, Escape closes
 - [ ] T118 [US7] Implement focus restoration: return focus to trigger element when popup closes
 - [ ] T119 [US7] Add context menu integration: "Look up in dictionary" on text selection that opens popup with pre-filled search
