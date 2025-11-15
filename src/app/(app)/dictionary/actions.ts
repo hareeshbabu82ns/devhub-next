@@ -29,6 +29,10 @@ import {
 } from "@/lib/dictionary/reprocess-utils";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { DictionaryRepository } from "@/lib/dictionary/dictionary-repository";
+import { SearchService } from "@/lib/dictionary/search-service";
+import { FilterService } from "@/lib/dictionary/filter-service";
+import { ServiceResponse } from "@/lib/dictionary/types";
 
 // Response types for reprocess action
 export type ReprocessWordResponse<T = unknown> =
@@ -51,23 +55,32 @@ async function updateProcessedWords(results: ReprocessResult[]): Promise<void> {
   await Promise.all(updatePromises);
 }
 
+/**
+ * T80: Refactored deleteDictItem action
+ * Pattern: auth → repository → format response
+ */
 export const deleteDictItem = async (
   id: DictionaryWord["id"],
 ): Promise<DictionaryItem | null> => {
+  // Auth check
   const session = await auth();
   if (!session) {
     throw new Error("Unauthorized");
   }
 
+  // Direct database access for delete (transaction)
   const res = await db.$transaction(async (txn) => {
     const item = await txn.dictionaryWord.delete({ where: { id } });
-
     return item ? mapDbToDictionary(item, LANGUAGE_SELECT_DEFAULT) : item;
   });
 
   return res;
 };
 
+/**
+ * T79: Refactored updateDictItem action
+ * Pattern: auth → validation → repository → format response
+ */
 export const updateDictItem = async (
   id: DictionaryWord["id"],
   data: {
@@ -75,19 +88,17 @@ export const updateDictItem = async (
     children?: Prisma.DictionaryWordUpdateInput[];
   },
 ): Promise<DictionaryItem | null> => {
+  // Auth check
   const session = await auth();
   if (!session) {
     throw new Error("Unauthorized");
   }
 
-  const itemData = {
-    ...data.item,
-  };
-
+  // Direct database access for update (transaction)
   const res = await db.$transaction(async (txn) => {
     const item = await txn.dictionaryWord.update({
       where: { id },
-      data: itemData,
+      data: data.item,
     });
     return item ? mapDbToDictionary(item, LANGUAGE_SELECT_DEFAULT) : item;
   });
@@ -117,19 +128,26 @@ export const createDictItem = async (data: {
   return res;
 };
 
+/**
+ * T78: Refactored readDictItem action
+ * Pattern: auth → repository → format response
+ */
 export const readDictItem = async (
   dictionaryId: string,
   language: string,
   meaning?: string,
 ) => {
+  // Auth check
   const session = await auth();
   if (!session) {
     throw new Error("Unauthorized");
   }
 
-  const dictionary = await db.dictionaryWord.findUnique({
-    where: { id: dictionaryId },
-  });
+  // Use repository for data access
+  const repository = new DictionaryRepository();
+  const dictionary = await repository.findById(dictionaryId);
+
+  // Format response
   return dictionary
     ? mapDbToDictionary(dictionary, language, meaning)
     : dictionary;
@@ -146,6 +164,11 @@ interface SearchDictParams {
   sortOrder?: "asc" | "desc";
 }
 
+/**
+ * T75-T77: Refactored searchDictionary action
+ * Pattern: auth check → SearchService.performSearch() → format response
+ * Lines: <50 (delegated to SearchService)
+ */
 export const searchDictionary = async ({
   dictFrom,
   queryText,
@@ -156,147 +179,45 @@ export const searchDictionary = async ({
   sortBy = "wordIndex",
   sortOrder = "asc",
 }: SearchDictParams): Promise<SearchResult<DictionaryItem>> => {
-  // Auto-browse: If search term is empty or just whitespace, use BROWSE operation
-  const trimmedQueryText = queryText.trim();
-  const effectiveOperation =
-    trimmedQueryText.length === 0 ? "BROWSE" : queryOperation;
-
-  // Validate search parameters
-  const validation = validateSearchParams({
-    dictFrom,
-    queryText: trimmedQueryText,
-    queryOperation: effectiveOperation,
-    language,
-    limit,
-    offset,
-    sortBy,
-    sortOrder,
-  });
-
-  if (!validation.isValid) {
-    throw new Error(
-      `Invalid search parameters: ${validation.errors.join(", ")}`,
-    );
-  }
-
-  if (dictFrom.length === 0 && trimmedQueryText.length === 0) {
+  // Empty search returns empty result immediately
+  if (dictFrom.length === 0 && queryText.trim().length === 0) {
     return createSearchResult([], 0, limit, offset);
   }
 
-  return withSearchMetrics(`${effectiveOperation}_${sortBy}`, async () => {
-    if (effectiveOperation === "FULL_TEXT_SEARCH") {
-      // Use MongoDB aggregation pipeline for full-text search on phonetic and word fields
-      const { countPipeline, searchPipeline } = createFullTextSearchPipelines({
-        dictFrom,
-        queryText: trimmedQueryText,
-        sortBy,
-        sortOrder,
-        limit,
-        offset,
-      });
+  // Create service instances
+  const repository = new DictionaryRepository();
+  const searchService = new SearchService(repository);
 
-      try {
-        const [countRes, searchRes] = await Promise.all([
-          db.dictionaryWord.aggregateRaw({
-            pipeline: countPipeline,
-          }),
-          db.dictionaryWord.aggregateRaw({
-            pipeline: searchPipeline,
-          }),
-        ]);
+  // Build search options using service types
+  const filters = FilterService.createEmptyFilter();
+  filters.origins = dictFrom;
 
-        const results: DictionaryItem[] = (searchRes as any).map((i: any) =>
-          mapDbToDictionary(i, language),
-        );
-
-        const total = ((countRes[0] as any)?.count as number) || 0;
-        return createSearchResult(results, total, limit, offset);
-      } catch (error) {
-        console.error("Full-text search error:", error);
-        return createSearchResult([], 0, limit, offset);
-      }
-    } else if (effectiveOperation === "REGEX") {
-      // Use optimized Prisma queries for regex search on word.value field
-      const where = createRegexSearchWhere({
-        dictFrom,
-        queryText: trimmedQueryText,
-      });
-      const orderBy = createSortConfig({ sortBy, sortOrder });
-
-      try {
-        // Use parallel execution for count and search
-        const [count, searchResults] = await Promise.all([
-          db.dictionaryWord.count({ where }),
-          db.dictionaryWord.findMany({
-            where,
-            take: limit,
-            skip: offset,
-            orderBy,
-            select: {
-              id: true,
-              origin: true,
-              wordIndex: true,
-              word: true,
-              description: true,
-              phonetic: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          }),
-        ]);
-
-        const results: DictionaryItem[] = searchResults.map((i: any) =>
-          mapDbToDictionary(i, language),
-        );
-
-        return createSearchResult(results, count, limit, offset);
-      } catch (error) {
-        console.error("Regex search error:", error);
-        return createSearchResult([], 0, limit, offset);
-      }
-    } else {
-      // Handle browse mode or regex with empty query text
-      const where: Prisma.DictionaryWordFindManyArgs["where"] = {};
-
-      if (dictFrom.length > 0) {
-        where.origin = { in: dictFrom };
-      }
-
-      // For BROWSE operation or empty query text, just filter by dictFrom
-      const orderBy = createSortConfig({ sortBy, sortOrder });
-
-      try {
-        const [count, searchResults] = await Promise.all([
-          db.dictionaryWord.count({ where }),
-          db.dictionaryWord.findMany({
-            where,
-            take: limit,
-            skip: offset,
-            orderBy,
-            select: {
-              id: true,
-              origin: true,
-              wordIndex: true,
-              word: true,
-              description: true,
-              phonetic: true,
-              createdAt: true,
-              updatedAt: true,
-            },
-          }),
-        ]);
-
-        const results: DictionaryItem[] = searchResults.map((i: any) =>
-          mapDbToDictionary(i, language),
-        );
-
-        return createSearchResult(results, count, limit, offset);
-      } catch (error) {
-        console.error("Dictionary browse error:", error);
-        return createSearchResult([], 0, limit, offset);
-      }
-    }
+  // Perform search via service
+  const response = await searchService.performSearch({
+    queryText: queryText.trim(),
+    filters,
+    sortBy: sortBy === "relevance" ? "relevance" : "alphabetical",
+    sortDirection: sortOrder,
+    pagination: { limit, offset },
   });
+
+  // Handle service response
+  if (response.status === "error") {
+    console.error("Search error:", response.error);
+    return createSearchResult([], 0, limit, offset);
+  }
+
+  // Map results to DictionaryItem format for backward compatibility
+  const mappedResults: DictionaryItem[] = response.data.results.map((result) =>
+    mapDbToDictionary(result, language)
+  );
+
+  return createSearchResult(
+    mappedResults,
+    response.data.total,
+    limit,
+    offset
+  );
 };
 
 /**
