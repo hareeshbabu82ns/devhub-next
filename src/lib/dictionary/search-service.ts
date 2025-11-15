@@ -1,6 +1,6 @@
 /**
  * SearchService - Business Logic Layer
- * 
+ *
  * Tasks: T009, T117-T119
  * Purpose: Orchestrate search operations without framework dependencies
  * Pattern: Service layer with dependency injection
@@ -39,7 +39,7 @@ export class SearchService {
    * Orchestrates repository calls and relevance scoring
    */
   async performSearch(
-    options: SearchOptions
+    options: SearchOptions,
   ): Promise<ServiceResponse<SearchResult>> {
     try {
       const { queryText, filters, sortBy, sortDirection, pagination } = options;
@@ -81,14 +81,12 @@ export class SearchService {
 
       // Calculate relevance scores for each result
       const scoredResults: SearchResultItem[] = dbResult.data.map((word) =>
-        this.calculateRelevance(word, queryText, normalizedQueries)
+        this.calculateRelevance(word, queryText, normalizedQueries),
       );
 
       // Sort by relevance if requested
       if (sortBy === "relevance") {
-        scoredResults.sort(
-          (a, b) => b.relevanceScore - a.relevanceScore
-        );
+        scoredResults.sort((a, b) => b.relevanceScore - a.relevanceScore);
       }
 
       const result: SearchResult = {
@@ -120,7 +118,7 @@ export class SearchService {
   calculateRelevance(
     word: DictionaryWord,
     queryText: string,
-    normalizedQueries: string[]
+    normalizedQueries: string[],
   ): SearchResultItem {
     const query = queryText.toLowerCase().trim();
     let textScore = 0;
@@ -137,7 +135,7 @@ export class SearchService {
     for (const text of allTexts) {
       if (text.includes(query)) {
         textScore += 10; // Base match score
-        
+
         // Check normalized variations
         for (const normalizedQuery of normalizedQueries) {
           if (text.includes(normalizedQuery.toLowerCase())) {
@@ -211,13 +209,21 @@ export class SearchService {
       return [];
     }
 
-    const schemes = ["devanagari", "iast", "itrans", "telugu"];
+    // Valid sanscript scheme names
+    const validSchemes = ["devanagari", "iast", "itrans", "telugu"];
+
     // Auto-detect source scheme using heuristic
     const sourceScheme = this.detectScript(query);
+
+    // If source scheme is not valid for sanscript, skip transliteration
+    if (!validSchemes.includes(sourceScheme)) {
+      return [query];
+    }
+
     const variations: string[] = [query]; // Include original
 
     try {
-      for (const targetScheme of schemes) {
+      for (const targetScheme of validSchemes) {
         if (targetScheme !== sourceScheme) {
           const transliterated = sanscript.t(query, sourceScheme, targetScheme);
           if (transliterated && transliterated !== query) {
@@ -236,13 +242,17 @@ export class SearchService {
 
   /**
    * Helper: Detect script of input text
+   * Returns valid sanscript scheme name or "unknown" for unsupported scripts
    */
   private detectScript(text: string): string {
-    // Sanscript autodetect returns a scheme name or empty string
-    // We'll use a simple heuristic for detection
+    // Detect Unicode script ranges
     if (/[\u0900-\u097F]/.test(text)) return "devanagari";
     if (/[\u0C00-\u0C7F]/.test(text)) return "telugu";
+    // IAST uses Latin characters with diacritical marks
     if (/[āīūṛṝḷḹēōṃḥṅñṭḍṇśṣ]/.test(text)) return "iast";
-    return "latin";
+    // If plain ASCII/Latin without IAST marks, assume ITRANS
+    if (/^[a-zA-Z0-9\s\-\/]+$/.test(text)) return "itrans";
+    // Unknown script - don't attempt transliteration
+    return "unknown";
   }
 }
