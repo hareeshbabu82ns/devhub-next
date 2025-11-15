@@ -1,5 +1,8 @@
 /**
  * Advanced React hook for optimized dictionary search with caching and debouncing
+ * 
+ * Tasks: T83-T84
+ * Enhanced to use SearchService pattern with SearchState encapsulation
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -14,6 +17,24 @@ import {
 } from "@/app/(app)/dictionary/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { UserFilter } from "@/lib/dictionary/types";
+
+/**
+ * T84: SearchState type encapsulating search parameters
+ * Provides centralized state management for search operations
+ */
+export interface SearchState {
+  searchTerm: string;
+  filters: UserFilter;
+  sortOptions: {
+    sortBy: SortField;
+    sortOrder: SortOrder;
+  };
+  pagination: {
+    limit: number;
+    offset: number;
+  };
+}
 
 interface UseDictionarySearchOptions {
   dictFrom?: string[];
@@ -34,6 +55,7 @@ interface UseDictionarySearchResult {
   operation: SearchOperation;
   setOperation: (op: SearchOperation) => void;
   effectiveOperation: SearchOperation; // The actual operation being used (auto-browse aware)
+  searchState: SearchState; // T84: Encapsulated search state
 
   // Filters and sorting
   dictFrom: string[];
@@ -214,6 +236,31 @@ export function useDictionarySearch(
     opts.staleTime,
   ]);
 
+  // T84: Compute SearchState for external use
+  const searchState: SearchState = useMemo(
+    () => ({
+      searchTerm,
+      filters: {
+        origins: dictFrom,
+        language: null,
+        wordLengthMin: null,
+        wordLengthMax: null,
+        hasAudio: null,
+        hasAttributes: null,
+        dateRange: { start: null, end: null },
+      },
+      sortOptions: {
+        sortBy,
+        sortOrder,
+      },
+      pagination: {
+        limit,
+        offset,
+      },
+    }),
+    [searchTerm, dictFrom, sortBy, sortOrder, limit, offset]
+  );
+
   return {
     // Search state
     searchTerm,
@@ -221,6 +268,7 @@ export function useDictionarySearch(
     operation,
     setOperation,
     effectiveOperation, // Add the effective operation
+    searchState, // T84: Expose SearchState
 
     // Filters and sorting
     dictFrom,
