@@ -16,6 +16,7 @@ import {
   ArrowDownAZIcon,
   ArrowDownUpIcon,
   DownloadIcon,
+  FilterIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -52,13 +53,15 @@ import {
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
+  onFilterToggle?: () => void;
 }
 
 /**
  * T096-T097: Refactored to use hooks exclusively
  * Removed inline logic for validation, filtering, and query building
+ * T80: Added filter toggle button
  */
-export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
+export const SearchToolBar = ({ asBrowse, onFilterToggle }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -141,8 +144,21 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
           />
         </div>
 
+        {/* T80: Filter toggle button */}
+        {onFilterToggle && (
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={onFilterToggle}
+            title="Open advanced filters"
+            aria-label="Open advanced filters"
+          >
+            <FilterIcon className="h-4 w-4" />
+          </Button>
+        )}
+
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" title="Toggle advanced search options">
             <ExtraParamsIcon className="h-4 w-4" />
           </Button>
         </CollapsibleTrigger>
