@@ -4,13 +4,9 @@ import React from "react";
 import { usePanchangamTimelineViewAtomValue } from "@/hooks/use-config";
 import DayOverviewLegacy from "./DayOverviewLegacy";
 import DayOverviewAdvanced from "./DayOverviewAdvanced";
+import type { ScheduleItem } from "@/types/panchangam";
 
-export interface ScheduleItem {
-  title: string;
-  startTime: string;
-  endTime: string;
-  negative?: boolean;
-}
+export type { ScheduleItem };
 
 export interface DayOverviewProps {
   schedules: ScheduleItem[];

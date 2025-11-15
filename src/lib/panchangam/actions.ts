@@ -9,7 +9,11 @@ import {
   PANCHANGAM_PLACE_IDS_MAP,
   PANCHANGAM_PLACE_TIMEZONES,
 } from "../constants";
-import { format, previousDay, subDays } from "date-fns";
+import { format, subDays } from "date-fns";
+import type {
+  GetPanchangamParams,
+  PanchangamResponse,
+} from "@/types/panchangam";
 
 // Tirupati - https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=1254360&date=20/10/2024
 // Calgary - https://www.drikpanchang.com/panchang/day-panchang.html?geoname-id=5913490&date=20/10/2024
@@ -48,11 +52,7 @@ export async function getDayPanchangam({
   place = "calgary",
   date,
   localDateString,
-}: {
-  place?: string;
-  date?: Date;
-  localDateString?: string; // Format: "DD/MM/YYYY" from client's local timezone
-}) {
+}: GetPanchangamParams): Promise<PanchangamResponse> {
   const placeId = PANCHANGAM_PLACE_IDS_MAP[place];
   if (!placeId) {
     throw new Error(`Invalid place: ${place}`);
