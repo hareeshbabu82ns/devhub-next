@@ -1,0 +1,303 @@
+/**
+ * Dictionary Accessibility Enhancements (T157)
+ * Ensures WCAG 2.1 AA compliance for focus indicators and keyboard navigation
+ */
+
+/* ===== Focus Indicators (T157) ===== */
+/* Ensure all interactive elements have visible 3:1 contrast focus indicators */
+
+/* Global focus style for dictionary components */
+.dictionary-component * :focus-visible {
+  outline: 2px solid hsl(var(--primary)) !important;
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+
+/* Button focus states */
+.dictionary-component button:focus-visible,
+.dictionary-component [role="button"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+}
+
+/* Input focus states */
+.dictionary-component input:focus-visible,
+.dictionary-component textarea:focus-visible,
+.dictionary-component select:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+/* Link focus states */
+.dictionary-component a:focus-visible {
+  outline: 2px solid hsl(var(--primary)) !important;
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* Checkbox and radio focus states */
+.dictionary-component input[type="checkbox"]:focus-visible,
+.dictionary-component input[type="radio"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+}
+
+/* Card focus states for clickable cards */
+.dictionary-component [role="article"]:focus-visible,
+.dictionary-component .dictionary-result-card:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+/* Filter chip focus states */
+.dictionary-component [role="option"]:focus-visible,
+.dictionary-component .filter-chip:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 1px;
+}
+
+/* View mode selector focus states */
+.dictionary-component [role="radio"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+/* Slider focus states */
+.dictionary-component [role="slider"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+}
+
+/* Dropdown/Combobox focus states */
+.dictionary-component [role="combobox"]:focus-visible,
+.dictionary-component [role="listbox"]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 0;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring));
+}
+
+/* ===== Skip Links (T164) ===== */
+/* Skip navigation links for keyboard users */
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  z-index: 9999;
+  border-radius: 0 0 0.25rem 0;
+  font-weight: 500;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ===== Screen Reader Only Content ===== */
+/* Already defined in globals.css, but reinforcing for dictionary */
+
+.dictionary-component .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.dictionary-component .sr-only-focusable:focus,
+.dictionary-component .sr-only-focusable:active {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ===== High Contrast Mode Support ===== */
+/* Support for Windows High Contrast Mode */
+
+@media (prefers-contrast: high) {
+  .dictionary-component * :focus-visible {
+    outline: 3px solid currentColor !important;
+    outline-offset: 3px;
+  }
+
+  .dictionary-component button:focus-visible,
+  .dictionary-component [role="button"]:focus-visible,
+  .dictionary-component a:focus-visible {
+    outline: 3px solid currentColor !important;
+    outline-offset: 3px;
+    background-color: Highlight !important;
+    color: HighlightText !important;
+  }
+}
+
+/* ===== Reduced Motion Support ===== */
+/* Respect user's motion preferences */
+
+@media (prefers-reduced-motion: reduce) {
+  .dictionary-component * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* ===== Focus Within Indicators ===== */
+/* Show parent container has focus within for better context */
+
+.dictionary-component .filter-panel:focus-within {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 1px hsl(var(--ring));
+}
+
+.dictionary-component .search-toolbar:focus-within {
+  border-color: hsl(var(--ring));
+}
+
+/* ===== Keyboard Navigation Helpers ===== */
+/* Visual indicators for keyboard navigation mode */
+
+.dictionary-component.keyboard-nav [tabindex]:not([tabindex="-1"]):hover {
+  outline: 1px dashed hsl(var(--muted-foreground));
+  outline-offset: 1px;
+}
+
+/* ===== ARIA Label Enhancements ===== */
+/* Ensure ARIA labeled elements are visually distinct when focused */
+
+.dictionary-component [aria-label]:focus-visible,
+.dictionary-component [aria-labelledby]:focus-visible,
+.dictionary-component [aria-describedby]:focus-visible {
+  outline: 2px solid hsl(var(--ring)) !important;
+  outline-offset: 2px;
+}
+
+/* ===== Loading State Accessibility ===== */
+/* Ensure loading states are accessible */
+
+.dictionary-component [aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.dictionary-component [aria-busy="true"] * :focus-visible {
+  outline-color: hsl(var(--muted-foreground));
+}
+
+/* ===== Error State Accessibility ===== */
+/* Ensure error states are clearly visible */
+
+.dictionary-component [aria-invalid="true"] {
+  border-color: hsl(var(--destructive)) !important;
+  border-width: 2px;
+}
+
+.dictionary-component [aria-invalid="true"]:focus-visible {
+  outline-color: hsl(var(--destructive)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--destructive));
+}
+
+/* ===== Touch Target Sizing (Mobile) ===== */
+/* Ensure touch targets meet minimum 44x44px requirement */
+
+@media (pointer: coarse) {
+  .dictionary-component button,
+  .dictionary-component [role="button"],
+  .dictionary-component a,
+  .dictionary-component input[type="checkbox"],
+  .dictionary-component input[type="radio"],
+  .dictionary-component [role="option"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Ensure labels are large enough to act as touch targets */
+  .dictionary-component label {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+}
+
+/* ===== Context Menu Accessibility ===== */
+/* Enhance context menu keyboard navigation */
+
+.dictionary-component [role="menu"],
+.dictionary-component [role="menubar"] {
+  outline: none;
+}
+
+.dictionary-component [role="menuitem"]:focus-visible,
+.dictionary-component [role="menuitemcheckbox"]:focus-visible,
+.dictionary-component [role="menuitemradio"]:focus-visible {
+  background-color: hsl(var(--accent));
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+/* ===== Comparison View Accessibility ===== */
+/* Ensure comparison columns are keyboard navigable */
+
+.dictionary-component .comparison-column:focus-within {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+/* ===== Modal Dialog Accessibility ===== */
+/* Ensure modal dialogs have clear boundaries and focus containment */
+
+.dictionary-component [role="dialog"]:focus-visible {
+  outline: none; /* Dialog itself shouldn't show focus, only contents */
+}
+
+.dictionary-component [role="dialog"] .dialog-close:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ===== Pagination Accessibility ===== */
+/* Ensure pagination controls are clearly visible */
+
+.dictionary-component .pagination-button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  z-index: 10;
+}
+
+.dictionary-component .pagination-button[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Audio Player Accessibility ===== */
+/* Ensure audio controls are keyboard accessible */
+
+.dictionary-component .audio-player-controls button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.dictionary-component .audio-player-slider:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
