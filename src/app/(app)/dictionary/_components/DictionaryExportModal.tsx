@@ -53,6 +53,7 @@ interface DictionaryExportModalProps {
   results: Partial<DictionaryItem>[];
   totalResults: number;
   filters?: Record<string, any>;
+  isLoadingResults?: boolean;
 }
 
 /**
@@ -64,6 +65,7 @@ export function DictionaryExportModal({
   results,
   totalResults,
   filters,
+  isLoadingResults = false,
 }: DictionaryExportModalProps) {
   const [format, setFormat] = useState<"csv" | "json" | "pdf">("csv");
   const [showPDFWarning, setShowPDFWarning] = useState(false);
@@ -171,12 +173,26 @@ export function DictionaryExportModal({
         <DialogHeader>
           <DialogTitle id="export-title">Export Dictionary Results</DialogTitle>
           <DialogDescription id="export-description">
-            Export {results.length} {results.length === 1 ? "result" : "results"} 
-            {totalResults > results.length && ` (of ${totalResults} total)`} to your preferred format.
+            {isLoadingResults ? (
+              "Loading search results for export..."
+            ) : (
+              <>
+                Export {results.length} {results.length === 1 ? "result" : "results"} 
+                {totalResults > results.length && ` (of ${totalResults} total)`} to your preferred format.
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        {isLoadingResults ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+            <p className="text-sm text-muted-foreground">
+              Fetching current search results...
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6 py-4">
           {/* T137: Format selection with radio cards */}
           <div className="space-y-3">
             <Label htmlFor="format-group" className="text-base font-medium">
@@ -278,7 +294,7 @@ export function DictionaryExportModal({
               {(Object.keys(fields) as Array<keyof ExportFieldSelection>).map((field) => (
                 <div
                   key={field}
-                  className="flex items-center space-x-3 rounded-md border p-3 min-h-[48px]"
+                  className="flex items-center space-x-3 rounded-md border p-3 min-h-12"
                 >
                   <Checkbox
                     id={`field-${field}`}
@@ -314,19 +330,20 @@ export function DictionaryExportModal({
               />
             </div>
           )}
-        </div>
+          </div>
+        )}
 
         <DialogFooter>
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isExporting}
+            disabled={isExporting || isLoadingResults}
           >
             Cancel
           </Button>
           <Button
             onClick={handleExport}
-            disabled={isExporting || Object.values(fields).every((v) => !v)}
+            disabled={isExporting || isLoadingResults || Object.values(fields).every((v) => !v)}
             className="gap-2"
             aria-label={`Export as ${format.toUpperCase()}`} // T145
           >
