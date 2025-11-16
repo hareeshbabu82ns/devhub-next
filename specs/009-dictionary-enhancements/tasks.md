@@ -289,20 +289,20 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 6
 
-- [ ] T132 [P] [US6] Create export-utils.ts in src/lib/dictionary/ with CSV generation logic
-- [ ] T133 [P] [US6] Add JSON export generation to export-utils.ts
-- [ ] T134 [P] [US6] Add PDF export generation to export-utils.ts using jsPDF library (lazy-loaded) with Unicode font support
-- [ ] T135 [P] [US6] Implement filename generation in export-utils.ts following pattern dictionary-export-{YYYYMMDD-HHMMSS}-{filter-codes}.{ext}
-- [ ] T136 [P] [US6] Implement filename truncation logic to stay under 255 characters while preserving timestamp and extension
-- [ ] T137 [P] [US6] Create DictionaryExportModal component in src/app/(app)/dictionary/\_components/DictionaryExportModal.tsx with format selection (CSV/JSON/PDF) using radio cards (larger touch targets on mobile)
-- [ ] T138 [US6] Add field selection UI to DictionaryExportModal: all fields vs. specific fields (word, phonetic, origin, description) with checkbox list (48px min height mobile)
-- [ ] T139 [US6] Create export server action in download-actions.ts with streaming support for large datasets (1000+ entries) and progress tracking
-- [ ] T140 [US6] Implement chunked processing in export action to prevent memory issues per FR-014
-- [ ] T141 [US6] Add progress bar to DictionaryExportModal for large exports showing percentage complete
-- [ ] T142 [US6] Implement export of all filtered results (not just visible page) when filters are active
-- [ ] T143 [US6] Add export button to search-toolbar.tsx that opens DictionaryExportModal
-- [ ] T144 [US6] Add warning dialog when exporting 10,000+ entries to PDF suggesting CSV/JSON alternatives
-- [ ] T145 [US6] Add ARIA labels to export modal and announce export progress to screen readers
+- [X] T132 [P] [US6] Create export-utils.ts in src/lib/dictionary/ with CSV generation logic
+- [X] T133 [P] [US6] Add JSON export generation to export-utils.ts
+- [X] T134 [P] [US6] Add PDF export generation to export-utils.ts using jsPDF library (lazy-loaded) with Unicode font support
+- [X] T135 [P] [US6] Implement filename generation in export-utils.ts following pattern dictionary-export-{YYYYMMDD-HHMMSS}-{filter-codes}.{ext}
+- [X] T136 [P] [US6] Implement filename truncation logic to stay under 255 characters while preserving timestamp and extension
+- [X] T137 [P] [US6] Create DictionaryExportModal component in src/app/(app)/dictionary/\_components/DictionaryExportModal.tsx with format selection (CSV/JSON/PDF) using radio cards (larger touch targets on mobile)
+- [X] T138 [US6] Add field selection UI to DictionaryExportModal: all fields vs. specific fields (word, phonetic, origin, description) with checkbox list (48px min height mobile)
+- [X] T139 [US6] Create export server action in download-actions.ts with streaming support for large datasets (1000+ entries) and progress tracking
+- [X] T140 [US6] Implement chunked processing in export action to prevent memory issues per FR-014
+- [X] T141 [US6] Add progress bar to DictionaryExportModal for large exports showing percentage complete
+- [X] T142 [US6] Implement export of all filtered results (not just visible page) when filters are active
+- [X] T143 [US6] Add export button to search-toolbar.tsx that opens DictionaryExportModal
+- [X] T144 [US6] Add warning dialog when exporting 10,000+ entries to PDF suggesting CSV/JSON alternatives
+- [X] T145 [US6] Add ARIA labels to export modal and announce export progress to screen readers
 
 **Checkpoint**: Export functionality should work for all formats with proper filenames
 

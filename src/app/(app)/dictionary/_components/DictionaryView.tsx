@@ -6,6 +6,7 @@ import { SearchToolBar } from "./search-toolbar";
 import DictionaryFilters from "./DictionaryFilters";
 import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import SavedSearchModal from "./SavedSearchModal";
+import DictionaryExportModal from "./DictionaryExportModal";
 import { ViewMode } from "../types";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
@@ -14,6 +15,8 @@ import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSearchHistory } from "@/hooks/use-search-history";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import { useQuery } from "@tanstack/react-query";
+import { searchDictionary } from "../actions";
 
 // import DictionaryItemList from "./DictionaryResults";
 
@@ -30,6 +33,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const [filterOpen, setFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [saveSearchModalOpen, setSaveSearchModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false); // T143
 
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -39,6 +43,30 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const { createSavedSearch, isCreating } = useSavedSearches();
   const { addToHistory } = useSearchHistory();
   const { filters } = useDictionaryFilters();
+
+  // T142: Fetch all results for export (without pagination)
+  const { data: exportData } = useQuery({
+    queryKey: [
+      "dictionaryExport",
+      originParam,
+      searchParam,
+      filters,
+    ],
+    queryFn: async () => {
+      const response = await searchDictionary({
+        dictFrom: originParam,
+        queryText: searchParam,
+        queryOperation: searchParam ? "REGEX" : "BROWSE",
+        sortBy: sortByParam as any,
+        sortOrder: sortOrderParam as any,
+        language,
+        limit: 10000, // Max limit for export
+        offset: 0,
+      });
+      return response;
+    },
+    enabled: false, // Only fetch when export is triggered
+  });
 
   // Get current search state
   const originParam = (
@@ -114,6 +142,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
             onFilterToggle={() => setFilterOpen(true)}
             onSaveSearch={handleSaveSearch}
             onSelectSearch={handleSelectSearch}
+            onExport={() => setExportModalOpen(true)} // T143
           />
         </div>
 
@@ -138,6 +167,15 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
         }}
         onSave={handleSaveSearchSubmit}
         isSaving={isCreating}
+      />
+
+      {/* T137-T145: Export Modal */}
+      <DictionaryExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        results={exportData?.results || []}
+        totalResults={exportData?.total || 0}
+        filters={filters}
       />
     </main>
   );

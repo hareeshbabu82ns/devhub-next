@@ -18,6 +18,7 @@ import {
   DownloadIcon,
   FilterIcon,
   BookmarkPlusIcon,
+  FileDownIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -66,6 +67,7 @@ interface SearchToolBarProps {
     sortBy?: string;
     sortOrder?: string;
   }) => void;
+  onExport?: () => void; // T143: Export button handler
 }
 
 /**
@@ -79,6 +81,7 @@ export const SearchToolBar = ({
   onFilterToggle,
   onSaveSearch,
   onSelectSearch,
+  onExport, // T143
 }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -208,6 +211,19 @@ export const SearchToolBar = ({
         </CollapsibleTrigger>
 
         <div className="flex items-center gap-2">
+          {/* T143: Export button that opens modal */}
+          {onExport && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onExport}
+              title="Export search results"
+              aria-label="Export search results"
+            >
+              <FileDownIcon className="h-4 w-4" />
+            </Button>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
