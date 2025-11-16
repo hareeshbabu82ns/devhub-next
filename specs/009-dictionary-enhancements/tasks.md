@@ -336,16 +336,16 @@ Web application (Next.js 15+):
 
 ### Accessibility Compliance (WCAG 2.1 AA)
 
-- [ ] T155 [P] Add ARIA roles and labels to all new components (DictionaryFilters, ViewModeSelector, SavedSearchesDropdown, ExportModal, Popup, Comparison)
-- [ ] T156 [P] Implement ARIA live regions for dynamic content changes (filter updates, search results, modal openings) with appropriate politeness levels
-- [ ] T157 [P] Verify focus indicators with 3:1 contrast ratio on all interactive elements using visible focus rings (2px solid)
+- [X] T155 [P] Add ARIA roles and labels to all new components (DictionaryFilters, ViewModeSelector, SavedSearchesDropdown, ExportModal, Popup, Comparison)
+- [X] T156 [P] Implement ARIA live regions for dynamic content changes (filter updates, search results, modal openings) with appropriate politeness levels
+- [X] T157 [P] Verify focus indicators with 3:1 contrast ratio on all interactive elements using visible focus rings (2px solid)
 - [ ] T158 [P] Audit color contrast: 4.5:1 for normal text, 3:1 for large text and UI components using WebAIM contrast checker
 - [ ] T159 [P] Verify logical tab order through entire dictionary interface (search → filters → results → view modes → saved searches → actions)
 - [ ] T160 Run automated accessibility tests with axe-core and WAVE browser extension on all dictionary pages
 - [ ] T161 Manual screen reader testing with NVDA (Windows) on all new features with announcement verification
 - [ ] T162 Manual screen reader testing with VoiceOver (macOS/iOS) on all new features including mobile
 - [ ] T163 Keyboard-only navigation testing: verify all features work without mouse (Enter, Space, Arrow keys, Escape, Tab/Shift+Tab)
-- [ ] T164 Add skip links for keyboard users to jump to main content, filters, results sections
+- [X] T164 Add skip links for keyboard users to jump to main content, filters, results sections
 
 ### Performance Optimization
 
@@ -397,12 +397,12 @@ Web application (Next.js 15+):
 
 ### Testing & Documentation
 
-- [ ] T191 Create unit tests for relevance-scoring.ts in tests/lib/dictionary/relevance-scoring.test.ts with edge cases (empty text, special chars, conjuncts)
-- [ ] T192 Create unit tests for highlight-utils.ts in tests/lib/dictionary/highlight-utils.test.ts with multi-script test cases
+- [X] T191 Create unit tests for relevance-scoring.ts in tests/lib/dictionary/relevance-scoring.test.ts with edge cases (empty text, special chars, conjuncts)
+- [X] T192 Create unit tests for highlight-utils.ts in tests/lib/dictionary/highlight-utils.test.ts with multi-script test cases
 - [ ] T193 Create integration tests for filter combinations in tests/lib/dictionary/filter-service.test.ts
 - [ ] T194 Create mobile-specific E2E tests using Playwright with device emulation (touch events, viewport sizes)
-- [ ] T195 Document keyboard shortcuts and accessibility features for users in help section
-- [ ] T196 Create user guide with screenshots for new features (filters, view modes, saved searches, popup)
+- [X] T195 Document keyboard shortcuts and accessibility features for users in help section
+- [X] T196 Create user guide with screenshots for new features (filters, view modes, saved searches, popup)
 - [ ] T197 Update dictionary documentation with responsive design patterns and container query usage
 - [ ] T198 Create developer guide for adding new filter types using established service layer patterns
 - [ ] T199 Document mobile-first best practices used in implementation (touch targets, safe areas, responsive patterns)

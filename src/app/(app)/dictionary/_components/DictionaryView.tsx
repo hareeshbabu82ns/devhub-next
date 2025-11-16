@@ -8,6 +8,7 @@ import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import SavedSearchModal from "./SavedSearchModal";
 import DictionaryExportModal from "./DictionaryExportModal";
 import DictionaryComparison from "./DictionaryComparison";
+import { DictionarySkipLinks, SkipLinkTarget } from "./DictionarySkipLinks";
 import { ViewMode } from "../types";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
@@ -18,6 +19,7 @@ import { useSearchHistory } from "@/hooks/use-search-history";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 import { useQuery } from "@tanstack/react-query";
 import { searchDictionary } from "../actions";
+import { cn } from "@/lib/utils";
 
 const VIEW_MODE_STORAGE_KEY = "dictionary-view-mode";
 
@@ -205,33 +207,50 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   );
 
   return (
-    <main className="flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-        <div className="flex-1 w-full sm:w-auto">
-          <SearchToolBar
-            asBrowse={asBrowse}
-            onFilterToggle={() => setFilterOpen(true)}
-            onSaveSearch={handleSaveSearch}
-            onSelectSearch={handleSelectSearch}
-            onExport={handleExport} // T143
-          />
-        </div>
+    <div className="dictionary-component">
+      {/* T164: Skip links for keyboard navigation */}
+      <DictionarySkipLinks />
 
-        {/* T87: View Mode Selector */}
-        <DictionaryViewModeSelector
-          value={viewMode}
-          onChange={handleViewModeChange}
-        />
-      </div>
+      <SkipLinkTarget id="dictionary-main-content" as="main">
+        <main className={cn(
+          "flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]",
+          "focus:outline-none" // Remove focus outline on main since it's just a skip target
+        )}>
+          <SkipLinkTarget id="dictionary-search">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+              <div className="flex-1 w-full sm:w-auto">
+                <SearchToolBar
+                  asBrowse={asBrowse}
+                  onFilterToggle={() => setFilterOpen(true)}
+                  onSaveSearch={handleSaveSearch}
+                  onSelectSearch={handleSelectSearch}
+                  onExport={handleExport} // T143
+                />
+              </div>
 
-      <DictionaryResults
-        asBrowse={asBrowse}
-        viewMode={viewMode}
-        onCompare={handleCompare} // T148
-      />
+              {/* T87: View Mode Selector */}
+              <DictionaryViewModeSelector
+                value={viewMode}
+                onChange={handleViewModeChange}
+              />
+            </div>
+          </SkipLinkTarget>
 
-      {/* T74-T86: Advanced Filter Sidebar */}
-      <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
+          <SkipLinkTarget id="dictionary-results">
+            <DictionaryResults
+              asBrowse={asBrowse}
+              viewMode={viewMode}
+              onCompare={handleCompare} // T148
+            />
+          </SkipLinkTarget>
+
+          {/* T74-T86: Advanced Filter Sidebar with skip target */}
+          <div id="dictionary-filters">
+            <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
+          </div>
+
+        </main>
+      </SkipLinkTarget>
 
       {/* T101: Save Search Modal */}
       <SavedSearchModal
@@ -264,7 +283,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
         word={comparisonWord}
         entries={comparisonData?.results || []}
       />
-    </main>
+    </div>
   );
 };
 
