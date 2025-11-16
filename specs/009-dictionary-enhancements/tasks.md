@@ -269,13 +269,13 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 5
 
-- [ ] T125 [P] [US5] Create AudioPlayer component in src/components/features/dictionary/AudioPlayer.tsx with touch-friendly play/pause button (min 44x44px), speed selector (0.5x, 1x, 1.5x), volume slider
-- [ ] T126 [P] [US5] Implement Web Audio API integration for playback speed control in AudioPlayer.tsx with visual feedback for current state
-- [ ] T127 [US5] Implement auto-stop previous audio when new audio plays using global audio state management (single audio instance, prevent multiple playbacks)
-- [ ] T128 [US5] Add audio icon display next to word in DictionaryResults.tsx for entries with audio field
-- [ ] T129 [US5] Handle missing/broken audio files gracefully: show disabled icon with "No audio available" tooltip
-- [ ] T130 [US5] Add ARIA labels to audio controls and announce playback state to screen readers
-- [ ] T131 [US5] Implement keyboard controls for audio player (Space to play/pause, arrows for seek)
+- [X] T125 [P] [US5] Create AudioPlayer component in src/components/features/dictionary/AudioPlayer.tsx with touch-friendly play/pause button (min 44x44px), speed selector (0.5x, 1x, 1.5x), volume slider
+- [X] T126 [P] [US5] Implement Web Audio API integration for playback speed control in AudioPlayer.tsx with visual feedback for current state
+- [X] T127 [US5] Implement auto-stop previous audio when new audio plays using global audio state management (single audio instance, prevent multiple playbacks)
+- [X] T128 [US5] Add audio icon display next to word in DictionaryResults.tsx for entries with audio field
+- [X] T129 [US5] Handle missing/broken audio files gracefully: show disabled icon with "No audio available" tooltip
+- [X] T130 [US5] Add ARIA labels to audio controls and announce playback state to screen readers
+- [X] T131 [US5] Implement keyboard controls for audio player (Space to play/pause, arrows for seek)
 
 **Checkpoint**: Inline audio playback should work for entries with audio files
 

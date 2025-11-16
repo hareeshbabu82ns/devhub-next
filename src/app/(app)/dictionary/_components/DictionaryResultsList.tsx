@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 import { SearchResultHighlight } from "./SearchResultHighlight";
 import { getRelevanceLabel, getRelevanceCategory } from "@/lib/dictionary/relevance-scoring";
+import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
 
 import { ViewMode } from "../types";
 
@@ -247,6 +248,10 @@ function DictionaryResultCard({
   // T90: Description truncation state for Compact/Card modes
   const [isExpanded, setIsExpanded] = useState(false);
   
+  // T128-T129: Check if audio is available (from sourceData or future audio field)
+  const audioUrl = (item as any).audio || item.sourceData?.audioUrl || item.sourceData?.audio;
+  const hasAudio = Boolean(audioUrl);
+  
   // T122: Get relevance score and category for display
   const hasRelevanceScore = typeof item.relevanceScore === 'number';
   const relevanceScore = item.relevanceScore ?? 0;
@@ -296,6 +301,14 @@ function DictionaryResultCard({
           </span>
         </div>
         <div className="flex gap-1 shrink-0">
+          {/* T128: Audio icon display for entries with audio */}
+          {hasAudio && (
+            <AudioPlayer
+              audioUrl={audioUrl}
+              wordId={item.id!}
+              compact
+            />
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -376,6 +389,14 @@ function DictionaryResultCard({
               : "opacity-0 group-hover:opacity-100"
           )}
         >
+          {/* T128: Audio icon display for entries with audio */}
+          {hasAudio && (
+            <AudioPlayer
+              audioUrl={audioUrl}
+              wordId={item.id!}
+              compact
+            />
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -441,6 +462,16 @@ function DictionaryResultCard({
         >
           {isExpanded ? "Show less" : "Read more"}
         </Button>
+      )}
+
+      {/* T128: Full audio player for card/detailed views */}
+      {hasAudio && viewMode !== "compact" && (
+        <div className="mt-3">
+          <AudioPlayer
+            audioUrl={audioUrl}
+            wordId={item.id!}
+          />
+        </div>
       )}
 
       {/* T89: Detailed mode shows additional fields */}
