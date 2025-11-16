@@ -248,14 +248,14 @@ Web application (Next.js 15+):
 - [X] T114 [US7] Integrate DictionaryPopupWidget into root layout or app wrapper for global availability with responsive positioning (centered desktop, full mobile)
 - [X] T115 [US7] Implement keyboard shortcut listener (Ctrl/Cmd+Shift+D desktop only) in DictionaryPopupWidget using use-keyboard-shortcut hook
 - [X] T116 [US7] Add search input and results display within popup using existing search logic from DictionaryResults
-- [ ] T117 [US7] Implement focus trap in popup: Tab/Shift+Tab cycles within popup, Escape closes
-- [ ] T118 [US7] Implement focus restoration: return focus to trigger element when popup closes
-- [ ] T119 [US7] Add context menu integration: "Look up in dictionary" on text selection that opens popup with pre-filled search
-- [ ] T120 [US7] Add "Open in full dictionary" link that redirects to main page with current query
-- [ ] T121 [US7] Implement click-outside-to-close behavior for popup
-- [ ] T122 [US7] Make popup expand to full-screen modal on mobile devices (<768px breakpoint) with safe-area-inset padding for notch devices
-- [ ] T123 [US7] Add scrollable results area within popup with proper overflow handling (vh-based height mobile, max-h-96 desktop) and momentum scrolling
-- [ ] T124 [US7] Add ARIA labels and announce popup open/close to screen readers
+- [X] T117 [US7] Implement focus trap in popup: Tab/Shift+Tab cycles within popup, Escape closes
+- [X] T118 [US7] Implement focus restoration: return focus to trigger element when popup closes
+- [X] T119 [US7] Add context menu integration: "Look up in dictionary" on text selection that opens popup with pre-filled search
+- [X] T120 [US7] Add "Open in full dictionary" link that redirects to main page with current query
+- [X] T121 [US7] Implement click-outside-to-close behavior for popup
+- [X] T122 [US7] Make popup expand to full-screen modal on mobile devices (<768px breakpoint) with safe-area-inset padding for notch devices
+- [X] T123 [US7] Add scrollable results area within popup with proper overflow handling (vh-based height mobile, max-h-96 desktop) and momentum scrolling
+- [X] T124 [US7] Add ARIA labels and announce popup open/close to screen readers
 
 **Checkpoint**: Quick lookup popup should work from any page with keyboard accessibility
 
