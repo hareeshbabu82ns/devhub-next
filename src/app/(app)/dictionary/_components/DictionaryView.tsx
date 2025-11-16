@@ -79,13 +79,22 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
 
   // T142: Fetch all results for export (without pagination)
-  const { data: exportData, refetch: refetchExportData, isFetching: isFetchingExportData } = useQuery({
+  const {
+    data: exportData,
+    refetch: refetchExportData,
+    isFetching: isFetchingExportData,
+  } = useQuery({
     queryKey: ["dictionaryExport", originParam, searchParam, ftsParam, filters],
     queryFn: async () => {
       const response = await searchDictionary({
         dictFrom: originParam,
         queryText: searchParam,
-        queryOperation: ftsParam === "x" ? "FULL_TEXT_SEARCH" : searchParam ? "REGEX" : "BROWSE",
+        queryOperation:
+          ftsParam === "x"
+            ? "FULL_TEXT_SEARCH"
+            : searchParam
+              ? "REGEX"
+              : "BROWSE",
         sortBy: sortByParam as any,
         sortOrder: sortOrderParam as any,
         language,
