@@ -72,6 +72,7 @@ interface DictionaryResultsListProps {
   onRefresh: () => void;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
+  onCompare?: (word: string) => void; // T148: Compare callback
 }
 
 /**
@@ -101,6 +102,7 @@ export function DictionaryResultsList({
   onRefresh,
   onCopyDescription,
   onEditItem,
+  onCompare, // T148
 }: DictionaryResultsListProps) {
   // Loading state
   if (isLoading || isFetching) {
@@ -195,6 +197,7 @@ export function DictionaryResultsList({
               viewMode={viewMode}
               onCopyDescription={onCopyDescription}
               onEditItem={onEditItem}
+              onCompare={onCompare} // T148
             />
           ))}
         </div>
@@ -232,6 +235,7 @@ interface DictionaryResultCardProps {
   viewMode?: ViewMode;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
+  onCompare?: (word: string) => void; // T148
 }
 
 function DictionaryResultCard({
@@ -244,6 +248,7 @@ function DictionaryResultCard({
   viewMode = "card",
   onCopyDescription,
   onEditItem,
+  onCompare, // T148
 }: DictionaryResultCardProps) {
   // T90: Description truncation state for Compact/Card modes
   const [isExpanded, setIsExpanded] = useState(false);
@@ -396,6 +401,20 @@ function DictionaryResultCard({
               wordId={item.id!}
               compact
             />
+          )}
+          {/* T148: Compare button (min 44x44px touch target) */}
+          {onCompare && item.word && (
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              className="p-0 min-w-[44px] min-h-[44px]"
+              onClick={() => onCompare(item.word!)}
+              aria-label={`Compare ${item.word} across dictionaries`}
+              title="Compare across dictionaries"
+            >
+              <Icons.gitCompare className="size-4" />
+            </Button>
           )}
           <Button
             variant="ghost"

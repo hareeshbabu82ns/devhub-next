@@ -316,15 +316,15 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 8
 
-- [ ] T146 [P] [US8] Create DictionaryComparison component in src/app/(app)/dictionary/\_components/DictionaryComparison.tsx with responsive layout (side-by-side desktop, vertical stack mobile)
-- [ ] T147 [P] [US8] Implement column rendering for each dictionary origin with prominent origin labels (sticky header on mobile)
-- [ ] T148 [US8] Add "Compare" button to DictionaryResults (touch-friendly min 44x44px) that triggers comparison view for selected word
-- [ ] T149 [US8] Implement horizontal scrolling for 3+ dictionary columns on desktop (1024px+)
-- [ ] T150 [US8] Implement difference highlighting: emphasize unique content in each dictionary entry
-- [ ] T151 [US8] Add dictionary toggle controls in comparison view: show/hide specific dictionary columns dynamically
-- [ ] T152 [US8] Implement responsive comparison: vertical stacking on mobile devices (<768px)
-- [ ] T153 [US8] Handle dictionaries with different schemas: map to common fields, show unique fields in "Additional Info" section
-- [ ] T154 [US8] Add ARIA labels and keyboard navigation to comparison view columns
+- [X] T146 [P] [US8] Create DictionaryComparison component in src/app/(app)/dictionary/\_components/DictionaryComparison.tsx with responsive layout (side-by-side desktop, vertical stack mobile)
+- [X] T147 [P] [US8] Implement column rendering for each dictionary origin with prominent origin labels (sticky header on mobile)
+- [X] T148 [US8] Add "Compare" button to DictionaryResults (touch-friendly min 44x44px) that triggers comparison view for selected word
+- [X] T149 [US8] Implement horizontal scrolling for 3+ dictionary columns on desktop (1024px+)
+- [X] T150 [US8] Implement difference highlighting: emphasize unique content in each dictionary entry
+- [X] T151 [US8] Add dictionary toggle controls in comparison view: show/hide specific dictionary columns dynamically
+- [X] T152 [US8] Implement responsive comparison: vertical stacking on mobile devices (<768px)
+- [X] T153 [US8] Handle dictionaries with different schemas: map to common fields, show unique fields in "Additional Info" section
+- [X] T154 [US8] Add ARIA labels and keyboard navigation to comparison view columns
 
 **Checkpoint**: Comparison view should work for multiple dictionaries with responsive layout
 

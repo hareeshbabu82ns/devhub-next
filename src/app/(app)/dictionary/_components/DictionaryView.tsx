@@ -7,6 +7,7 @@ import DictionaryFilters from "./DictionaryFilters";
 import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import SavedSearchModal from "./SavedSearchModal";
 import DictionaryExportModal from "./DictionaryExportModal";
+import DictionaryComparison from "./DictionaryComparison";
 import { ViewMode } from "../types";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
@@ -34,6 +35,8 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [saveSearchModalOpen, setSaveSearchModalOpen] = useState(false);
   const [exportModalOpen, setExportModalOpen] = useState(false); // T143
+  const [comparisonOpen, setComparisonOpen] = useState(false); // T148
+  const [comparisonWord, setComparisonWord] = useState<string>(""); // T148
 
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -67,6 +70,37 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
     },
     enabled: false, // Only fetch when export is triggered
   });
+
+  // T148: Fetch entries for comparison across all dictionaries
+  const { data: comparisonData, refetch: refetchComparison } = useQuery({
+    queryKey: ["dictionaryComparison", comparisonWord],
+    queryFn: async () => {
+      if (!comparisonWord) return { results: [], total: 0 };
+      
+      const response = await searchDictionary({
+        dictFrom: [], // Empty to search all dictionaries
+        queryText: comparisonWord,
+        queryOperation: "REGEX",
+        sortBy: "wordIndex" as any,
+        sortOrder: "asc" as any,
+        language,
+        limit: 100, // Get all matches across dictionaries
+        offset: 0,
+      });
+      return response;
+    },
+    enabled: false, // Only fetch when comparison is triggered
+  });
+
+  // T148: Handle comparison
+  const handleCompare = useCallback((word: string) => {
+    setComparisonWord(word);
+    setComparisonOpen(true);
+    // Fetch comparison data
+    setTimeout(() => {
+      refetchComparison();
+    }, 100);
+  }, [refetchComparison]);
 
   // Get current search state
   const originParam = (
@@ -150,7 +184,11 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
         <DictionaryViewModeSelector value={viewMode} onChange={setViewMode} />
       </div>
 
-      <DictionaryResults asBrowse={asBrowse} viewMode={viewMode} />
+      <DictionaryResults 
+        asBrowse={asBrowse} 
+        viewMode={viewMode} 
+        onCompare={handleCompare} // T148
+      />
 
       {/* T74-T86: Advanced Filter Sidebar */}
       <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
@@ -176,6 +214,14 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
         results={exportData?.results || []}
         totalResults={exportData?.total || 0}
         filters={filters}
+      />
+
+      {/* T146-T154: Comparison View */}
+      <DictionaryComparison
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        word={comparisonWord}
+        entries={comparisonData?.results || []}
       />
     </main>
   );
