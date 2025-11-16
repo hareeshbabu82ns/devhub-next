@@ -1,6 +1,6 @@
 /**
  * SearchToolBar - Refactored Component
- * 
+ *
  * Task: T089, T096, T097
  * Purpose: Use hooks exclusively, remove inline business logic
  * All filtering and validation delegated to hooks
@@ -53,6 +53,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import SavedSearchesDropdown from "./SavedSearchesDropdown";
 import { useSession } from "next-auth/react";
+import { useMemo } from "react";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -72,9 +74,9 @@ interface SearchToolBarProps {
  * T80: Added filter toggle button
  * T100: Added Save Search button and Saved Searches dropdown
  */
-export const SearchToolBar = ({ 
-  asBrowse, 
-  onFilterToggle, 
+export const SearchToolBar = ({
+  asBrowse,
+  onFilterToggle,
   onSaveSearch,
   onSelectSearch,
 }: SearchToolBarProps) => {
@@ -83,12 +85,14 @@ export const SearchToolBar = ({
   const language = useLanguageAtomValue();
   const { data: session } = useSession();
 
+  const { filters } = useDictionaryFilters();
+
   // T089: Use hook-managed state instead of inline parsing
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const originParam = (
-    searchParams.get("origin")?.split(",") ??
+    searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   ).filter((o) => o.trim().length > 0);
@@ -163,9 +167,9 @@ export const SearchToolBar = ({
 
         {/* T80: Filter toggle button */}
         {onFilterToggle && (
-          <Button 
-            variant="outline" 
-            size="icon" 
+          <Button
+            variant="outline"
+            size="icon"
             onClick={onFilterToggle}
             title="Open advanced filters"
             aria-label="Open advanced filters"
@@ -182,7 +186,7 @@ export const SearchToolBar = ({
             onClick={onSaveSearch}
             title="Save current search"
             aria-label="Save current search"
-            className="min-w-[44px] min-h-[44px]"
+            className="min-w-11 min-h-11"
           >
             <BookmarkPlusIcon className="h-4 w-4" />
           </Button>
@@ -194,7 +198,11 @@ export const SearchToolBar = ({
         )}
 
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="icon" title="Toggle advanced search options">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Toggle advanced search options"
+          >
             <ExtraParamsIcon className="h-4 w-4" />
           </Button>
         </CollapsibleTrigger>

@@ -1,6 +1,6 @@
 /**
  * DictionaryResultsContainer - Logic Layer
- * 
+ *
  * Task: T092-T093, T89 (view mode management)
  * Purpose: Container component managing state, hooks, and event handlers
  * Responsibilities:
@@ -11,7 +11,7 @@
  * - Pagination logic
  * - Touch device detection
  * - View mode management (T89)
- * 
+ *
  * This component delegates ALL rendering to DictionaryResultsList (presentation layer)
  */
 
@@ -33,6 +33,7 @@ import { useMediaQuery } from "@/hooks/use-media-query";
 import { DictionaryResultsList } from "./DictionaryResultsList";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { ViewMode } from "../types";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 
 interface DictionaryResultsContainerProps {
   asBrowse?: boolean;
@@ -52,6 +53,8 @@ export function DictionaryResultsContainer({
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
+  const { filters } = useDictionaryFilters();
+
   // Get configuration from atoms
   const language = useLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
@@ -61,15 +64,12 @@ export function DictionaryResultsContainer({
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
-  const originParam = useMemo(
-    () =>
-      (
-        searchParams.get("origin")?.split(",") ??
-        localOrigins ??
-        []
-      ).filter((o) => o.trim().length > 0),
-    [searchParams, localOrigins]
-  );
+  const originParam = useMemo(() => {
+    const urlOrigins = searchParams.get("origins")?.split(",").filter(Boolean);
+    if (urlOrigins && urlOrigins.length > 0) return urlOrigins;
+    if (filters.origins.length > 0) return filters.origins;
+    return localOrigins.filter(Boolean);
+  }, [searchParams, filters.origins, localOrigins]);
 
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";

@@ -89,12 +89,10 @@ export function DictionaryFilters({
 
   // T79: Discard pending changes on close without Apply
   const handleClose = (shouldClose: boolean) => {
-    if (!shouldClose) return;
-    
-    if (hasPendingChanges) {
+    if (hasPendingChanges && shouldClose) {
       discardPendingFilters();
     }
-    onOpenChange(false);
+    onOpenChange(shouldClose);
   };
 
   // T75: Convert origins to multi-select format
@@ -191,7 +189,7 @@ export function DictionaryFilters({
                 <SelectValue placeholder="All languages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All languages</SelectItem>
+                <SelectItem value="_">All languages</SelectItem>
                 {DICTIONARY_LANGUAGES.map((lang) => (
                   <SelectItem key={lang.value} value={lang.value}>
                     {lang.label}

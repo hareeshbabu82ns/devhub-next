@@ -42,7 +42,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
 
   // Get current search state
   const originParam = (
-    searchParams.get("origin")?.split(",") ??
+    searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   ).filter((o) => o.trim().length > 0);
@@ -69,7 +69,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
       });
       setSaveSearchModalOpen(false);
     },
-    [searchParam, filters, sortByParam, sortOrderParam, createSavedSearch]
+    [searchParam, filters, sortByParam, sortOrderParam, createSavedSearch],
   );
 
   // T102: Handle selecting a saved search to restore
@@ -102,7 +102,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
       // T103: Add to search history when selecting a saved search
       addToHistory(search.queryText, search.filters);
     },
-    [updateSearchParams, addToHistory]
+    [updateSearchParams, addToHistory],
   );
 
   return (
