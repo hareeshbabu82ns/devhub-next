@@ -1,6 +1,6 @@
 /**
  * DictionaryResultsList - Presentation Layer
- * 
+ *
  * Task: T094-T095
  * Purpose: Pure presentation component for rendering dictionary results
  * Responsibilities:
@@ -10,7 +10,7 @@
  * - Props-driven rendering
  * - Responsive grid layout with @container queries
  * - Mobile-optimized UI (touch targets, spacing)
- * 
+ *
  * All data and callbacks come from parent Container component
  */
 
@@ -36,7 +36,11 @@ import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 import { cn } from "@/lib/utils";
 import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 import { SearchResultHighlight } from "./SearchResultHighlight";
-import { getRelevanceLabel, getRelevanceCategory } from "@/lib/dictionary/relevance-scoring";
+import {
+  getRelevanceLabel,
+  getRelevanceCategory,
+} from "@/lib/dictionary/relevance-scoring";
+import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
 
 import { ViewMode } from "../types";
 
@@ -45,17 +49,17 @@ interface DictionaryResultsListProps {
   results: any[];
   total: number;
   originParam: string[];
-  
+
   // State
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
-  
+
   // Pagination
   currentPage: number;
   limit: number;
-  
+
   // Configuration
   language: string;
   textSize: string;
@@ -63,7 +67,7 @@ interface DictionaryResultsListProps {
   asBrowse?: boolean;
   searchTerm?: string; // T123: For highlighting search matches
   viewMode?: ViewMode; // T89: View mode for rendering
-  
+
   // Callbacks
   onPageChange: (page: number) => void;
   onNextPage: () => void;
@@ -71,6 +75,7 @@ interface DictionaryResultsListProps {
   onRefresh: () => void;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
+  onCompare?: (word: string) => void; // T148: Compare callback
 }
 
 /**
@@ -100,6 +105,7 @@ export function DictionaryResultsList({
   onRefresh,
   onCopyDescription,
   onEditItem,
+  onCompare, // T148
 }: DictionaryResultsListProps) {
   // Loading state
   if (isLoading || isFetching) {
@@ -114,15 +120,20 @@ export function DictionaryResultsList({
   // Empty state
   if (!results || total === 0) {
     return (
-      <SimpleAlert title={`No data found in Dictionary: ${originParam.join(", ")}`} />
+      <SimpleAlert
+        title={`No data found in Dictionary: ${originParam.join(", ")}`}
+      />
     );
   }
 
   // T125: Calculate average relevance score for screen reader announcement
-  const avgRelevanceScore = results.reduce((sum, item) => {
-    return sum + (item.relevanceScore ?? 0);
-  }, 0) / (results.length || 1);
-  const hasRelevanceScores = results.some(item => typeof item.relevanceScore === 'number');
+  const avgRelevanceScore =
+    results.reduce((sum, item) => {
+      return sum + (item.relevanceScore ?? 0);
+    }, 0) / (results.length || 1);
+  const hasRelevanceScores = results.some(
+    (item) => typeof item.relevanceScore === "number",
+  );
 
   // Results display
   return (
@@ -136,7 +147,7 @@ export function DictionaryResultsList({
       >
         {total > 0 && (
           <>
-            {`Found ${total} results${hasRelevanceScores ? ` with average relevance score of ${Math.round(avgRelevanceScore)}` : ''}`}
+            {`Found ${total} results${hasRelevanceScores ? ` with average relevance score of ${Math.round(avgRelevanceScore)}` : ""}`}
             {searchTerm && ` for search term "${searchTerm}"`}
           </>
         )}
@@ -171,15 +182,16 @@ export function DictionaryResultsList({
           />
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {/* T089, T093: Responsive grid with @container queries - layout changes based on view mode */}
         <div
           className={cn(
             "gap-4",
             viewMode === "compact" && "flex flex-col space-y-2",
-            viewMode === "card" && "grid grid-cols-1 @6xl:grid-cols-2 @7xl:grid-cols-3",
-            viewMode === "detailed" && "flex flex-col space-y-4"
+            viewMode === "card" &&
+              "grid grid-cols-1 @6xl:grid-cols-2 @7xl:grid-cols-3",
+            viewMode === "detailed" && "flex flex-col space-y-4",
           )}
         >
           {results.map((item) => (
@@ -194,6 +206,7 @@ export function DictionaryResultsList({
               viewMode={viewMode}
               onCopyDescription={onCopyDescription}
               onEditItem={onEditItem}
+              onCompare={onCompare} // T148
             />
           ))}
         </div>
@@ -231,6 +244,7 @@ interface DictionaryResultCardProps {
   viewMode?: ViewMode;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
+  onCompare?: (word: string) => void; // T148
 }
 
 function DictionaryResultCard({
@@ -243,30 +257,46 @@ function DictionaryResultCard({
   viewMode = "card",
   onCopyDescription,
   onEditItem,
+  onCompare, // T148
 }: DictionaryResultCardProps) {
   // T90: Description truncation state for Compact/Card modes
   const [isExpanded, setIsExpanded] = useState(false);
-  
+
+  // T128-T129: Check if audio is available (from sourceData or future audio field)
+  const audioUrl =
+    (item as any).audio || item.sourceData?.audioUrl || item.sourceData?.audio;
+  const hasAudio = Boolean(audioUrl);
+
   // T122: Get relevance score and category for display
-  const hasRelevanceScore = typeof item.relevanceScore === 'number';
+  const hasRelevanceScore = typeof item.relevanceScore === "number";
   const relevanceScore = item.relevanceScore ?? 0;
-  const relevanceLabel = hasRelevanceScore ? getRelevanceLabel(relevanceScore) : '';
-  const relevanceCategory = hasRelevanceScore ? getRelevanceCategory(relevanceScore) : null;
+  const relevanceLabel = hasRelevanceScore
+    ? getRelevanceLabel(relevanceScore)
+    : "";
+  const relevanceCategory = hasRelevanceScore
+    ? getRelevanceCategory(relevanceScore)
+    : null;
 
   // Color coding for relevance scores
-  const relevanceBadgeVariant = 
-    relevanceScore >= 90 ? 'default' : // Excellent - green
-    relevanceScore >= 70 ? 'secondary' : // Good - blue
-    relevanceScore >= 50 ? 'outline' : // Fair - gray
-    'destructive'; // Poor - red (shouldn't show much in results)
+  const relevanceBadgeVariant =
+    relevanceScore >= 90
+      ? "default" // Excellent - green
+      : relevanceScore >= 70
+        ? "secondary" // Good - blue
+        : relevanceScore >= 50
+          ? "outline" // Fair - gray
+          : "destructive"; // Poor - red (shouldn't show much in results)
 
   // T90: Description truncation logic - truncate at 200 chars for compact/card
-  const shouldTruncate = (viewMode === "compact" || viewMode === "card") && !isExpanded;
-  const description = item.description ?? '';
-  const truncatedDescription = shouldTruncate && description.length > 200
-    ? description.slice(0, 200) + '...'
-    : description;
-  const showReadMore = (viewMode === "compact" || viewMode === "card") && description.length > 200;
+  const shouldTruncate =
+    (viewMode === "compact" || viewMode === "card") && !isExpanded;
+  const description = item.description ?? "";
+  const truncatedDescription =
+    shouldTruncate && description.length > 200
+      ? description.slice(0, 200) + "..."
+      : description;
+  const showReadMore =
+    (viewMode === "compact" || viewMode === "card") && description.length > 200;
 
   // T89: Different rendering based on view mode
   if (viewMode === "compact") {
@@ -274,10 +304,17 @@ function DictionaryResultCard({
       <div className="group border-b py-2 flex items-center justify-between gap-4 transition-colors hover:bg-muted/30">
         {/* Compact: single-line with word + brief meaning */}
         <div className="flex-1 flex items-center gap-3 min-w-0">
-          <div className={cn("font-medium text-sm truncate", LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY])}>
+          <div
+            className={cn(
+              "font-medium text-sm truncate",
+              LANGUAGE_FONT_FAMILY[
+                language as keyof typeof LANGUAGE_FONT_FAMILY
+              ],
+            )}
+          >
             {searchTerm ? (
               <SearchResultHighlight
-                text={item.word ?? ''}
+                text={item.word ?? ""}
                 searchTerm={searchTerm}
                 language={language}
                 ariaLabel={`Word: ${item.word}`}
@@ -296,6 +333,10 @@ function DictionaryResultCard({
           </span>
         </div>
         <div className="flex gap-1 shrink-0">
+          {/* T128: Audio icon display for entries with audio */}
+          {hasAudio && (
+            <AudioPlayer audioUrl={audioUrl} wordId={item.id!} compact />
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -324,10 +365,12 @@ function DictionaryResultCard({
   }
 
   return (
-    <div className={cn(
-      "group border rounded-sm flex flex-col transition-colors hover:bg-muted/50",
-      viewMode === "card" ? "p-4" : "p-6" // T89: Detailed mode has more padding
-    )}>
+    <div
+      className={cn(
+        "group border rounded-sm flex flex-col transition-colors hover:bg-muted/50",
+        viewMode === "card" ? "p-4" : "p-6", // T89: Detailed mode has more padding
+      )}
+    >
       {/* Header with word, relevance score, and actions */}
       <div className="pb-4 flex justify-between items-start gap-2">
         <div
@@ -337,7 +380,7 @@ function DictionaryResultCard({
           <h3 className="flex items-center gap-2 flex-wrap">
             {searchTerm && searchTerm.trim().length > 0 ? (
               <SearchResultHighlight
-                text={item.word ?? ''}
+                text={item.word ?? ""}
                 searchTerm={searchTerm}
                 language={language}
                 ariaLabel={`Search result word: ${item.word}`}
@@ -345,7 +388,7 @@ function DictionaryResultCard({
             ) : (
               <span>{item.word}</span>
             )}
-            
+
             {/* T122: Relevance score badge */}
             {hasRelevanceScore && (
               <Badge
@@ -366,21 +409,37 @@ function DictionaryResultCard({
             )}
           </h4>
         </div>
-        
+
         {/* T095: Mobile-optimized actions (min 44x44px touch targets) */}
         <div
           className={cn(
             "flex gap-1",
-            isTouchDevice
-              ? "opacity-100"
-              : "opacity-0 group-hover:opacity-100"
+            isTouchDevice ? "opacity-100" : "opacity-0 group-hover:opacity-100",
           )}
         >
+          {/* T128: Audio icon display for entries with audio */}
+          {hasAudio && (
+            <AudioPlayer audioUrl={audioUrl} wordId={item.id!} compact />
+          )}
+          {/* T148: Compare button (min 44x44px touch target) */}
+          {onCompare && item.word && (
+            <Button
+              variant="ghost"
+              size="icon"
+              type="button"
+              className="p-0 min-w-11 min-h-11"
+              onClick={() => onCompare(item.word!)}
+              aria-label={`Compare ${item.word} across dictionaries`}
+              title="Compare across dictionaries"
+            >
+              <Icons.gitCompare className="size-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
             type="button"
-            className="p-0 min-w-[44px] min-h-[44px]"
+            className="p-0 min-w-11 min-h-11"
             onClick={() => onCopyDescription(item.description ?? "")}
             aria-label="Copy description to clipboard"
           >
@@ -391,7 +450,7 @@ function DictionaryResultCard({
               variant="ghost"
               size="icon"
               type="button"
-              className="p-0 min-w-[44px] min-h-[44px]"
+              className="p-0 min-w-11 min-h-11"
               onClick={() => onEditItem(item.id!)}
               aria-label={`Edit ${item.word}`}
             >
@@ -404,12 +463,10 @@ function DictionaryResultCard({
       {/* Description content with highlighting */}
       <div
         className={cn(
-          LANGUAGE_FONT_FAMILY[
-            language as keyof typeof LANGUAGE_FONT_FAMILY
-          ],
+          LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
           `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`,
           viewMode === "card" && "max-h-48",
-          "overflow-y-auto no-scrollbar markdown-content"
+          "overflow-y-auto no-scrollbar markdown-content",
         )}
       >
         {/* T123: Description with highlighting if search term provided */}
@@ -435,12 +492,19 @@ function DictionaryResultCard({
           variant="ghost"
           size="sm"
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-2 h-10 min-h-[44px] self-start"
+          className="mt-2 h-10 min-h-11 self-start"
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Show less" : "Read more"}
         >
           {isExpanded ? "Show less" : "Read more"}
         </Button>
+      )}
+
+      {/* T128: Full audio player for card/detailed views */}
+      {hasAudio && (viewMode === "card" || viewMode === "detailed") && (
+        <div className="mt-3">
+          <AudioPlayer audioUrl={audioUrl} wordId={item.id!} />
+        </div>
       )}
 
       {/* T89: Detailed mode shows additional fields */}

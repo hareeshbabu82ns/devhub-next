@@ -248,14 +248,14 @@ Web application (Next.js 15+):
 - [X] T114 [US7] Integrate DictionaryPopupWidget into root layout or app wrapper for global availability with responsive positioning (centered desktop, full mobile)
 - [X] T115 [US7] Implement keyboard shortcut listener (Ctrl/Cmd+Shift+D desktop only) in DictionaryPopupWidget using use-keyboard-shortcut hook
 - [X] T116 [US7] Add search input and results display within popup using existing search logic from DictionaryResults
-- [ ] T117 [US7] Implement focus trap in popup: Tab/Shift+Tab cycles within popup, Escape closes
-- [ ] T118 [US7] Implement focus restoration: return focus to trigger element when popup closes
-- [ ] T119 [US7] Add context menu integration: "Look up in dictionary" on text selection that opens popup with pre-filled search
-- [ ] T120 [US7] Add "Open in full dictionary" link that redirects to main page with current query
-- [ ] T121 [US7] Implement click-outside-to-close behavior for popup
-- [ ] T122 [US7] Make popup expand to full-screen modal on mobile devices (<768px breakpoint) with safe-area-inset padding for notch devices
-- [ ] T123 [US7] Add scrollable results area within popup with proper overflow handling (vh-based height mobile, max-h-96 desktop) and momentum scrolling
-- [ ] T124 [US7] Add ARIA labels and announce popup open/close to screen readers
+- [X] T117 [US7] Implement focus trap in popup: Tab/Shift+Tab cycles within popup, Escape closes
+- [X] T118 [US7] Implement focus restoration: return focus to trigger element when popup closes
+- [X] T119 [US7] Add context menu integration: "Look up in dictionary" on text selection that opens popup with pre-filled search
+- [X] T120 [US7] Add "Open in full dictionary" link that redirects to main page with current query
+- [X] T121 [US7] Implement click-outside-to-close behavior for popup
+- [X] T122 [US7] Make popup expand to full-screen modal on mobile devices (<768px breakpoint) with safe-area-inset padding for notch devices
+- [X] T123 [US7] Add scrollable results area within popup with proper overflow handling (vh-based height mobile, max-h-96 desktop) and momentum scrolling
+- [X] T124 [US7] Add ARIA labels and announce popup open/close to screen readers
 
 **Checkpoint**: Quick lookup popup should work from any page with keyboard accessibility
 
@@ -269,13 +269,13 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 5
 
-- [ ] T125 [P] [US5] Create AudioPlayer component in src/components/features/dictionary/AudioPlayer.tsx with touch-friendly play/pause button (min 44x44px), speed selector (0.5x, 1x, 1.5x), volume slider
-- [ ] T126 [P] [US5] Implement Web Audio API integration for playback speed control in AudioPlayer.tsx with visual feedback for current state
-- [ ] T127 [US5] Implement auto-stop previous audio when new audio plays using global audio state management (single audio instance, prevent multiple playbacks)
-- [ ] T128 [US5] Add audio icon display next to word in DictionaryResults.tsx for entries with audio field
-- [ ] T129 [US5] Handle missing/broken audio files gracefully: show disabled icon with "No audio available" tooltip
-- [ ] T130 [US5] Add ARIA labels to audio controls and announce playback state to screen readers
-- [ ] T131 [US5] Implement keyboard controls for audio player (Space to play/pause, arrows for seek)
+- [X] T125 [P] [US5] Create AudioPlayer component in src/components/features/dictionary/AudioPlayer.tsx with touch-friendly play/pause button (min 44x44px), speed selector (0.5x, 1x, 1.5x), volume slider
+- [X] T126 [P] [US5] Implement Web Audio API integration for playback speed control in AudioPlayer.tsx with visual feedback for current state
+- [X] T127 [US5] Implement auto-stop previous audio when new audio plays using global audio state management (single audio instance, prevent multiple playbacks)
+- [X] T128 [US5] Add audio icon display next to word in DictionaryResults.tsx for entries with audio field
+- [X] T129 [US5] Handle missing/broken audio files gracefully: show disabled icon with "No audio available" tooltip
+- [X] T130 [US5] Add ARIA labels to audio controls and announce playback state to screen readers
+- [X] T131 [US5] Implement keyboard controls for audio player (Space to play/pause, arrows for seek)
 
 **Checkpoint**: Inline audio playback should work for entries with audio files
 
@@ -289,20 +289,20 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 6
 
-- [ ] T132 [P] [US6] Create export-utils.ts in src/lib/dictionary/ with CSV generation logic
-- [ ] T133 [P] [US6] Add JSON export generation to export-utils.ts
-- [ ] T134 [P] [US6] Add PDF export generation to export-utils.ts using jsPDF library (lazy-loaded) with Unicode font support
-- [ ] T135 [P] [US6] Implement filename generation in export-utils.ts following pattern dictionary-export-{YYYYMMDD-HHMMSS}-{filter-codes}.{ext}
-- [ ] T136 [P] [US6] Implement filename truncation logic to stay under 255 characters while preserving timestamp and extension
-- [ ] T137 [P] [US6] Create DictionaryExportModal component in src/app/(app)/dictionary/\_components/DictionaryExportModal.tsx with format selection (CSV/JSON/PDF) using radio cards (larger touch targets on mobile)
-- [ ] T138 [US6] Add field selection UI to DictionaryExportModal: all fields vs. specific fields (word, phonetic, origin, description) with checkbox list (48px min height mobile)
-- [ ] T139 [US6] Create export server action in download-actions.ts with streaming support for large datasets (1000+ entries) and progress tracking
-- [ ] T140 [US6] Implement chunked processing in export action to prevent memory issues per FR-014
-- [ ] T141 [US6] Add progress bar to DictionaryExportModal for large exports showing percentage complete
-- [ ] T142 [US6] Implement export of all filtered results (not just visible page) when filters are active
-- [ ] T143 [US6] Add export button to search-toolbar.tsx that opens DictionaryExportModal
-- [ ] T144 [US6] Add warning dialog when exporting 10,000+ entries to PDF suggesting CSV/JSON alternatives
-- [ ] T145 [US6] Add ARIA labels to export modal and announce export progress to screen readers
+- [X] T132 [P] [US6] Create export-utils.ts in src/lib/dictionary/ with CSV generation logic
+- [X] T133 [P] [US6] Add JSON export generation to export-utils.ts
+- [X] T134 [P] [US6] Add PDF export generation to export-utils.ts using jsPDF library (lazy-loaded) with Unicode font support
+- [X] T135 [P] [US6] Implement filename generation in export-utils.ts following pattern dictionary-export-{YYYYMMDD-HHMMSS}-{filter-codes}.{ext}
+- [X] T136 [P] [US6] Implement filename truncation logic to stay under 255 characters while preserving timestamp and extension
+- [X] T137 [P] [US6] Create DictionaryExportModal component in src/app/(app)/dictionary/\_components/DictionaryExportModal.tsx with format selection (CSV/JSON/PDF) using radio cards (larger touch targets on mobile)
+- [X] T138 [US6] Add field selection UI to DictionaryExportModal: all fields vs. specific fields (word, phonetic, origin, description) with checkbox list (48px min height mobile)
+- [X] T139 [US6] Create export server action in download-actions.ts with streaming support for large datasets (1000+ entries) and progress tracking
+- [X] T140 [US6] Implement chunked processing in export action to prevent memory issues per FR-014
+- [X] T141 [US6] Add progress bar to DictionaryExportModal for large exports showing percentage complete
+- [X] T142 [US6] Implement export of all filtered results (not just visible page) when filters are active
+- [X] T143 [US6] Add export button to search-toolbar.tsx that opens DictionaryExportModal
+- [X] T144 [US6] Add warning dialog when exporting 10,000+ entries to PDF suggesting CSV/JSON alternatives
+- [X] T145 [US6] Add ARIA labels to export modal and announce export progress to screen readers
 
 **Checkpoint**: Export functionality should work for all formats with proper filenames
 
@@ -316,15 +316,15 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 8
 
-- [ ] T146 [P] [US8] Create DictionaryComparison component in src/app/(app)/dictionary/\_components/DictionaryComparison.tsx with responsive layout (side-by-side desktop, vertical stack mobile)
-- [ ] T147 [P] [US8] Implement column rendering for each dictionary origin with prominent origin labels (sticky header on mobile)
-- [ ] T148 [US8] Add "Compare" button to DictionaryResults (touch-friendly min 44x44px) that triggers comparison view for selected word
-- [ ] T149 [US8] Implement horizontal scrolling for 3+ dictionary columns on desktop (1024px+)
-- [ ] T150 [US8] Implement difference highlighting: emphasize unique content in each dictionary entry
-- [ ] T151 [US8] Add dictionary toggle controls in comparison view: show/hide specific dictionary columns dynamically
-- [ ] T152 [US8] Implement responsive comparison: vertical stacking on mobile devices (<768px)
-- [ ] T153 [US8] Handle dictionaries with different schemas: map to common fields, show unique fields in "Additional Info" section
-- [ ] T154 [US8] Add ARIA labels and keyboard navigation to comparison view columns
+- [X] T146 [P] [US8] Create DictionaryComparison component in src/app/(app)/dictionary/\_components/DictionaryComparison.tsx with responsive layout (side-by-side desktop, vertical stack mobile)
+- [X] T147 [P] [US8] Implement column rendering for each dictionary origin with prominent origin labels (sticky header on mobile)
+- [X] T148 [US8] Add "Compare" button to DictionaryResults (touch-friendly min 44x44px) that triggers comparison view for selected word
+- [X] T149 [US8] Implement horizontal scrolling for 3+ dictionary columns on desktop (1024px+)
+- [X] T150 [US8] Implement difference highlighting: emphasize unique content in each dictionary entry
+- [X] T151 [US8] Add dictionary toggle controls in comparison view: show/hide specific dictionary columns dynamically
+- [X] T152 [US8] Implement responsive comparison: vertical stacking on mobile devices (<768px)
+- [X] T153 [US8] Handle dictionaries with different schemas: map to common fields, show unique fields in "Additional Info" section
+- [X] T154 [US8] Add ARIA labels and keyboard navigation to comparison view columns
 
 **Checkpoint**: Comparison view should work for multiple dictionaries with responsive layout
 

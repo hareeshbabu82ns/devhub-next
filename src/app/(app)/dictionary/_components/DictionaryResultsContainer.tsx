@@ -38,6 +38,7 @@ import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 interface DictionaryResultsContainerProps {
   asBrowse?: boolean;
   viewMode?: ViewMode;
+  onCompare?: (word: string) => void; // T148
 }
 
 /**
@@ -48,6 +49,7 @@ interface DictionaryResultsContainerProps {
 export function DictionaryResultsContainer({
   asBrowse,
   viewMode = "card",
+  onCompare, // T148
 }: DictionaryResultsContainerProps) {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -168,6 +170,7 @@ export function DictionaryResultsContainer({
       onRefresh={handleRefresh}
       onCopyDescription={handleCopyDescription}
       onEditItem={handleEditItem}
+      onCompare={onCompare} // T148 - pass through from parent
     />
   );
 }

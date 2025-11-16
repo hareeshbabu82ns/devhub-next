@@ -1,9 +1,9 @@
 /**
  * DictionaryViewModeSelector - View Mode Toggle
- * 
+ *
  * Phase 6: User Story 3 (US3) - Rich Content Viewing Modes
  * Tasks: T87-T96
- * 
+ *
  * Purpose: Toggle between Compact/Card/Detailed view modes
  * Features:
  * - View mode buttons (Compact/Card/Detailed)
@@ -14,52 +14,35 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ViewMode } from "../types";
 import { ListIcon, LayoutGridIcon, ListTreeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const VIEW_MODE_STORAGE_KEY = "dictionary-view-mode";
-
 interface DictionaryViewModeSelectorProps {
-  value?: ViewMode;
-  onChange?: (mode: ViewMode) => void;
+  value: ViewMode;
+  onChange: (mode: ViewMode) => void;
 }
 
 /**
  * T87-T96: View Mode Selector Component
  * Provides Compact/Card/Detailed view mode toggle with persistence
+ *
+ * This is a fully controlled component - parent manages state and persistence
  */
 export function DictionaryViewModeSelector({
   value,
   onChange,
 }: DictionaryViewModeSelectorProps) {
-  // T94: Load from localStorage on mount
-  const [viewMode, setViewMode] = useState<ViewMode>(() => {
-    if (typeof window === "undefined") return "card";
-    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode;
-    return stored || value || "card";
-  });
-
   // T96: Focus management - keep focus on selector after mode change
   const buttonRefs = useRef<{ [key in ViewMode]?: HTMLButtonElement | null }>(
-    {}
+    {},
   );
 
-  // Sync with external value changes
-  useEffect(() => {
-    if (value && value !== viewMode) {
-      setViewMode(value);
-    }
-  }, [value]);
-
-  // T94: Persist to localStorage when mode changes
+  // T94: Delegate mode changes to parent (parent handles localStorage)
   const handleModeChange = (mode: ViewMode) => {
-    setViewMode(mode);
-    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
-    onChange?.(mode);
-
+    onChange(mode);
     // T96: Keep focus on the button that was clicked
     // Focus will naturally remain on the clicked button
   };
@@ -73,15 +56,15 @@ export function DictionaryViewModeSelector({
       {/* T87: Compact view mode button */}
       <Button
         ref={(el) => (buttonRefs.current.compact = el)}
-        variant={viewMode === "compact" ? "default" : "ghost"}
+        variant={value === "compact" ? "default" : "ghost"}
         size="sm"
         onClick={() => handleModeChange("compact")}
         className={cn(
           "gap-2 transition-all",
-          viewMode === "compact" && "shadow-sm"
+          value === "compact" && "shadow-sm",
         )}
         role="radio"
-        aria-checked={viewMode === "compact"}
+        aria-checked={value === "compact"}
         aria-label="Compact view mode"
         title="Compact view - single line with word and brief meaning"
       >
@@ -92,15 +75,12 @@ export function DictionaryViewModeSelector({
       {/* T87: Card view mode button */}
       <Button
         ref={(el) => (buttonRefs.current.card = el)}
-        variant={viewMode === "card" ? "default" : "ghost"}
+        variant={value === "card" ? "default" : "ghost"}
         size="sm"
         onClick={() => handleModeChange("card")}
-        className={cn(
-          "gap-2 transition-all",
-          viewMode === "card" && "shadow-sm"
-        )}
+        className={cn("gap-2 transition-all", value === "card" && "shadow-sm")}
         role="radio"
-        aria-checked={viewMode === "card"}
+        aria-checked={value === "card"}
         aria-label="Card view mode"
         title="Card view - cards with word, phonetic, and description"
       >
@@ -111,15 +91,15 @@ export function DictionaryViewModeSelector({
       {/* T87: Detailed view mode button */}
       <Button
         ref={(el) => (buttonRefs.current.detailed = el)}
-        variant={viewMode === "detailed" ? "default" : "ghost"}
+        variant={value === "detailed" ? "default" : "ghost"}
         size="sm"
         onClick={() => handleModeChange("detailed")}
         className={cn(
           "gap-2 transition-all",
-          viewMode === "detailed" && "shadow-sm"
+          value === "detailed" && "shadow-sm",
         )}
         role="radio"
-        aria-checked={viewMode === "detailed"}
+        aria-checked={value === "detailed"}
         aria-label="Detailed view mode"
         title="Detailed view - all fields including attributes and timestamps"
       >
@@ -134,7 +114,7 @@ export function DictionaryViewModeSelector({
         aria-live="polite"
         aria-atomic="true"
       >
-        {`View mode changed to ${viewMode}`}
+        {`View mode changed to ${value}`}
       </div>
     </div>
   );

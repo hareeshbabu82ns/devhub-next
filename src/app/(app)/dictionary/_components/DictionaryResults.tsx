@@ -14,6 +14,7 @@ import { ViewMode } from "../types";
 interface DictionaryResultsProps {
   asBrowse?: boolean;
   viewMode?: ViewMode;
+  onCompare?: (word: string) => void; // T148
 }
 
 /**
@@ -21,8 +22,8 @@ interface DictionaryResultsProps {
  * All logic moved to Container, all rendering moved to List
  * T89: Added view mode support
  */
-export function DictionaryResults({ asBrowse, viewMode }: DictionaryResultsProps) {
-  return <DictionaryResultsContainer asBrowse={asBrowse} viewMode={viewMode} />;
+export function DictionaryResults({ asBrowse, viewMode, onCompare }: DictionaryResultsProps) {
+  return <DictionaryResultsContainer asBrowse={asBrowse} viewMode={viewMode} onCompare={onCompare} />;
 }
 
 export default DictionaryResults;

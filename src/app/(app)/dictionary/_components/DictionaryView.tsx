@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import DictionaryResults from "./DictionaryResults";
 import { SearchToolBar } from "./search-toolbar";
 import DictionaryFilters from "./DictionaryFilters";
 import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import SavedSearchModal from "./SavedSearchModal";
+import DictionaryExportModal from "./DictionaryExportModal";
+import DictionaryComparison from "./DictionaryComparison";
 import { ViewMode } from "../types";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
@@ -14,6 +16,10 @@ import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSearchHistory } from "@/hooks/use-search-history";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import { useQuery } from "@tanstack/react-query";
+import { searchDictionary } from "../actions";
+
+const VIEW_MODE_STORAGE_KEY = "dictionary-view-mode";
 
 // import DictionaryItemList from "./DictionaryResults";
 
@@ -28,8 +34,29 @@ interface DictionaryViewProps {
  */
 const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const [filterOpen, setFilterOpen] = useState(false);
+  // T94: Initialize with default, then load from localStorage after hydration
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [saveSearchModalOpen, setSaveSearchModalOpen] = useState(false);
+  const [exportModalOpen, setExportModalOpen] = useState(false); // T143
+  const [comparisonOpen, setComparisonOpen] = useState(false); // T148
+  const [comparisonWord, setComparisonWord] = useState<string>(""); // T148
+
+  // T94: Load view mode from localStorage after hydration to prevent SSR mismatch
+  useEffect(() => {
+    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode;
+    if (
+      stored &&
+      (stored === "compact" || stored === "card" || stored === "detailed")
+    ) {
+      setViewMode(stored);
+    }
+  }, []);
+
+  // T94: Persist view mode changes to localStorage
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    setViewMode(mode);
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+  }, []);
 
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -40,15 +67,87 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   const { addToHistory } = useSearchHistory();
   const { filters } = useDictionaryFilters();
 
-  // Get current search state
+  // Get current search state - MUST be before useQuery hooks
   const originParam = (
     searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   ).filter((o) => o.trim().length > 0);
   const searchParam = searchParams.get("search") ?? "";
+  const ftsParam = searchParams.get("fts") ?? "";
   const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
   const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
+
+  // T142: Fetch all results for export (without pagination)
+  const {
+    data: exportData,
+    refetch: refetchExportData,
+    isFetching: isFetchingExportData,
+  } = useQuery({
+    queryKey: ["dictionaryExport", originParam, searchParam, ftsParam, filters],
+    queryFn: async () => {
+      const response = await searchDictionary({
+        dictFrom: originParam,
+        queryText: searchParam,
+        queryOperation:
+          ftsParam === "x"
+            ? "FULL_TEXT_SEARCH"
+            : searchParam
+              ? "REGEX"
+              : "BROWSE",
+        sortBy: sortByParam as any,
+        sortOrder: sortOrderParam as any,
+        language,
+        limit: 10000, // Max limit for export
+        offset: 0,
+      });
+      return response;
+    },
+    enabled: false, // Only fetch when export is triggered
+  });
+
+  // T148: Fetch entries for comparison across all dictionaries
+  const { data: comparisonData, refetch: refetchComparison } = useQuery({
+    queryKey: ["dictionaryComparison", comparisonWord],
+    queryFn: async () => {
+      if (!comparisonWord) return { results: [], total: 0 };
+
+      const response = await searchDictionary({
+        dictFrom: [], // Empty to search all dictionaries
+        queryText: comparisonWord,
+        queryOperation: "REGEX",
+        sortBy: "wordIndex" as any,
+        sortOrder: "asc" as any,
+        language,
+        limit: 100, // Get all matches across dictionaries
+        offset: 0,
+      });
+      return response;
+    },
+    enabled: false, // Only fetch when comparison is triggered
+  });
+
+  // T148: Handle comparison
+  const handleCompare = useCallback(
+    (word: string) => {
+      setComparisonWord(word);
+      setComparisonOpen(true);
+      // Fetch comparison data
+      setTimeout(() => {
+        refetchComparison();
+      }, 100);
+    },
+    [refetchComparison],
+  );
+
+  // T143: Handle export button click - fetch current search results
+  const handleExport = useCallback(() => {
+    setExportModalOpen(true);
+    // Trigger fetch of export data with current search parameters
+    setTimeout(() => {
+      refetchExportData();
+    }, 100);
+  }, [refetchExportData]);
 
   // T100: Handle opening save search modal
   const handleSaveSearch = () => {
@@ -106,7 +205,7 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   );
 
   return (
-    <main className="flex flex-1 flex-col gap-4 min-h-[calc(100vh_-_theme(spacing.20))]">
+    <main className="flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]">
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="flex-1 w-full sm:w-auto">
           <SearchToolBar
@@ -114,14 +213,22 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
             onFilterToggle={() => setFilterOpen(true)}
             onSaveSearch={handleSaveSearch}
             onSelectSearch={handleSelectSearch}
+            onExport={handleExport} // T143
           />
         </div>
 
         {/* T87: View Mode Selector */}
-        <DictionaryViewModeSelector value={viewMode} onChange={setViewMode} />
+        <DictionaryViewModeSelector
+          value={viewMode}
+          onChange={handleViewModeChange}
+        />
       </div>
 
-      <DictionaryResults asBrowse={asBrowse} viewMode={viewMode} />
+      <DictionaryResults
+        asBrowse={asBrowse}
+        viewMode={viewMode}
+        onCompare={handleCompare} // T148
+      />
 
       {/* T74-T86: Advanced Filter Sidebar */}
       <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
@@ -138,6 +245,24 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
         }}
         onSave={handleSaveSearchSubmit}
         isSaving={isCreating}
+      />
+
+      {/* T137-T145: Export Modal */}
+      <DictionaryExportModal
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        results={exportData?.results || []}
+        totalResults={exportData?.total || 0}
+        filters={filters}
+        isLoadingResults={isFetchingExportData}
+      />
+
+      {/* T146-T154: Comparison View */}
+      <DictionaryComparison
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        word={comparisonWord}
+        entries={comparisonData?.results || []}
       />
     </main>
   );
