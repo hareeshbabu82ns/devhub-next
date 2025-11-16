@@ -1,6 +1,6 @@
 /**
  * SearchToolBar - Refactored Component
- * 
+ *
  * Task: T089, T096, T097
  * Purpose: Use hooks exclusively, remove inline business logic
  * All filtering and validation delegated to hooks
@@ -16,6 +16,8 @@ import {
   ArrowDownAZIcon,
   ArrowDownUpIcon,
   DownloadIcon,
+  FilterIcon,
+  BookmarkPlusIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
@@ -49,26 +51,48 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import SavedSearchesDropdown from "./SavedSearchesDropdown";
+import { useSession } from "next-auth/react";
+import { useMemo } from "react";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
+  onFilterToggle?: () => void;
+  onSaveSearch?: () => void;
+  onSelectSearch?: (search: {
+    queryText: string;
+    filters?: Record<string, any>;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => void;
 }
 
 /**
  * T096-T097: Refactored to use hooks exclusively
  * Removed inline logic for validation, filtering, and query building
+ * T80: Added filter toggle button
+ * T100: Added Save Search button and Saved Searches dropdown
  */
-export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
+export const SearchToolBar = ({
+  asBrowse,
+  onFilterToggle,
+  onSaveSearch,
+  onSelectSearch,
+}: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
+  const { data: session } = useSession();
+
+  const { filters } = useDictionaryFilters();
 
   // T089: Use hook-managed state instead of inline parsing
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const originParam = (
-    searchParams.get("origin")?.split(",") ??
+    searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   ).filter((o) => o.trim().length > 0);
@@ -141,8 +165,44 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
           />
         </div>
 
+        {/* T80: Filter toggle button */}
+        {onFilterToggle && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onFilterToggle}
+            title="Open advanced filters"
+            aria-label="Open advanced filters"
+          >
+            <FilterIcon className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* T100: Save Search button - only for authenticated users */}
+        {session?.user && onSaveSearch && (
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={onSaveSearch}
+            title="Save current search"
+            aria-label="Save current search"
+            className="min-w-11 min-h-11"
+          >
+            <BookmarkPlusIcon className="h-4 w-4" />
+          </Button>
+        )}
+
+        {/* T99-T111: Saved Searches Dropdown */}
+        {session?.user && onSelectSearch && (
+          <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
+        )}
+
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Toggle advanced search options"
+          >
             <ExtraParamsIcon className="h-4 w-4" />
           </Button>
         </CollapsibleTrigger>

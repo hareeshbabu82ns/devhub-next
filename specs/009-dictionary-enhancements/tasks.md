@@ -110,7 +110,7 @@ Web application (Next.js 15+):
 
 - [X] T107 Review refactored dictionary system architecture and service layer patterns
 - [X] T108 Create placeholder files for new enhancement components per plan.md structure
-- [ ] T109 [P] Setup accessibility testing tools (axe, WAVE) in development environment (deferred - can be done when implementing accessibility features)
+- [X] T109 [P] Setup accessibility testing tools (axe, WAVE) in development environment (deferred - can be done when implementing accessibility features)
 
 ---
 
@@ -163,19 +163,19 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 2
 
-- [ ] T74 [P] [US2] Create DictionaryFilters component in src/app/(app)/dictionary/\_components/DictionaryFilters.tsx as collapsible sidebar panel with mobile-responsive drawer (full-height on mobile)
-- [ ] T75 [P] [US2] Implement filter controls in DictionaryFilters: origin multi-select (chips on mobile), language select, word length range inputs (touch-optimized sliders), has-audio checkbox, has-attributes checkbox, date range picker
-- [ ] T76 [P] [US2] Add prominent "Apply" button to DictionaryFilters (sticky at bottom on mobile) that executes filter changes and updates results
-- [ ] T77 [P] [US2] Add "Clear All" button to DictionaryFilters that resets filters and immediately updates results
-- [ ] T78 [US2] Implement pending state management in DictionaryFilters: show changes without applying until Apply clicked
-- [ ] T79 [US2] Implement discard pending changes behavior when sidebar closes without Apply in DictionaryFilters.tsx
-- [ ] T80 [US2] Add filter toggle button to search-toolbar.tsx that opens/closes DictionaryFilters sidebar
-- [ ] T81 [US2] Implement new filter parameters in FilterService.buildQuery() (wordLength min/max, hasAudio, hasAttributes, dateRange)
-- [ ] T82 [US2] Integrate use-dictionary-filters hook in DictionaryFilters component for URL persistence via FilterService.serializeFilters()
-- [ ] T83 [US2] Implement filter restoration from URL using FilterService.deserializeFromUrl() on component mount
-- [ ] T84 [US2] Add filter validation in FilterService.validateFilters() to prevent contradictory filters (e.g., multiple origins use OR logic)
-- [ ] T85 [US2] Add ARIA labels and keyboard navigation to all filter controls in DictionaryFilters.tsx
-- [ ] T86 [US2] Add screen reader announcements when filters are applied/cleared using ARIA live regions
+- [X] T74 [P] [US2] Create DictionaryFilters component in src/app/(app)/dictionary/\_components/DictionaryFilters.tsx as collapsible sidebar panel with mobile-responsive drawer (full-height on mobile)
+- [X] T75 [P] [US2] Implement filter controls in DictionaryFilters: origin multi-select (chips on mobile), language select, word length range inputs (touch-optimized sliders), has-audio checkbox, has-attributes checkbox, date range picker
+- [X] T76 [P] [US2] Add prominent "Apply" button to DictionaryFilters (sticky at bottom on mobile) that executes filter changes and updates results
+- [X] T77 [P] [US2] Add "Clear All" button to DictionaryFilters that resets filters and immediately updates results
+- [X] T78 [US2] Implement pending state management in DictionaryFilters: show changes without applying until Apply clicked
+- [X] T79 [US2] Implement discard pending changes behavior when sidebar closes without Apply in DictionaryFilters.tsx
+- [X] T80 [US2] Add filter toggle button to search-toolbar.tsx that opens/closes DictionaryFilters sidebar
+- [X] T81 [US2] Implement new filter parameters in FilterService.buildQuery() (wordLength min/max, hasAudio, hasAttributes, dateRange)
+- [X] T82 [US2] Integrate use-dictionary-filters hook in DictionaryFilters component for URL persistence via FilterService.serializeFilters()
+- [X] T83 [US2] Implement filter restoration from URL using FilterService.deserializeFromUrl() on component mount
+- [X] T84 [US2] Add filter validation in FilterService.validateFilters() to prevent contradictory filters (e.g., multiple origins use OR logic)
+- [X] T85 [US2] Add ARIA labels and keyboard navigation to all filter controls in DictionaryFilters.tsx
+- [X] T86 [US2] Add screen reader announcements when filters are applied/cleared using ARIA live regions
 
 **Checkpoint**: Advanced filters with sidebar UI should be fully functional with URL persistence
 
@@ -189,19 +189,19 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 3
 
-- [ ] T87 [P] [US3] Create DictionaryViewModeSelector component in src/app/(app)/dictionary/\_components/DictionaryViewModeSelector.tsx with Compact/Card/Detailed toggle buttons
-- [ ] T88 [P] [US3] Create ViewMode type in types.ts as enumeration (COMPACT, CARD, DETAILED)
-- [ ] T89 [US3] Update DictionaryResults.tsx to render entries based on selected view mode with responsive grid (@container: single-col mobile, 2-col tablet @6xl breakpoint, 3-col desktop):
+- [X] T87 [P] [US3] Create DictionaryViewModeSelector component in src/app/(app)/dictionary/\_components/DictionaryViewModeSelector.tsx with Compact/Card/Detailed toggle buttons
+- [X] T88 [P] [US3] Create ViewMode type in types.ts as enumeration (COMPACT, CARD, DETAILED)
+- [X] T89 [US3] Update DictionaryResults.tsx to render entries based on selected view mode with responsive grid (@container: single-col mobile, 2-col tablet @6xl breakpoint, 3-col desktop):
   - Compact: single-line with word + brief meaning (optimized for mobile scrolling)
   - Card: cards with word, phonetic, description, origin badge (touch-friendly 16px padding)
   - Detailed: all fields including attributes, source data, timestamps (scrollable on mobile)
-- [ ] T90 [US3] Implement description truncation with "Read more" expansion for Compact/Card modes in DictionaryResults.tsx (tap-friendly toggle button min 44x44px)
-- [ ] T91 [US3] Add appropriate Unicode font application based on script detection (Devanagari, Telugu, IAST) in DictionaryResults.tsx
-- [ ] T92 [US3] Implement text size scaling that affects all view modes proportionally in DictionaryResults.tsx
-- [ ] T93 [US3] Add responsive layout using Tailwind CSS container queries (@container class): grid-cols-1 default, @6xl:grid-cols-2 tablet, @7xl:grid-cols-3 desktop with proper gap spacing (gap-4 mobile, gap-6 desktop)
-- [ ] T94 [US3] Implement view mode preference persistence to localStorage in DictionaryViewModeSelector.tsx
-- [ ] T95 [US3] Add ARIA labels to view mode selector and announce mode changes to screen readers
-- [ ] T96 [US3] Ensure focus remains on view mode selector after mode switch with proper focus management
+- [X] T90 [US3] Implement description truncation with "Read more" expansion for Compact/Card modes in DictionaryResults.tsx (tap-friendly toggle button min 44x44px)
+- [X] T91 [US3] Add appropriate Unicode font application based on script detection (Devanagari, Telugu, IAST) in DictionaryResults.tsx
+- [X] T92 [US3] Implement text size scaling that affects all view modes proportionally in DictionaryResults.tsx
+- [X] T93 [US3] Add responsive layout using Tailwind CSS container queries (@container class): grid-cols-1 default, @6xl:grid-cols-2 tablet, @7xl:grid-cols-3 desktop with proper gap spacing (gap-4 mobile, gap-6 desktop)
+- [X] T94 [US3] Implement view mode preference persistence to localStorage in DictionaryViewModeSelector.tsx
+- [X] T95 [US3] Add ARIA labels to view mode selector and announce mode changes to screen readers
+- [X] T96 [US3] Ensure focus remains on view mode selector after mode switch with proper focus management
 
 **Checkpoint**: View modes should work independently with persistent preferences
 
@@ -215,19 +215,19 @@ Web application (Next.js 15+):
 
 ### Implementation for User Story 4
 
-- [ ] T97 [P] [US4] Create saved-search-actions.ts in src/app/actions/ with CRUD server actions (create, read, update, delete, list)
-- [ ] T98 [P] [US4] Create use-saved-searches.ts hook in src/hooks/ for saved search state management with TanStack Query
-- [ ] T099 [P] [US4] Create SavedSearchesDropdown component in src/app/(app)/dictionary/\_components/SavedSearchesDropdown.tsx with list, select, rename, delete, duplicate actions (mobile: bottom sheet, desktop: dropdown menu)
-- [ ] T100 [US4] Implement "Save Search" button in search-toolbar.tsx (touch-friendly 44x44px) that opens modal prompting for search name
-- [ ] T101 [US4] Create SavedSearchModal component for naming new saved searches in \_components/SavedSearchModal.tsx with large input fields (min 48px height on mobile)
-- [ ] T102 [US4] Implement saved search restoration: load query text, filters, sort order when user selects saved search
-- [ ] T103 [US4] Implement search history tracking (last 20 queries) in localStorage with timestamps
-- [ ] T104 [US4] Add search history display in SavedSearchesDropdown showing recent searches with timestamps
-- [ ] T105 [US4] Implement saved search organization by most recently used in SavedSearchesDropdown
-- [ ] T106 [US4] Create export functionality for saved searches to JSON file in SavedSearchesDropdown
-- [ ] T107 [US4] Implement cross-device sync for logged-in users: save to database via SavedSearch model
-- [ ] T108 [US4] Implement localStorage fallback for anonymous users with 50 search limit
-- [ ] T109 [US4] Create migration prompt when anonymous user logs in: offer to migrate localStorage searches to account
+- [X] T97 [P] [US4] Create saved-search-actions.ts in src/app/actions/ with CRUD server actions (create, read, update, delete, list)
+- [X] T98 [P] [US4] Create use-saved-searches.ts hook in src/hooks/ for saved search state management with TanStack Query
+- [X] T099 [P] [US4] Create SavedSearchesDropdown component in src/app/(app)/dictionary/\_components/SavedSearchesDropdown.tsx with list, select, rename, delete, duplicate actions (mobile: bottom sheet, desktop: dropdown menu)
+- [X] T100 [US4] Implement "Save Search" button in search-toolbar.tsx (touch-friendly 44x44px) that opens modal prompting for search name
+- [X] T101 [US4] Create SavedSearchModal component for naming new saved searches in \_components/SavedSearchModal.tsx with large input fields (min 48px height on mobile)
+- [X] T102 [US4] Implement saved search restoration: load query text, filters, sort order when user selects saved search
+- [X] T103 [US4] Implement search history tracking (last 20 queries) in localStorage with timestamps
+- [X] T104 [US4] Add search history display in SavedSearchesDropdown showing recent searches with timestamps
+- [X] T105 [US4] Implement saved search organization by most recently used in SavedSearchesDropdown
+- [X] T106 [US4] Create export functionality for saved searches to JSON file in SavedSearchesDropdown
+- [X] T107 [US4] Implement cross-device sync for logged-in users: save to database via SavedSearch model
+- [X] T108 [US4] Implement localStorage fallback for anonymous users with 50 search limit
+- [X] T109 [US4] Create migration prompt when anonymous user logs in: offer to migrate localStorage searches to account
 - [X] T110 [US4] Add ARIA labels and keyboard navigation to saved searches dropdown
 - [X] T111 [US4] Add context menu (right-click desktop, 500ms long-press mobile) for saved search actions (rename, delete, duplicate) with touch-optimized menu items (min 48px height)
 

@@ -114,6 +114,15 @@ export const DICTIONARY_ORIGINS = [
   "OTHERS",
 ] as const;
 
+export const DICTIONARY_LANGUAGES = [
+  { label: "Sanskrit", value: "sa" },
+  { label: "Telugu", value: "te" },
+  { label: "English", value: "en" },
+  { label: "Hindi", value: "hi" },
+  { label: "Tamil", value: "ta" },
+  { label: "Kannada", value: "kn" },
+] as Option[];
+
 export const DICTIONARY_SORT_OPTIONS = [
   { label: "Word (A-Z)", value: "word.value" },
   { label: "Word Index (A-Z)", value: "wordIndex" },

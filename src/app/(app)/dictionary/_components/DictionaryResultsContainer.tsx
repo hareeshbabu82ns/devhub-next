@@ -1,7 +1,7 @@
 /**
  * DictionaryResultsContainer - Logic Layer
- * 
- * Task: T092-T093
+ *
+ * Task: T092-T093, T89 (view mode management)
  * Purpose: Container component managing state, hooks, and event handlers
  * Responsibilities:
  * - All React hooks (useState, useQuery, custom hooks)
@@ -10,13 +10,14 @@
  * - Data fetching coordination
  * - Pagination logic
  * - Touch device detection
- * 
+ * - View mode management (T89)
+ *
  * This component delegates ALL rendering to DictionaryResultsList (presentation layer)
  */
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
 import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
@@ -31,21 +32,28 @@ import {
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { DictionaryResultsList } from "./DictionaryResultsList";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { ViewMode } from "../types";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 
 interface DictionaryResultsContainerProps {
   asBrowse?: boolean;
+  viewMode?: ViewMode;
 }
 
 /**
  * T092: Container component for dictionary results
  * Manages all state, hooks, and business logic
+ * T89: Added view mode support
  */
 export function DictionaryResultsContainer({
   asBrowse,
+  viewMode = "card",
 }: DictionaryResultsContainerProps) {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
+
+  const { filters } = useDictionaryFilters();
 
   // Get configuration from atoms
   const language = useLanguageAtomValue();
@@ -56,15 +64,12 @@ export function DictionaryResultsContainer({
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
-  const originParam = useMemo(
-    () =>
-      (
-        searchParams.get("origin")?.split(",") ??
-        localOrigins ??
-        []
-      ).filter((o) => o.trim().length > 0),
-    [searchParams, localOrigins]
-  );
+  const originParam = useMemo(() => {
+    const urlOrigins = searchParams.get("origins")?.split(",").filter(Boolean);
+    if (urlOrigins && urlOrigins.length > 0) return urlOrigins;
+    if (filters.origins.length > 0) return filters.origins;
+    return localOrigins.filter(Boolean);
+  }, [searchParams, filters.origins, localOrigins]);
 
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
@@ -156,6 +161,7 @@ export function DictionaryResultsContainer({
       asBrowse={asBrowse}
       originParam={originParam}
       searchTerm={searchParam}
+      viewMode={viewMode}
       onPageChange={handlePageChange}
       onNextPage={handleNextPage}
       onPrevPage={handlePrevPage}
