@@ -207,15 +207,17 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   );
 
   return (
-    <div className="dictionary-component">
+    <div className="dictionary-component flex flex-col w-full h-full">
       {/* T164: Skip links for keyboard navigation */}
       <DictionarySkipLinks />
 
       <SkipLinkTarget id="dictionary-main-content" as="main">
-        <main className={cn(
-          "flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]",
-          "focus:outline-none" // Remove focus outline on main since it's just a skip target
-        )}>
+        <main
+          className={cn(
+            "flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]",
+            "focus:outline-none", // Remove focus outline on main since it's just a skip target
+          )}
+        >
           <SkipLinkTarget id="dictionary-search">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex-1 w-full sm:w-auto">
@@ -225,14 +227,10 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
                   onSaveSearch={handleSaveSearch}
                   onSelectSearch={handleSelectSearch}
                   onExport={handleExport} // T143
+                  viewMode={viewMode} // T87
+                  onViewModeChange={handleViewModeChange} // T87
                 />
               </div>
-
-              {/* T87: View Mode Selector */}
-              <DictionaryViewModeSelector
-                value={viewMode}
-                onChange={handleViewModeChange}
-              />
             </div>
           </SkipLinkTarget>
 
@@ -248,7 +246,6 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
           <div id="dictionary-filters">
             <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
           </div>
-
         </main>
       </SkipLinkTarget>
 

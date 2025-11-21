@@ -56,6 +56,8 @@ import SavedSearchesDropdown from "./SavedSearchesDropdown";
 import { useSession } from "next-auth/react";
 import { useMemo } from "react";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
+import { ViewMode } from "../types";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -68,6 +70,8 @@ interface SearchToolBarProps {
     sortOrder?: string;
   }) => void;
   onExport?: () => void; // T143: Export button handler
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 }
 
 /**
@@ -82,6 +86,8 @@ export const SearchToolBar = ({
   onSaveSearch,
   onSelectSearch,
   onExport, // T143
+  viewMode, // T87
+  onViewModeChange, // T87
 }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -153,7 +159,7 @@ export const SearchToolBar = ({
 
   return (
     <Collapsible className="flex flex-col">
-      <div className="flex flex-1 items-center pb-4 space-x-4">
+      <div className="flex flex-1 flex-col sm:flex-row items-center pb-4 pt-2 sm:pt-0 gap-2">
         <div className="relative flex-1">
           <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
           <WebIMEIdeInput
@@ -168,63 +174,63 @@ export const SearchToolBar = ({
           />
         </div>
 
-        {/* T80: Filter toggle button */}
-        {onFilterToggle && (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onFilterToggle}
-            title="Open advanced filters"
-            aria-label="Open advanced filters"
-          >
-            <FilterIcon className="h-4 w-4" />
-          </Button>
-        )}
-
-        {/* T100: Save Search button - only for authenticated users */}
-        {session?.user && onSaveSearch && (
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onSaveSearch}
-            title="Save current search"
-            aria-label="Save current search"
-            className="min-w-11 min-h-11"
-          >
-            <BookmarkPlusIcon className="h-4 w-4" />
-          </Button>
-        )}
-
-        {/* T99-T111: Saved Searches Dropdown */}
-        {session?.user && onSelectSearch && (
-          <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
-        )}
-
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Toggle advanced search options"
-          >
-            <ExtraParamsIcon className="h-4 w-4" />
-          </Button>
-        </CollapsibleTrigger>
-
         <div className="flex items-center gap-2">
-          {/* T143: Export button that opens modal */}
-          {onExport && (
+          {/* T80: Filter toggle button */}
+          {onFilterToggle && (
             <Button
               variant="outline"
               size="icon"
-              onClick={onExport}
-              title="Export search results"
-              aria-label="Export search results"
+              onClick={onFilterToggle}
+              title="Open advanced filters"
+              aria-label="Open advanced filters"
             >
-              <FileDownIcon className="h-4 w-4" />
+              <FilterIcon className="h-4 w-4" />
             </Button>
           )}
 
-          <DropdownMenu>
+          {/* T100: Save Search button - only for authenticated users */}
+          {session?.user && onSaveSearch && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onSaveSearch}
+              title="Save current search"
+              aria-label="Save current search"
+            >
+              <BookmarkPlusIcon className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* T99-T111: Saved Searches Dropdown */}
+          {session?.user && onSelectSearch && (
+            <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
+          )}
+
+          <CollapsibleTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              title="Toggle advanced search options"
+            >
+              <ExtraParamsIcon className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger>
+
+          <div className="flex items-center gap-2">
+            {/* T143: Export button that opens modal */}
+            {onExport && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onExport}
+                title="Export search results"
+                aria-label="Export search results"
+              >
+                <FileDownIcon className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 disabled={downloadMutation.isPending}
@@ -261,24 +267,25 @@ export const SearchToolBar = ({
                 JSON Format
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
-          {!asBrowse && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/dictionary/new")}
-            >
-              <AddIcon className="size-4" />
-            </Button>
-          )}
+            {!asBrowse && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => router.push("/dictionary/new")}
+              >
+                <AddIcon className="size-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       <CollapsibleContent>
         <div className="border p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <DictionariesMultiSelectChips />
 
-          <div className="flex items-center space-x-2">
+          {/* <div className="flex items-center space-x-2">
             <Switch
               id="fts"
               checked={ftsParam === "x"}
@@ -287,7 +294,13 @@ export const SearchToolBar = ({
               }}
             />
             <Label htmlFor="fts">Full Text Search</Label>
-          </div>
+          </div> */}
+
+          {/* T87: View Mode Selector */}
+          <DictionaryViewModeSelector
+            value={viewMode}
+            onChange={onViewModeChange}
+          />
 
           <div className="flex flex-row gap-2 items-center">
             <Label htmlFor="sortBy">

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { ViewMode } from "../types";
 import { ListIcon, LayoutGridIcon, ListTreeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 interface DictionaryViewModeSelectorProps {
   value: ViewMode;
@@ -48,64 +49,71 @@ export function DictionaryViewModeSelector({
   };
 
   return (
-    <div
-      role="radiogroup"
-      aria-label="Dictionary view mode"
-      className="flex gap-1 p-1 bg-muted rounded-lg"
-    >
-      {/* T87: Compact view mode button */}
-      <Button
-        ref={(el) => (buttonRefs.current.compact = el)}
-        variant={value === "compact" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => handleModeChange("compact")}
-        className={cn(
-          "gap-2 transition-all",
-          value === "compact" && "shadow-sm",
-        )}
-        role="radio"
-        aria-checked={value === "compact"}
-        aria-label="Compact view mode"
-        title="Compact view - single line with word and brief meaning"
-      >
-        <ListIcon className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Compact</span>
-      </Button>
+    <div role="radiogroup" aria-label="Dictionary view mode">
+      <ButtonGroup>
+        {/* T87: Compact view mode button */}
+        <Button
+          ref={(el) => {
+            buttonRefs.current.compact = el;
+          }}
+          variant={value === "compact" ? "default" : "outline"}
+          size="sm"
+          onClick={() => handleModeChange("compact")}
+          className={cn(
+            "gap-2 transition-all",
+            value === "compact" && "shadow-sm",
+          )}
+          role="radio"
+          aria-checked={value === "compact"}
+          aria-label="Compact view mode"
+          title="Compact view - single line with word and brief meaning"
+        >
+          <ListIcon className="h-4 w-4" aria-hidden="true" />
+          {/* <span className="hidden sm:inline">Compact</span> */}
+        </Button>
 
-      {/* T87: Card view mode button */}
-      <Button
-        ref={(el) => (buttonRefs.current.card = el)}
-        variant={value === "card" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => handleModeChange("card")}
-        className={cn("gap-2 transition-all", value === "card" && "shadow-sm")}
-        role="radio"
-        aria-checked={value === "card"}
-        aria-label="Card view mode"
-        title="Card view - cards with word, phonetic, and description"
-      >
-        <LayoutGridIcon className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Card</span>
-      </Button>
+        {/* T87: Card view mode button */}
+        <Button
+          ref={(el) => {
+            buttonRefs.current.card = el;
+          }}
+          variant={value === "card" ? "default" : "outline"}
+          size="sm"
+          onClick={() => handleModeChange("card")}
+          className={cn(
+            "gap-2 transition-all",
+            value === "card" && "shadow-sm",
+          )}
+          role="radio"
+          aria-checked={value === "card"}
+          aria-label="Card view mode"
+          title="Card view - cards with word, phonetic, and description"
+        >
+          <LayoutGridIcon className="h-4 w-4" aria-hidden="true" />
+          {/* <span className="hidden sm:inline">Card</span> */}
+        </Button>
 
-      {/* T87: Detailed view mode button */}
-      <Button
-        ref={(el) => (buttonRefs.current.detailed = el)}
-        variant={value === "detailed" ? "default" : "ghost"}
-        size="sm"
-        onClick={() => handleModeChange("detailed")}
-        className={cn(
-          "gap-2 transition-all",
-          value === "detailed" && "shadow-sm",
-        )}
-        role="radio"
-        aria-checked={value === "detailed"}
-        aria-label="Detailed view mode"
-        title="Detailed view - all fields including attributes and timestamps"
-      >
-        <ListTreeIcon className="h-4 w-4" aria-hidden="true" />
-        <span className="hidden sm:inline">Detailed</span>
-      </Button>
+        {/* T87: Detailed view mode button */}
+        <Button
+          ref={(el) => {
+            buttonRefs.current.detailed = el;
+          }}
+          variant={value === "detailed" ? "default" : "outline"}
+          size="sm"
+          onClick={() => handleModeChange("detailed")}
+          className={cn(
+            "gap-2 transition-all",
+            value === "detailed" && "shadow-sm",
+          )}
+          role="radio"
+          aria-checked={value === "detailed"}
+          aria-label="Detailed view mode"
+          title="Detailed view - all fields including attributes and timestamps"
+        >
+          <ListTreeIcon className="h-4 w-4" aria-hidden="true" />
+          {/* <span className="hidden sm:inline">Detailed</span> */}
+        </Button>
+      </ButtonGroup>
 
       {/* T95: Screen reader announcement for mode changes */}
       <div

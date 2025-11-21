@@ -377,7 +377,7 @@ function DictionaryResultCard({
           className={`font-medium subpixel-antialiased text-${textSize} leading-loose tracking-widest flex-1`}
         >
           {/* T123: Word with highlighting */}
-          <h3 className="flex items-center gap-2 flex-wrap">
+          <h3 className="flex items-center gap-2 flex-wrap justify-between">
             {searchTerm && searchTerm.trim().length > 0 ? (
               <SearchResultHighlight
                 text={item.word ?? ""}
@@ -390,15 +390,16 @@ function DictionaryResultCard({
             )}
 
             {/* T122: Relevance score badge */}
-            {hasRelevanceScore && (
+            {/* {hasRelevanceScore && (
               <Badge
                 variant={relevanceBadgeVariant}
                 className="text-xs font-normal"
+                style={{ opacity: 0.3 }}
                 aria-label={`Relevance: ${relevanceLabel}, score ${relevanceScore}`}
               >
                 {relevanceScore}
               </Badge>
-            )}
+            )} */}
           </h3>
           <h4 className="text-muted-foreground text-sm flex items-center gap-2">
             <span>{item.origin}</span>

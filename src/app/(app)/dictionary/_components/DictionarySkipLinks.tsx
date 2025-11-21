@@ -41,7 +41,7 @@ export function DictionarySkipLinks() {
           className={cn(
             "skip-link",
             // Position off-screen by default
-            "absolute -top-10 left-0 z-[9999]",
+            "absolute -top-20 left-0 z-9999",
             // Style when visible
             "bg-primary text-primary-foreground",
             "px-4 py-2 rounded-br-md",
