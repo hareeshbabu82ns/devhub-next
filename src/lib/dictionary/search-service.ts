@@ -35,8 +35,9 @@ export class SearchService {
   }
 
   /**
-   * T117: Perform search with pagination and sorting
+   * T117, T205: Perform search with pagination and sorting
    * Orchestrates repository calls and relevance scoring
+   * T205: Added searchMode support for key-based searches
    */
   async performSearch(
     options: SearchOptions,
@@ -44,13 +45,29 @@ export class SearchService {
     try {
       const { queryText, filters, sortBy, sortDirection, pagination } = options;
 
-      // Normalize query text for multi-script matching
-      const normalizedQueries = this.normalizeScripts(queryText);
+      // T205: Extract searchMode from filters (default: FULLTEXT)
+      const searchMode = filters.searchMode || "FULLTEXT";
+
+      // T205: Apply script normalization BEFORE passing to repository
+      // Normalize query term with NFC + conditional toLowerCase for Latin scripts
+      const isLatin = /^[a-zA-Z\u0100-\u017F\u0180-\u024F]+$/.test(queryText);
+      const normalizedQueryText = queryText.normalize("NFC");
+      const searchQuery =
+        searchMode !== "FULLTEXT" && isLatin
+          ? normalizedQueryText.toLowerCase()
+          : normalizedQueryText;
+
+      // Normalize query text for multi-script matching (full-text mode)
+      const normalizedQueries =
+        searchMode === "FULLTEXT"
+          ? this.normalizeScripts(queryText)
+          : [searchQuery];
 
       // Convert UserFilter to RepositoryQuery
       const repositoryQuery: RepositoryQuery = {
-        queryText: queryText.trim(),
+        queryText: searchQuery.trim(),
         origins: filters.origins,
+        language: filters.language ?? undefined,
         wordLengthMin: filters.wordLengthMin ?? undefined,
         wordLengthMax: filters.wordLengthMax ?? undefined,
         hasAudio: filters.hasAudio ?? undefined,
@@ -71,17 +88,22 @@ export class SearchService {
               ? "relevance"
               : "wordIndex",
         sortOrder: sortDirection,
+        searchMode, // T205: Pass searchMode to repository
       };
 
-      // Use aggregateSearch for full-text, findWords for regex
-      const useFullText = queryText.trim().length >= 2;
-      const dbResult = useFullText
-        ? await this.repository.aggregateSearch(repositoryQuery)
-        : await this.repository.findWords(repositoryQuery);
+      // T205: Repository handles branching based on searchMode
+      // No routing needed here - findWords() method handles FULLTEXT vs KEY modes internally
+      const dbResult = await this.repository.findWords(repositoryQuery);
 
       // Calculate relevance scores for each result
+      // T206: Pass searchMode to calculateRelevance for key-based scoring
       const scoredResults: SearchResultItem[] = dbResult.data.map((word) =>
-        this.calculateRelevance(word, queryText, normalizedQueries),
+        this.calculateRelevance(
+          word,
+          searchQuery,
+          normalizedQueries,
+          searchMode,
+        ),
       );
 
       // Sort by relevance if requested
@@ -111,14 +133,16 @@ export class SearchService {
   }
 
   /**
-   * T118: Calculate relevance score for a single result
+   * T118, T206: Calculate relevance score for a single result
    * Scoring algorithm: textScore (40%) + prefix match (30%) + exact match (30%)
+   * T206: Added key-based scoring for KEY_EXACT and KEY_PREFIX modes
    * Returns: 0-100 score range
    */
   calculateRelevance(
     word: DictionaryWord,
     queryText: string,
     normalizedQueries: string[],
+    searchMode: "FULLTEXT" | "KEY_EXACT" | "KEY_PREFIX" = "FULLTEXT",
   ): SearchResultItem {
     const query = queryText.toLowerCase().trim();
     let textScore = 0;
@@ -130,6 +154,58 @@ export class SearchService {
     const phonetic = word.phonetic.toLowerCase();
     const descriptions = word.description.map((d) => d.value.toLowerCase());
 
+    // T206: Key-based scoring for KEY_EXACT and KEY_PREFIX modes
+    if (searchMode === "KEY_EXACT" || searchMode === "KEY_PREFIX") {
+      let baseScore = 0;
+      let matchCount = 0;
+
+      for (const text of wordTexts) {
+        if (searchMode === "KEY_EXACT") {
+          // Exact match: 100 score
+          if (text === query) {
+            baseScore = Math.max(baseScore, 100);
+            matchCount++;
+          }
+        } else if (searchMode === "KEY_PREFIX") {
+          // Prefix match: 80 + (15 × queryLength / wordLength)
+          if (text.startsWith(query)) {
+            if (query.length === text.length) {
+              // Edge case: exact match via prefix → upgrade to 100
+              baseScore = Math.max(baseScore, 100);
+            } else if (query.length < text.length) {
+              // Prefix formula: linear interpolation 80-95
+              const prefixScore = 80 + 15 * (query.length / text.length);
+              baseScore = Math.max(baseScore, prefixScore);
+            }
+            // Query longer than word: score = 0 (impossible prefix, no match)
+            matchCount++;
+          }
+        }
+      }
+
+      // T206: Multiple matches in word array: +5 points per additional match (cap at +15)
+      const multiMatchBonus =
+        matchCount > 1 ? Math.min((matchCount - 1) * 5, 15) : 0;
+
+      const relevanceScore = Math.min(baseScore + multiMatchBonus, 100);
+
+      return {
+        ...word,
+        relevanceScore,
+        matchType: baseScore === 100 ? "exact" : "prefix",
+        searchMetadata: {
+          queryLanguage: this.detectScript(queryText),
+          matchedLanguage: word.word[0]?.language || "unknown",
+          scoreBreakdown: {
+            textScore: baseScore,
+            prefixBonus: 0,
+            exactBonus: multiMatchBonus,
+          },
+        },
+      };
+    }
+
+    // FULLTEXT mode: original scoring algorithm
     // Calculate text score (basic string matching)
     const allTexts = [...wordTexts, phonetic, ...descriptions];
     for (const text of allTexts) {

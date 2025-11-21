@@ -34,6 +34,7 @@ import { DictionaryResultsList } from "./DictionaryResultsList";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { ViewMode } from "../types";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import { SearchMode } from "@/lib/dictionary/types";
 
 interface DictionaryResultsContainerProps {
   asBrowse?: boolean;
@@ -146,6 +147,13 @@ export function DictionaryResultsContainer({
     router.push(`/dictionary/${itemId}/edit`);
   };
 
+  // T222: Handler for switching to full-text search
+  const handleSwitchToFullText = () => {
+    updateSearchParams({ mode: SearchMode.FULLTEXT });
+    // Trigger immediate refetch after mode change
+    setTimeout(() => refetch(), 100);
+  };
+
   // Delegate all rendering to presentation layer
   return (
     <DictionaryResultsList
@@ -164,6 +172,7 @@ export function DictionaryResultsContainer({
       originParam={originParam}
       searchTerm={searchParam}
       viewMode={viewMode}
+      searchMode={filters.searchMode || SearchMode.FULLTEXT}
       onPageChange={handlePageChange}
       onNextPage={handleNextPage}
       onPrevPage={handlePrevPage}
@@ -171,6 +180,7 @@ export function DictionaryResultsContainer({
       onCopyDescription={handleCopyDescription}
       onEditItem={handleEditItem}
       onCompare={onCompare} // T148 - pass through from parent
+      onSwitchToFullText={handleSwitchToFullText} // T222 - switch search mode
     />
   );
 }

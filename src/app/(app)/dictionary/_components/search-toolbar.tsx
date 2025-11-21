@@ -15,14 +15,12 @@ import {
   SearchIcon,
   ArrowDownAZIcon,
   ArrowDownUpIcon,
-  DownloadIcon,
   FilterIcon,
   BookmarkPlusIcon,
   FileDownIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
-import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CollapsibleContent } from "@radix-ui/react-collapsible";
 import { Label } from "@/components/ui/label";
@@ -46,18 +44,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import SavedSearchesDropdown from "./SavedSearchesDropdown";
 import { useSession } from "next-auth/react";
-import { useMemo } from "react";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import { ViewMode } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { SearchMode } from "@/lib/dictionary/types";
+import { TargetIcon, ZapIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
@@ -157,6 +152,19 @@ export const SearchToolBar = ({
     });
   };
 
+  // T214: Dynamic placeholder based on search mode
+  const getPlaceholder = () => {
+    switch (filters.searchMode) {
+      case SearchMode.KEY_EXACT:
+        return "Type exact word to match...";
+      case SearchMode.KEY_PREFIX:
+        return "Type word prefix...";
+      case SearchMode.FULLTEXT:
+      default:
+        return "Search words, meanings, descriptions...";
+    }
+  };
+
   return (
     <Collapsible className="flex flex-col">
       <div className="flex flex-1 flex-col sm:flex-row items-center pb-4 pt-2 sm:pt-0 gap-2">
@@ -164,7 +172,7 @@ export const SearchToolBar = ({
           <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
           <WebIMEIdeInput
             type="search"
-            placeholder="Search Dictionary..."
+            placeholder={getPlaceholder()}
             language={language}
             defaultValue={searchParam}
             onTextChange={debouncedSetParams}
@@ -188,6 +196,33 @@ export const SearchToolBar = ({
             </Button>
           )}
 
+          {/* T213: Search Mode Badge - show when not using default FULLTEXT mode */}
+          {filters.searchMode && filters.searchMode !== SearchMode.FULLTEXT && (
+            <Badge
+              variant="secondary"
+              className="hidden sm:inline-flex gap-1.5 px-2 py-1"
+            >
+              {filters.searchMode === SearchMode.KEY_EXACT && (
+                <>
+                  <TargetIcon className="h-3 w-3" aria-hidden="true" />
+                  <span>Exact Match</span>
+                </>
+              )}
+              {filters.searchMode === SearchMode.KEY_PREFIX && (
+                <>
+                  <ZapIcon className="h-3 w-3" aria-hidden="true" />
+                  <span>Prefix</span>
+                </>
+              )}
+            </Badge>
+          )}
+
+          {/* T87: View Mode Selector */}
+          {/* <DictionaryViewModeSelector
+            value={viewMode}
+            onChange={onViewModeChange}
+          /> */}
+
           {/* T100: Save Search button - only for authenticated users */}
           {session?.user && onSaveSearch && (
             <Button
@@ -206,7 +241,7 @@ export const SearchToolBar = ({
             <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
           )}
 
-          <CollapsibleTrigger asChild>
+          {/* <CollapsibleTrigger asChild>
             <Button
               variant="outline"
               size="icon"
@@ -214,7 +249,7 @@ export const SearchToolBar = ({
             >
               <ExtraParamsIcon className="h-4 w-4" />
             </Button>
-          </CollapsibleTrigger>
+          </CollapsibleTrigger> */}
 
           <div className="flex items-center gap-2">
             {/* T143: Export button that opens modal */}
@@ -281,11 +316,11 @@ export const SearchToolBar = ({
           </div>
         </div>
       </div>
-      <CollapsibleContent>
+      {/* <CollapsibleContent>
         <div className="border p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <DictionariesMultiSelectChips />
 
-          {/* <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <Switch
               id="fts"
               checked={ftsParam === "x"}
@@ -294,13 +329,7 @@ export const SearchToolBar = ({
               }}
             />
             <Label htmlFor="fts">Full Text Search</Label>
-          </div> */}
-
-          {/* T87: View Mode Selector */}
-          <DictionaryViewModeSelector
-            value={viewMode}
-            onChange={onViewModeChange}
-          />
+          </div>
 
           <div className="flex flex-row gap-2 items-center">
             <Label htmlFor="sortBy">
@@ -348,7 +377,7 @@ export const SearchToolBar = ({
             </Select>
           </div>
         </div>
-      </CollapsibleContent>
+      </CollapsibleContent> */}
     </Collapsible>
   );
 };

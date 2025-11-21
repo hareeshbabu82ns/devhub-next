@@ -1,9 +1,9 @@
 /**
  * Export Utilities - Dictionary Export Functions
- * 
+ *
  * Phase 10: User Story 6 (US6) - Export and Download Functionality
  * Tasks: T132-T136
- * 
+ *
  * Purpose: Allow exporting search results to CSV, JSON, PDF
  * Features:
  * - CSV generation - T132
@@ -43,7 +43,7 @@ export interface ExportOptions {
  */
 export function generateExportFilename(
   format: "csv" | "json" | "pdf",
-  filters?: Record<string, any>
+  filters?: Record<string, any>,
 ): string {
   // Get current timestamp
   const now = new Date();
@@ -100,7 +100,7 @@ export function truncateFilename(baseName: string, extension: string): string {
     const timestamp = timestampMatch[1];
     const prefix = `dictionary-export-${timestamp}`;
     const remaining = maxBaseLength - prefix.length;
-    
+
     if (remaining > 10) {
       // Keep some filter codes
       const filterPart = baseName.substring(prefix.length);
@@ -118,7 +118,7 @@ export function truncateFilename(baseName: string, extension: string): string {
  */
 export function exportToCSV(
   results: Partial<DictionaryItem>[],
-  fields: ExportFieldSelection
+  fields: ExportFieldSelection,
 ): string {
   if (results.length === 0) {
     return "";
@@ -136,7 +136,7 @@ export function exportToCSV(
   // Build data rows
   const rows: string[][] = results.map((item) => {
     const row: string[] = [];
-    
+
     if (fields.word) {
       row.push(escapeCSV(item.word || ""));
     }
@@ -186,7 +186,7 @@ function escapeCSV(value: string): string {
  */
 export function exportToJSON(
   results: Partial<DictionaryItem>[],
-  fields: ExportFieldSelection
+  fields: ExportFieldSelection,
 ): string {
   const filteredResults = results.map((item) => {
     const filtered: Partial<DictionaryItem> = {};
@@ -211,7 +211,7 @@ export function exportToJSON(
       results: filteredResults,
     },
     null,
-    2
+    2,
   );
 }
 
@@ -221,7 +221,7 @@ export function exportToJSON(
  */
 export async function exportToPDF(
   results: Partial<DictionaryItem>[],
-  fields: ExportFieldSelection
+  fields: ExportFieldSelection,
 ): Promise<Blob> {
   // Lazy load jsPDF
   const { jsPDF } = await import("jspdf");
@@ -253,15 +253,15 @@ export async function exportToPDF(
 
     // Word
     if (fields.word && item.word) {
-      doc.setFont(undefined, "bold");
-      doc.text(`Word: ${item.word}`, 20, yPosition);
-      doc.setFont(undefined, "normal");
+      doc.setFont(undefined as any, "bold");
+      doc.text(`Word: ${String(item.word)}`, 20, yPosition);
+      doc.setFont(undefined as any, "normal");
       yPosition += 6;
     }
 
     // Phonetic
     if (fields.phonetic && item.phonetic) {
-      doc.text(`Phonetic: ${item.phonetic}`, 20, yPosition);
+      doc.text(`Phonetic: ${String(item.phonetic)}`, 20, yPosition);
       yPosition += 6;
     }
 
@@ -302,7 +302,7 @@ export async function exportToPDF(
  */
 export function* processInChunks<T>(
   items: T[],
-  chunkSize: number = 100
+  chunkSize: number = 100,
 ): Generator<T[], void, unknown> {
   for (let i = 0; i < items.length; i += chunkSize) {
     yield items.slice(i, i + chunkSize);

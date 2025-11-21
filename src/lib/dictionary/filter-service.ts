@@ -1,6 +1,6 @@
 /**
  * FilterService - Filter Management Layer
- * 
+ *
  * Tasks: T010, T120-T123
  * Purpose: Pure static methods for filter validation, serialization, and query building
  * Pattern: Static utility class (no state)
@@ -8,11 +8,12 @@
  */
 
 import { z } from "zod";
-import { UserFilter, FilterValidationResult } from "./types";
+import { UserFilter, FilterValidationResult, SearchMode } from "./types";
 import { RepositoryQuery } from "./dictionary-repository";
 
 /**
  * Zod schema for filter validation
+ * T215: Added searchMode enum validation
  */
 export const UserFilterSchema = z.object({
   origins: z.array(z.string()).default([]),
@@ -27,6 +28,13 @@ export const UserFilterSchema = z.object({
       end: z.date().nullable().default(null),
     })
     .default({ start: null, end: null }),
+  // T215: Search mode validation with enum
+  searchMode: z.nativeEnum(SearchMode).default(SearchMode.FULLTEXT),
+  // Sort options
+  sortBy: z
+    .enum(["wordIndex", "alphabetical", "relevance"])
+    .default("wordIndex"),
+  sortDirection: z.enum(["asc", "desc"]).default("asc"),
 });
 
 /**
@@ -44,7 +52,7 @@ export class FilterService {
 
       if (!result.success) {
         const errors = result.error.issues.map(
-          (err) => `${err.path.join(".")}: ${err.message}`
+          (err) => `${err.path.join(".")}: ${err.message}`,
         );
         return { isValid: false, errors };
       }
@@ -102,16 +110,18 @@ export class FilterService {
   }
 
   /**
-   * T121: Convert UserFilter to RepositoryQuery
+   * T121, T207: Convert UserFilter to RepositoryQuery
    * Maps user-facing filter structure to database query structure
+   * T207: Added searchMode to RepositoryQuery
    */
   static buildQuery(
     filters: UserFilter,
     pagination: { limit: number; offset: number },
-    sorting: { sortBy: string; sortOrder: "asc" | "desc" }
+    sorting: { sortBy: string; sortOrder: "asc" | "desc" },
   ): Omit<RepositoryQuery, "queryText"> {
     return {
       origins: filters.origins,
+      language: filters.language ?? undefined,
       wordLengthMin: filters.wordLengthMin ?? undefined,
       wordLengthMax: filters.wordLengthMax ?? undefined,
       hasAudio: filters.hasAudio ?? undefined,
@@ -127,12 +137,14 @@ export class FilterService {
       offset: pagination.offset,
       sortBy: sorting.sortBy as "wordIndex" | "phonetic" | "relevance",
       sortOrder: sorting.sortOrder,
+      searchMode: filters.searchMode || SearchMode.FULLTEXT, // T207
     };
   }
 
   /**
-   * T122: Serialize filters to URL parameter encoding
-   * Format: origins=mw,ap90&wordLengthMin=5&hasAudio=true
+   * T122, T208: Serialize filters to URL parameter encoding
+   * Format: origins=mw,ap90&wordLengthMin=5&hasAudio=true&mode=key-prefix
+   * T208: Added searchMode URL encoding
    */
   static serializeFilters(filters: UserFilter): string {
     const params = new URLSearchParams();
@@ -147,6 +159,16 @@ export class FilterService {
 
     if (filters.wordLengthMin !== null) {
       params.set("wordLengthMin", filters.wordLengthMin.toString());
+    }
+
+    // T208: Encode searchMode in URL (e.g., mode=key-prefix)
+    if (filters.searchMode && filters.searchMode !== SearchMode.FULLTEXT) {
+      const modeMap: Record<SearchMode, string> = {
+        [SearchMode.FULLTEXT]: "fulltext",
+        [SearchMode.KEY_EXACT]: "key-exact",
+        [SearchMode.KEY_PREFIX]: "key-prefix",
+      };
+      params.set("mode", modeMap[filters.searchMode]);
     }
 
     if (filters.wordLengthMax !== null) {
@@ -169,21 +191,34 @@ export class FilterService {
       params.set("dateEnd", filters.dateRange.end.toISOString());
     }
 
+    // Encode sorting options (always include even if defaults)
+    if (filters.sortBy && filters.sortBy !== "wordIndex") {
+      params.set("sortBy", filters.sortBy);
+    }
+
+    if (filters.sortDirection && filters.sortDirection !== "asc") {
+      params.set("sortOrder", filters.sortDirection);
+    }
+
     return params.toString();
   }
 
   /**
-   * T123: Deserialize filters from URL params
+   * T123, T209: Deserialize filters from URL params
    * Restores UserFilter from URL parameter string
+   * T209: Restore searchMode from URL params with FULLTEXT default
    */
   static deserializeFromUrl(
-    searchParams: URLSearchParams | string
+    searchParams: URLSearchParams | string,
+    defaults?: Partial<UserFilter>,
   ): UserFilter {
     const params =
       typeof searchParams === "string"
         ? new URLSearchParams(searchParams)
         : searchParams;
 
+    // Start with defaults (could be from localStorage) or create empty filter
+    const baseDefaults = defaults || FilterService.createEmptyFilter();
     const filters: UserFilter = {
       origins: [],
       language: null,
@@ -195,6 +230,10 @@ export class FilterService {
         start: null,
         end: null,
       },
+      // Use defaults for these if provided (e.g., from localStorage)
+      searchMode: baseDefaults?.searchMode ?? SearchMode.FULLTEXT,
+      sortBy: baseDefaults?.sortBy ?? "wordIndex",
+      sortDirection: baseDefaults?.sortDirection ?? "asc",
     };
 
     // Parse origins
@@ -261,6 +300,34 @@ export class FilterService {
       }
     }
 
+    // T209: Parse searchMode from URL (mode=key-prefix)
+    const modeParam = params.get("mode");
+    if (modeParam) {
+      const modeMap: Record<string, SearchMode> = {
+        fulltext: SearchMode.FULLTEXT,
+        "key-exact": SearchMode.KEY_EXACT,
+        "key-prefix": SearchMode.KEY_PREFIX,
+      };
+      filters.searchMode = modeMap[modeParam] || SearchMode.FULLTEXT;
+    }
+
+    // Parse sorting options
+    const sortByParam = params.get("sortBy");
+    if (
+      sortByParam &&
+      ["wordIndex", "alphabetical", "relevance"].includes(sortByParam)
+    ) {
+      filters.sortBy = sortByParam as
+        | "wordIndex"
+        | "alphabetical"
+        | "relevance";
+    }
+
+    const sortOrderParam = params.get("sortOrder");
+    if (sortOrderParam && ["asc", "desc"].includes(sortOrderParam)) {
+      filters.sortDirection = sortOrderParam as "asc" | "desc";
+    }
+
     return filters;
   }
 
@@ -279,11 +346,15 @@ export class FilterService {
         start: null,
         end: null,
       },
+      searchMode: SearchMode.FULLTEXT, // T209: Default
+      sortBy: "wordIndex",
+      sortDirection: "asc",
     };
   }
 
   /**
    * Helper: Check if filter is empty (no filters applied)
+   * Note: searchMode, sortBy, and sortDirection are not considered for empty check (they're options, not filters)
    */
   static isEmptyFilter(filters: UserFilter): boolean {
     return (
@@ -301,7 +372,10 @@ export class FilterService {
   /**
    * Helper: Merge filters (for updating partial filters)
    */
-  static mergeFilters(base: UserFilter, updates: Partial<UserFilter>): UserFilter {
+  static mergeFilters(
+    base: UserFilter,
+    updates: Partial<UserFilter>,
+  ): UserFilter {
     return {
       origins: updates.origins ?? base.origins,
       language: updates.language ?? base.language,
@@ -310,6 +384,9 @@ export class FilterService {
       hasAudio: updates.hasAudio ?? base.hasAudio,
       hasAttributes: updates.hasAttributes ?? base.hasAttributes,
       dateRange: updates.dateRange ?? base.dateRange,
+      searchMode: updates.searchMode ?? base.searchMode,
+      sortBy: updates.sortBy ?? base.sortBy,
+      sortDirection: updates.sortDirection ?? base.sortDirection,
     };
   }
 }

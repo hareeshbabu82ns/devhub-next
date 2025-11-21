@@ -77,8 +77,9 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   ).filter((o) => o.trim().length > 0);
   const searchParam = searchParams.get("search") ?? "";
   const ftsParam = searchParams.get("fts") ?? "";
-  const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
-  const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
+  // Use sorting from filters instead of separate URL params
+  const sortByParam = filters.sortBy || "wordIndex";
+  const sortOrderParam = filters.sortDirection || "asc";
 
   // T142: Fetch all results for export (without pagination)
   const {

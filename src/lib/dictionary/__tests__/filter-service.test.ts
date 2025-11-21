@@ -1,13 +1,13 @@
 /**
  * Unit Tests for FilterService
- * 
+ *
  * Task: T126
  * Purpose: Verify pure function behavior without dependencies
  * Coverage Target: 90%+
  */
 
 import { FilterService } from "../filter-service";
-import { UserFilter } from "../types";
+import { UserFilter, SearchMode } from "../types";
 
 describe("FilterService", () => {
   describe("validateFilters", () => {
@@ -23,6 +23,9 @@ describe("FilterService", () => {
           start: new Date("2024-01-01"),
           end: new Date("2024-12-31"),
         },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const result = FilterService.validateFilters(filters);
@@ -40,12 +43,17 @@ describe("FilterService", () => {
         hasAudio: null,
         hasAttributes: null,
         dateRange: { start: null, end: null },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const result = FilterService.validateFilters(filters);
 
       expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain("minimum cannot be greater than maximum");
+      expect(result.errors[0]).toContain(
+        "minimum cannot be greater than maximum",
+      );
     });
 
     it("should reject invalid date range", () => {
@@ -60,6 +68,9 @@ describe("FilterService", () => {
           start: new Date("2024-12-31"),
           end: new Date("2024-01-01"),
         },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const result = FilterService.validateFilters(filters);
@@ -99,6 +110,9 @@ describe("FilterService", () => {
         hasAudio: null,
         hasAttributes: null,
         dateRange: { start: null, end: null },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const result = FilterService.validateFilters(filters);
@@ -120,6 +134,9 @@ describe("FilterService", () => {
           start: new Date("2024-01-01"),
           end: new Date("2024-12-31"),
         },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const pagination = { limit: 20, offset: 0 };
@@ -159,7 +176,10 @@ describe("FilterService", () => {
       };
 
       const pagination = { limit: 20, offset: 0 };
-      const sorting = { sortBy: "wordIndex", sortOrder: "asc" as const };
+      const sorting = {
+        sortBy: "wordIndex" as const,
+        sortOrder: "asc" as const,
+      };
 
       const query = FilterService.buildQuery(filters, pagination, sorting);
 
@@ -180,6 +200,9 @@ describe("FilterService", () => {
           start: new Date("2024-01-01T00:00:00.000Z"),
           end: new Date("2024-12-31T23:59:59.999Z"),
         },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const serialized = FilterService.serializeFilters(filters);
@@ -203,6 +226,9 @@ describe("FilterService", () => {
         hasAudio: null,
         hasAttributes: null,
         dateRange: { start: null, end: null },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const serialized = FilterService.serializeFilters(filters);
@@ -225,7 +251,7 @@ describe("FilterService", () => {
   describe("deserializeFromUrl", () => {
     it("should deserialize from URLSearchParams", () => {
       const params = new URLSearchParams(
-        "origins=mw,ap90&language=sa&wordLengthMin=5&wordLengthMax=10&hasAudio=true&hasAttributes=false&dateStart=2024-01-01&dateEnd=2024-12-31"
+        "origins=mw,ap90&language=sa&wordLengthMin=5&wordLengthMax=10&hasAudio=true&hasAttributes=false&dateStart=2024-01-01&dateEnd=2024-12-31",
       );
 
       const filters = FilterService.deserializeFromUrl(params);
@@ -263,7 +289,9 @@ describe("FilterService", () => {
     });
 
     it("should handle invalid number values", () => {
-      const params = new URLSearchParams("wordLengthMin=invalid&wordLengthMax=-5");
+      const params = new URLSearchParams(
+        "wordLengthMin=invalid&wordLengthMax=-5",
+      );
 
       const filters = FilterService.deserializeFromUrl(params);
 
@@ -291,6 +319,9 @@ describe("FilterService", () => {
           start: new Date("2024-01-01"),
           end: new Date("2024-12-31"),
         },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const serialized = FilterService.serializeFilters(originalFilters);
@@ -364,6 +395,9 @@ describe("FilterService", () => {
         hasAudio: true,
         hasAttributes: false,
         dateRange: { start: null, end: null },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex" as const,
+        sortDirection: "asc" as const,
       };
 
       const updates: Partial<UserFilter> = {

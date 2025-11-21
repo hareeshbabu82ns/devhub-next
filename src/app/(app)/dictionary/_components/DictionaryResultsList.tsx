@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
+import { TargetIcon, ZapIcon, InfoIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -41,6 +42,7 @@ import {
   getRelevanceCategory,
 } from "@/lib/dictionary/relevance-scoring";
 import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
+import { SearchMode } from "@/lib/dictionary/types";
 
 import { ViewMode } from "../types";
 
@@ -67,6 +69,7 @@ interface DictionaryResultsListProps {
   asBrowse?: boolean;
   searchTerm?: string; // T123: For highlighting search matches
   viewMode?: ViewMode; // T89: View mode for rendering
+  searchMode?: string; // T221: Current search mode for badge display
 
   // Callbacks
   onPageChange: (page: number) => void;
@@ -76,6 +79,7 @@ interface DictionaryResultsListProps {
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
   onCompare?: (word: string) => void; // T148: Compare callback
+  onSwitchToFullText?: () => void; // T222: Fallback to full-text search
 }
 
 /**
@@ -86,7 +90,6 @@ interface DictionaryResultsListProps {
 export function DictionaryResultsList({
   results,
   total,
-  originParam,
   isLoading,
   isFetching,
   isError,
@@ -97,8 +100,10 @@ export function DictionaryResultsList({
   textSize,
   isTouchDevice,
   asBrowse,
+  originParam,
   searchTerm,
   viewMode = "card",
+  searchMode = SearchMode.FULLTEXT,
   onPageChange,
   onNextPage,
   onPrevPage,
@@ -106,6 +111,7 @@ export function DictionaryResultsList({
   onCopyDescription,
   onEditItem,
   onCompare, // T148
+  onSwitchToFullText, // T222
 }: DictionaryResultsListProps) {
   // Loading state
   if (isLoading || isFetching) {
@@ -117,12 +123,50 @@ export function DictionaryResultsList({
     return <SimpleAlert title={error?.message ?? "An error occurred"} />;
   }
 
-  // Empty state
+  // T222: Empty state with fallback to full-text search for key-based modes
   if (!results || total === 0) {
+    const isKeyBasedSearch =
+      searchMode === SearchMode.KEY_EXACT ||
+      searchMode === SearchMode.KEY_PREFIX;
+
     return (
-      <SimpleAlert
-        title={`No data found in Dictionary: ${originParam.join(", ")}`}
-      />
+      <div className="space-y-4">
+        <SimpleAlert
+          title="No results found"
+          extraMessages={["Try adjusting your search or browse by dictionary."]}
+        />
+
+        {/* T222: Suggest switching to Full-Text search for key-based modes */}
+        {isKeyBasedSearch && onSwitchToFullText && searchTerm && (
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardDescription className="flex flex-col gap-3">
+                <div className="flex items-start gap-2">
+                  <InfoIcon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground mb-1">
+                      No exact matches found in word field
+                    </p>
+                    <p className="text-sm">
+                      Try Full-Text Search to search across all fields including
+                      descriptions.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={onSwitchToFullText}
+                  variant="default"
+                  size="sm"
+                  className="w-full sm:w-auto"
+                >
+                  <Icons.search className="mr-2 h-4 w-4" />
+                  Switch to Full-Text Search
+                </Button>
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        )}
+      </div>
     );
   }
 
@@ -154,10 +198,27 @@ export function DictionaryResultsList({
       </div>
 
       <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-2">
-        <CardDescription>
-          Results
+        <CardDescription className="flex items-center gap-2 flex-wrap">
+          <span>Results</span>
+          {/* T221: Search mode badge with result count */}
+          {searchMode !== SearchMode.FULLTEXT && (
+            <Badge variant="secondary" className="gap-1.5">
+              {searchMode === SearchMode.KEY_EXACT && (
+                <TargetIcon className="h-3 w-3" />
+              )}
+              {searchMode === SearchMode.KEY_PREFIX && (
+                <ZapIcon className="h-3 w-3" />
+              )}
+              <span className="text-xs">
+                {searchMode === SearchMode.KEY_EXACT
+                  ? "Exact Match"
+                  : "Prefix Match"}
+              </span>
+              <span className="text-xs font-semibold">({total})</span>
+            </Badge>
+          )}
           {hasRelevanceScores && searchTerm && (
-            <span className="ml-2 text-xs text-muted-foreground">
+            <span className="ml-0 sm:ml-2 text-xs text-muted-foreground">
               (sorted by relevance)
             </span>
           )}

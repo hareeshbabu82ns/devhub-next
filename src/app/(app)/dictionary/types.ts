@@ -11,10 +11,10 @@ export type DictionaryItem = {
   attributes: AttributeValueInput[];
   phonetic: string;
   sourceData?: Record<string, any>;
-  
+
   // T122: Relevance scoring fields (optional for backward compatibility)
   relevanceScore?: number; // 0-100 range
-  matchType?: 'exact' | 'prefix' | 'fuzzy' | 'phonetic';
+  matchType?: "exact" | "prefix" | "fuzzy" | "phonetic";
   searchMetadata?: {
     queryLanguage: string;
     matchedLanguage: string;
@@ -76,45 +76,50 @@ export interface SearchResult {
   attributes: AttributeValueInput[];
   phonetic: string;
   sourceData?: Record<string, any>;
-  
+
   // Enhancement fields
   relevanceScore: number; // 0-100 range
   highlightedWord?: string; // Word with HTML highlighting
   highlightedDescription?: string; // Description with HTML highlighting
-  matchType: 'exact' | 'prefix' | 'contains' | 'none'; // Type of match
+  matchType: "exact" | "prefix" | "contains" | "none"; // Type of match
   textSnippet?: string; // Contextual snippet around match
 }
 
 /**
  * User filter options for advanced filtering
  * Used in Phase 5 (User Story 2)
+ * T202: Added searchMode for Phase 13 (User Story 10)
  */
 export interface UserFilter {
   // Dictionary origin filter (OR logic for multiple values)
   origin?: string[];
-  
+
   // Language filter
   language?: string;
-  
+
   // Word length range filter
   wordLengthMin?: number;
   wordLengthMax?: number;
-  
+
   // Audio availability filter
   hasAudio?: boolean;
-  
+
   // Attributes filter
   hasAttributes?: boolean;
-  
+
   // Date range filter
   dateFrom?: Date | string;
   dateTo?: Date | string;
-  
+
   // Advanced text filters
-  scriptType?: 'devanagari' | 'telugu' | 'latin' | 'mixed';
-  
+  scriptType?: "devanagari" | "telugu" | "latin" | "mixed";
+
   // Phonetic search filter
   phoneticSearch?: boolean;
+
+  // Search mode: FULLTEXT (default), KEY_EXACT, KEY_PREFIX
+  // T202: Phase 13 - Key-based word field search
+  searchMode?: "FULLTEXT" | "KEY_EXACT" | "KEY_PREFIX";
 }
 
 /**

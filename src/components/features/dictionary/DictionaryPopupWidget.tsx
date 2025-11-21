@@ -1,9 +1,9 @@
 /**
  * DictionaryPopupWidget - Quick Lookup Popup
- * 
+ *
  * Phase 8: User Story 7 (US7) - Quick Lookup Popup Widget
  * Tasks: T117-T124
- * 
+ *
  * Purpose: Global dictionary popup accessible from any page
  * Features:
  * - Keyboard shortcut (Ctrl/Cmd+Shift+D) - T115
@@ -21,14 +21,38 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { X, ExternalLinkIcon, SearchIcon } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useKeyboardShortcut } from "@/hooks/use-keyboard-shortcut";
-import { createFocusTrap, createFocusRestoration, getAriaAnnouncer } from "@/lib/accessibility/focus-management";
+import {
+  createFocusTrap,
+  createFocusRestoration,
+  getAriaAnnouncer,
+} from "@/lib/accessibility/focus-management";
 import { useDictionarySearch } from "@/hooks/use-dictionary-search";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import { SearchMode } from "@/lib/dictionary/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ButtonGroup } from "@/components/ui/button-group";
+import {
+  SearchIcon as SearchFullIcon,
+  TargetIcon,
+  ZapIcon,
+} from "lucide-react";
 
 export function DictionaryPopupWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,6 +63,23 @@ export function DictionaryPopupWidget() {
   const focusRestorationRef = useRef(createFocusRestoration());
   const router = useRouter();
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // T225: Get search mode from filters (synced with main page)
+  const { filters, updateFilter } = useDictionaryFilters();
+  const searchMode = filters.searchMode || SearchMode.FULLTEXT;
+
+  // T225: Dynamic placeholder based on search mode
+  const getPlaceholder = () => {
+    switch (searchMode) {
+      case SearchMode.KEY_EXACT:
+        return "Type exact word...";
+      case SearchMode.KEY_PREFIX:
+        return "Type word prefix...";
+      case SearchMode.FULLTEXT:
+      default:
+        return "Search dictionary...";
+    }
+  };
 
   // T115: Keyboard shortcut listener (Ctrl/Cmd+Shift+D)
   useKeyboardShortcut({
@@ -74,7 +115,7 @@ export function DictionaryPopupWidget() {
     if (prefilledText) {
       setSearchQuery(prefilledText);
     }
-    
+
     // T124: Announce to screen readers
     getAriaAnnouncer().announce("Dictionary popup opened");
   }, []);
@@ -84,10 +125,10 @@ export function DictionaryPopupWidget() {
     setIsOpen(false);
     setSearchQuery("");
     setSelectedText("");
-    
+
     // T124: Announce to screen readers
     getAriaAnnouncer().announce("Dictionary popup closed");
-    
+
     // Restore focus to trigger element
     setTimeout(() => {
       focusRestorationRef.current.restore();
@@ -129,7 +170,7 @@ export function DictionaryPopupWidget() {
     const handleContextMenu = (e: MouseEvent) => {
       const selection = window.getSelection();
       const selectedText = selection?.toString().trim();
-      
+
       if (selectedText && selectedText.length > 0) {
         setSelectedText(selectedText);
       }
@@ -164,9 +205,10 @@ export function DictionaryPopupWidget() {
       <DialogContent
         ref={popupRef}
         className={`
-          ${isMobile 
-            ? "w-full h-full max-w-full max-h-full rounded-none p-safe-area" // T122: Full-screen on mobile with safe-area
-            : "max-w-[400px] max-h-[600px]" // Desktop: max 400px width
+          ${
+            isMobile
+              ? "w-full h-full max-w-full max-h-full rounded-none p-safe-area" // T122: Full-screen on mobile with safe-area
+              : "max-w-[400px] max-h-[600px]" // Desktop: max 400px width
           }
           flex flex-col gap-4
         `}
@@ -190,6 +232,79 @@ export function DictionaryPopupWidget() {
           Search for dictionary entries. Press Escape to close.
         </p>
 
+        {/* T225: Search Mode Selector - Responsive (dropdown mobile, segmented desktop) */}
+        {isMobile ? (
+          <Select
+            value={searchMode}
+            onValueChange={(value) =>
+              updateFilter("searchMode", value as SearchMode)
+            }
+          >
+            <SelectTrigger className="w-full" aria-label="Search mode">
+              <SelectValue placeholder="Search mode" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={SearchMode.FULLTEXT}>
+                <div className="flex items-center gap-2">
+                  <SearchFullIcon className="h-4 w-4" />
+                  <span>Full-Text Search</span>
+                </div>
+              </SelectItem>
+              <SelectItem value={SearchMode.KEY_EXACT}>
+                <div className="flex items-center gap-2">
+                  <TargetIcon className="h-4 w-4" />
+                  <span>Exact Match</span>
+                </div>
+              </SelectItem>
+              <SelectItem value={SearchMode.KEY_PREFIX}>
+                <div className="flex items-center gap-2">
+                  <ZapIcon className="h-4 w-4" />
+                  <span>Prefix Match</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        ) : (
+          <ButtonGroup className="w-full">
+            <Button
+              variant={
+                searchMode === SearchMode.FULLTEXT ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => updateFilter("searchMode", SearchMode.FULLTEXT)}
+              className="flex-1 gap-1.5"
+              aria-label="Full-text search mode"
+            >
+              <SearchFullIcon className="h-3.5 w-3.5" />
+              <span className="text-xs">Full-Text</span>
+            </Button>
+            <Button
+              variant={
+                searchMode === SearchMode.KEY_EXACT ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => updateFilter("searchMode", SearchMode.KEY_EXACT)}
+              className="flex-1 gap-1.5"
+              aria-label="Exact match search mode"
+            >
+              <TargetIcon className="h-3.5 w-3.5" />
+              <span className="text-xs">Exact</span>
+            </Button>
+            <Button
+              variant={
+                searchMode === SearchMode.KEY_PREFIX ? "default" : "outline"
+              }
+              size="sm"
+              onClick={() => updateFilter("searchMode", SearchMode.KEY_PREFIX)}
+              className="flex-1 gap-1.5"
+              aria-label="Prefix match search mode"
+            >
+              <ZapIcon className="h-3.5 w-3.5" />
+              <span className="text-xs">Prefix</span>
+            </Button>
+          </ButtonGroup>
+        )}
+
         {/* T116: Search input within popup */}
         <div className="flex gap-2">
           <div className="relative flex-1">
@@ -197,7 +312,7 @@ export function DictionaryPopupWidget() {
             <Input
               ref={searchInputRef}
               type="text"
-              placeholder="Search dictionary..."
+              placeholder={getPlaceholder()}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9"
@@ -237,19 +352,19 @@ export function DictionaryPopupWidget() {
               Searching...
             </div>
           )}
-          
+
           {error && (
             <div className="text-center py-8 text-destructive">
               Error loading results. Please try again.
             </div>
           )}
-          
+
           {!isLoading && !error && searchQuery && results.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
               No results found for "{searchQuery}"
             </div>
           )}
-          
+
           {!isLoading && !error && results.length > 0 && (
             <div className="space-y-2">
               {results.slice(0, 10).map((result: any, index: number) => (
@@ -292,7 +407,11 @@ export function DictionaryPopupWidget() {
         {/* Helper text */}
         <div className="text-xs text-muted-foreground text-center">
           {!isMobile && (
-            <p>Press <kbd className="px-1 py-0.5 bg-muted rounded">Ctrl+Shift+D</kbd> to open this popup from anywhere</p>
+            <p>
+              Press{" "}
+              <kbd className="px-1 py-0.5 bg-muted rounded">Ctrl+Shift+D</kbd>{" "}
+              to open this popup from anywhere
+            </p>
           )}
         </div>
       </DialogContent>

@@ -1,6 +1,6 @@
 /**
  * Advanced React hook for optimized dictionary search with caching and debouncing
- * 
+ *
  * Tasks: T83-T84
  * Enhanced to use SearchService pattern with SearchState encapsulation
  */
@@ -17,7 +17,7 @@ import {
 } from "@/app/(app)/dictionary/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
-import { UserFilter } from "@/lib/dictionary/types";
+import { UserFilter, SearchMode } from "@/lib/dictionary/types";
 
 /**
  * T84: SearchState type encapsulating search parameters
@@ -248,6 +248,9 @@ export function useDictionarySearch(
         hasAudio: null,
         hasAttributes: null,
         dateRange: { start: null, end: null },
+        searchMode: SearchMode.FULLTEXT,
+        sortBy: "wordIndex",
+        sortDirection: "asc",
       },
       sortOptions: {
         sortBy,
@@ -258,7 +261,7 @@ export function useDictionarySearch(
         offset,
       },
     }),
-    [searchTerm, dictFrom, sortBy, sortOrder, limit, offset]
+    [searchTerm, dictFrom, sortBy, sortOrder, limit, offset],
   );
 
   return {

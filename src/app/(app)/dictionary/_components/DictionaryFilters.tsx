@@ -1,9 +1,9 @@
 /**
  * DictionaryFilters - Advanced Filter Sidebar
- * 
+ *
  * Phase 5: User Story 2 (US2) - Advanced Filter Options
  * Tasks: T74-T86
- * 
+ *
  * Purpose: Collapsible filter sidebar with Apply button pattern
  * Features:
  * - Origin multi-select
@@ -43,10 +43,19 @@ import MultiSelectChips from "@/components/inputs/MultiSelectChips";
 import { FormSelectOptions } from "@/components/inputs/FormSelect";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 import { DICTIONARY_ORIGINS_DDLB, DICTIONARY_LANGUAGES } from "../utils";
-import { FilterIcon, XIcon, CheckIcon } from "lucide-react";
+import {
+  FilterIcon,
+  XIcon,
+  CheckIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { SearchModeToggle } from "./SearchModeToggle";
+import { SearchMode } from "@/lib/dictionary/types";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface DictionaryFiltersProps {
   open: boolean;
@@ -101,7 +110,10 @@ export function DictionaryFilters({
     .filter(Boolean) as FormSelectOptions[];
 
   const handleOriginsChange = (value: FormSelectOptions[]) => {
-    updatePendingFilter("origins", value.map((v) => v.value));
+    updatePendingFilter(
+      "origins",
+      value.map((v) => v.value),
+    );
   };
 
   // T75: Word length range handlers
@@ -115,7 +127,7 @@ export function DictionaryFilters({
     updatePendingFilter("wordLengthMax", isNaN(num) ? null : num);
   };
 
-  // Count active filters
+  // Count active filters (excluding sorting which is always set)
   const activeFilterCount = [
     pendingFilters.origins.length > 0,
     pendingFilters.language !== null,
@@ -152,6 +164,19 @@ export function DictionaryFilters({
         </SheetHeader>
 
         <div className="flex-1 space-y-6 py-6">
+          {/* T211: Search Mode Toggle */}
+          <div className="space-y-2">
+            <Label className="text-base font-medium">Search Mode</Label>
+            <SearchModeToggle
+              value={pendingFilters.searchMode || SearchMode.FULLTEXT}
+              onChange={(mode) => updatePendingFilter("searchMode", mode)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Choose between full-text search, exact word match, or prefix
+              matching
+            </p>
+          </div>
+
           {/* T75: Origin multi-select (chips on mobile) */}
           <div className="space-y-2">
             <Label htmlFor="filter-origins" className="text-base font-medium">
@@ -175,7 +200,7 @@ export function DictionaryFilters({
           </div>
 
           {/* T75: Language select */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label htmlFor="filter-language" className="text-base font-medium">
               Language
             </Label>
@@ -197,10 +222,10 @@ export function DictionaryFilters({
                 ))}
               </SelectContent>
             </Select>
-          </div>
+          </div> */}
 
           {/* T75: Word length range inputs (touch-optimized) */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label className="text-base font-medium">Word Length Range</Label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -234,10 +259,10 @@ export function DictionaryFilters({
                 />
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* T75: Has audio checkbox */}
-          <div className="flex items-center space-x-3 p-3 rounded-lg border">
+          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
             <Checkbox
               id="filter-has-audio"
               checked={pendingFilters.hasAudio ?? false}
@@ -253,10 +278,10 @@ export function DictionaryFilters({
             >
               Has Audio
             </Label>
-          </div>
+          </div> */}
 
           {/* T75: Has attributes checkbox */}
-          <div className="flex items-center space-x-3 p-3 rounded-lg border">
+          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
             <Checkbox
               id="filter-has-attributes"
               checked={pendingFilters.hasAttributes ?? false}
@@ -272,10 +297,10 @@ export function DictionaryFilters({
             >
               Has Attributes
             </Label>
-          </div>
+          </div> */}
 
           {/* T75: Date range picker (simplified for now) */}
-          <div className="space-y-2">
+          {/* <div className="space-y-2">
             <Label className="text-base font-medium">Date Range</Label>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
@@ -331,6 +356,102 @@ export function DictionaryFilters({
                 />
               </div>
             </div>
+          </div> */}
+
+          {/* Sort By Options */}
+          <div className="space-y-2">
+            <Label className="text-base font-medium">Sort By</Label>
+            <RadioGroup
+              value={pendingFilters.sortBy || "wordIndex"}
+              onValueChange={(value) =>
+                updatePendingFilter(
+                  "sortBy",
+                  value as "wordIndex" | "alphabetical" | "relevance",
+                )
+              }
+            >
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem
+                  value="wordIndex"
+                  id="sort-wordIndex"
+                  className="h-5 w-5"
+                />
+                <Label
+                  htmlFor="sort-wordIndex"
+                  className="text-base font-medium cursor-pointer flex-1"
+                >
+                  Word Index
+                </Label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem
+                  value="alphabetical"
+                  id="sort-alphabetical"
+                  className="h-5 w-5"
+                />
+                <Label
+                  htmlFor="sort-alphabetical"
+                  className="text-base font-medium cursor-pointer flex-1"
+                >
+                  Alphabetical
+                </Label>
+              </div>
+              <div className="flex items-center space-x-3 p-3 rounded-lg border">
+                <RadioGroupItem
+                  value="relevance"
+                  id="sort-relevance"
+                  className="h-5 w-5"
+                />
+                <Label
+                  htmlFor="sort-relevance"
+                  className="text-base font-medium cursor-pointer flex-1"
+                >
+                  Relevance
+                </Label>
+              </div>
+            </RadioGroup>
+            <p className="text-xs text-muted-foreground">
+              Choose how results should be ordered
+            </p>
+          </div>
+
+          {/* Sort Direction */}
+          <div className="space-y-2">
+            <Label className="text-base font-medium">Sort Direction</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                type="button"
+                variant={
+                  pendingFilters.sortDirection === "asc" ? "default" : "outline"
+                }
+                className="h-12 justify-start"
+                onClick={() => updatePendingFilter("sortDirection", "asc")}
+              >
+                <ArrowUpIcon className="h-4 w-4 mr-2" aria-hidden="true" />
+                Ascending
+              </Button>
+              <Button
+                type="button"
+                variant={
+                  pendingFilters.sortDirection === "desc"
+                    ? "default"
+                    : "outline"
+                }
+                className="h-12 justify-start"
+                onClick={() => updatePendingFilter("sortDirection", "desc")}
+              >
+                <ArrowDownIcon className="h-4 w-4 mr-2" aria-hidden="true" />
+                Descending
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {pendingFilters.sortDirection === "asc" ? "A → Z" : "Z → A"} for
+              alphabetical,
+              {pendingFilters.sortDirection === "asc"
+                ? " low → high"
+                : " high → low"}{" "}
+              for index
+            </p>
           </div>
 
           {/* T84: Validation errors */}
@@ -370,7 +491,7 @@ export function DictionaryFilters({
               disabled={!validation.isValid}
               className={cn(
                 "flex-1 h-12 sm:h-10", // Touch-friendly on mobile
-                hasPendingChanges && "ring-2 ring-primary ring-offset-2"
+                hasPendingChanges && "ring-2 ring-primary ring-offset-2",
               )}
               aria-label="Apply filters"
               aria-live="polite"

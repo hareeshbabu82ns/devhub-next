@@ -1,6 +1,6 @@
 /**
  * Unit Tests for SearchService
- * 
+ *
  * Task: T125
  * Purpose: Test service layer without React dependencies
  * Coverage Target: 90%+
@@ -12,7 +12,7 @@ import {
   DatabaseResult,
 } from "../dictionary-repository";
 import { DictionaryWord } from "@/app/generated/prisma";
-import { SearchOptions } from "../types";
+import { SearchOptions, SearchMode } from "../types";
 
 // Mock repository
 class MockDictionaryRepository implements IDictionaryRepository {
@@ -77,7 +77,7 @@ describe("SearchService", () => {
         hasMore: false,
       };
 
-      mockRepository.aggregateSearch.mockResolvedValue(dbResult);
+      mockRepository.findWords.mockResolvedValue(dbResult);
 
       const options: SearchOptions = {
         queryText: "namaste",
@@ -89,6 +89,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: null,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "relevance",
         sortDirection: "asc",
@@ -103,7 +106,7 @@ describe("SearchService", () => {
         expect(result.data.total).toBe(2);
         expect(result.data.hasMore).toBe(false);
       }
-      expect(mockRepository.aggregateSearch).toHaveBeenCalled();
+      expect(mockRepository.findWords).toHaveBeenCalled();
     });
 
     it("should use findWords for short queries", async () => {
@@ -125,6 +128,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: null,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "alphabetical",
         sortDirection: "asc",
@@ -135,7 +141,7 @@ describe("SearchService", () => {
 
       expect(result.status).toBe("success");
       expect(mockRepository.findWords).toHaveBeenCalled();
-      expect(mockRepository.aggregateSearch).not.toHaveBeenCalled();
+      // findWords is always called; it internally decides whether to use aggregateSearch
     });
 
     it("should calculate relevance scores for results", async () => {
@@ -145,7 +151,7 @@ describe("SearchService", () => {
         hasMore: false,
       };
 
-      mockRepository.aggregateSearch.mockResolvedValue(dbResult);
+      mockRepository.findWords.mockResolvedValue(dbResult);
 
       const options: SearchOptions = {
         queryText: "namaste",
@@ -157,6 +163,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: null,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "relevance",
         sortDirection: "desc",
@@ -175,9 +184,7 @@ describe("SearchService", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      mockRepository.aggregateSearch.mockRejectedValue(
-        new Error("Database error")
-      );
+      mockRepository.findWords.mockRejectedValue(new Error("Database error"));
 
       const options: SearchOptions = {
         queryText: "test",
@@ -189,6 +196,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: null,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "relevance",
         sortDirection: "asc",
@@ -211,7 +221,7 @@ describe("SearchService", () => {
         hasMore: false,
       };
 
-      mockRepository.aggregateSearch.mockResolvedValue(dbResult);
+      mockRepository.findWords.mockResolvedValue(dbResult);
 
       const options: SearchOptions = {
         queryText: "nama",
@@ -223,6 +233,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: null,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "relevance",
         sortDirection: "desc",
@@ -272,7 +285,7 @@ describe("SearchService", () => {
       expect(result.relevanceScore).toBeGreaterThan(0);
       expect(result.matchType).toBe("prefix");
       expect(result.searchMetadata?.scoreBreakdown.prefixBonus).toBeGreaterThan(
-        0
+        0,
       );
     });
 
@@ -361,7 +374,7 @@ describe("SearchService", () => {
         },
       ];
 
-      mockRepository.aggregateSearch.mockResolvedValue({
+      mockRepository.findWords.mockResolvedValue({
         data: mockWords,
         total: 1,
         hasMore: false,
@@ -377,6 +390,9 @@ describe("SearchService", () => {
           hasAudio: null,
           hasAttributes: true,
           dateRange: { start: null, end: null },
+          searchMode: SearchMode.FULLTEXT,
+          sortBy: "wordIndex" as const,
+          sortDirection: "asc" as const,
         },
         sortBy: "relevance",
         sortDirection: "desc",
