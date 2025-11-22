@@ -20,6 +20,14 @@
 - Q: How should test coverage be prioritized during refactoring? → A: Test repository layer first, then services, finally integration tests
 - Q: How should component state updates be handled when multiple filters change simultaneously? → A: Batch updates with single state setter call using reducer pattern or combined state object
 
+### Session 2025-11-22 (Phase 14: WebIME Enhancement)
+
+- Q: Which suggestion provider should be the default when no suggestionProvider prop is passed to WebIMEIdeInput? → A: DictionarySuggestionProvider (dictionary-based with actual dictionary entries for accuracy, with StaticSuggestionProvider as fallback when database unavailable)
+- Q: How should static word lists be loaded for StaticSuggestionProvider? → A: Lazy load on first use with in-memory caching (load JSON files from data/sanscript/suggestions/ when getSuggestions() first called, cache in Map for session, prevents initial bundle bloat while maintaining performance after first load)
+- Q: What caching strategy should DictionarySuggestionProvider use? → A: Simple Map cache with TTL (5 min) - clear all on expiration, no eviction (simpler implementation than LRU, lightweight memory footprint ~10KB for 100 entries, periodic cache clear ensures freshness without complex eviction logic)
+- Q: What priority hierarchy should language preference resolution follow? → A: Prop override (controlled) → URL param → Context-specific localStorage → Global preference → "NONE" default (respects controlled component pattern, then shareability, then context isolation, then user settings, finally fallback)
+- Q: What scoring formula should rank suggestion results? → A: Weighted score: Prefix match (50 pts) + Length ratio (25 pts) + Dictionary frequency rank (15 pts) + Recent usage count (10 pts) = 0-100 total (prioritizes prefix matching while balancing linguistic quality and personalization)
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Enhanced Full-Text Search with Relevance Ranking (Priority: P1)

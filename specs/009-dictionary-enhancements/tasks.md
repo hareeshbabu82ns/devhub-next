@@ -330,6 +330,131 @@ Web application (Next.js 15+):
 
 ---
 
+## Phase 14: WebIMEIdeInput Enhancement - Persistent Language & Improved Multilingual Support (Priority: P2)
+
+**Goal**: Refactor WebIMEIdeInput component to persist language selection state and enhance multilingual input with better suggestion words and configurable storage keys
+
+**Independent Test**: Select a language (e.g., Telugu) in WebIMEIdeInput, refresh page, verify language persists; type Sanskrit text and see context-aware suggestions
+
+### Background Analysis
+
+**Current State:**
+
+- Language selection state resets on page refresh
+- User has to manually select language each time
+- No persistence mechanism for user preferences
+- Limited suggestion word customization
+- WebIME library provides basic transliteration but lacks context-aware suggestions
+
+**Usage Context:**
+
+- Used in 3 locations: Dictionary search, Entity search, Sanscript page
+- Each context may need different default languages and suggestion dictionaries
+- Dictionary search uses "NONE" by default, Entity search uses language prop
+- Language selector is optional (withLanguageSelector prop)
+
+**Technical Constraints:**
+
+- Must handle SSR hydration (no localStorage access on server)
+- Must respect prop-based language overrides (controlled component pattern)
+- Must maintain backward compatibility with existing usage
+- Should allow per-context storage keys for isolated persistence
+
+### Implementation for User Story 14
+
+#### Subphase 14.1: Core Persistence Infrastructure
+
+- [ ] T200 [P] [US14] Create use-webime-language-persistence.ts hook in src/hooks/ with localStorage integration, SSR-safe hydration, and configurable storage key parameter (default: "webimeLanguage")
+- [ ] T201 [P] [US14] Implement storage key namespacing strategy in use-webime-language-persistence: support context-specific keys like "webimeLanguage:dictionary", "webimeLanguage:entity", "webimeLanguage:sanscript"
+- [ ] T202 [P] [US14] Add language validation logic in use-webime-language-persistence: verify stored language exists in LANGUAGE_TO_TRANSLITERATION_DDLB before restoring
+- [ ] T203 [P] [US14] Implement fallback chain in use-webime-language-persistence: stored language → prop language → "NONE" default
+- [ ] T204 [US14] Add hydration-safe state management: use useState + useEffect pattern to avoid hydration mismatches (store null initially, load on client mount)
+- [ ] T205 [US14] Implement auto-save on language change: debounced localStorage write (200ms delay) to avoid excessive writes during dropdown navigation
+
+#### Subphase 14.2: WebIMEIdeInput Refactoring
+
+- [ ] T206 [P] [US14] Add storageKey prop to WebIMEIdeProps interface with optional string type for custom localStorage key (default: "webimeLanguage")
+- [ ] T207 [P] [US14] Add onLanguageChange callback prop to WebIMEIdeProps for parent component notification of language changes
+- [ ] T208 [US14] Integrate use-webime-language-persistence hook in WebIMEIdeInput component replacing direct useState for language state
+- [ ] T209 [US14] Update language synchronization logic: respect prop changes only if user hasn't manually selected (preserve userHasSelectedLanguage flag)
+- [ ] T210 [US14] Implement controlled/uncontrolled component pattern: if language prop provided, use as controlled; otherwise, use persistence hook
+- [ ] T211 [US14] Add isLanguagePersisted flag to component state to distinguish persisted vs. prop-provided languages for UI feedback
+- [ ] T212 [US14] Update language selector to show visual indicator (subtle badge/icon) when language is persisted vs. default
+- [ ] T213 [US14] Add "Reset to Default" option in language selector dropdown to clear persisted language and revert to prop/default
+
+#### Subphase 14.3: Enhanced Suggestion System
+
+- [ ] T214 [P] [US14] Create suggestion-provider.ts in src/lib/sanscript/ with interfaces: SuggestionProvider (abstract), DictionarySuggestionProvider, StaticSuggestionProvider
+- [ ] T215 [P] [US14] Implement DictionarySuggestionProvider class: query DictionaryWord model for matching words based on input text and language with limit of 10 results
+- [ ] T216 [P] [US14] Implement StaticSuggestionProvider class: use predefined word lists for common Sanskrit/Telugu terms (mantras, deity names, religious terms) from static JSON files
+- [ ] T217 [P] [US14] Create suggestion word lists in data/sanscript/suggestions/ directory: common-sanskrit.json (top 500 words), common-telugu.json (top 500 words), deity-names.json, mantra-beginnings.json
+- [ ] T218 [US14] Implement suggestion caching strategy in DictionarySuggestionProvider: use Map-based LRU cache (max 100 entries) to avoid repeated database queries
+- [ ] T219 [US14] Add context-aware suggestion ranking: boost suggestions based on frequency, recent usage, and text length match (prefix matches higher than contains)
+- [ ] T220 [US14] Implement multi-script suggestion matching: normalize input text across Devanagari/IAST/ITRANS/Telugu using sanscript before querying
+- [ ] T221 [US14] Add suggestionProvider prop to WebIMEIdeProps: accept SuggestionProvider instance for custom suggestion sources (default: StaticSuggestionProvider)
+- [ ] T222 [US14] Update valuesCallbackIME function in WebIMEIdeInput: integrate SuggestionProvider.getSuggestions() alongside existing transliterateText logic
+- [ ] T223 [US14] Implement suggestion result merging: combine transliteration results with provider suggestions, deduplicate, and rank (max 20 total)
+- [ ] T224 [US14] Add suggestion metadata display: show source type (transliteration/dictionary/static) as subtle indicator in dropdown items
+- [ ] T225 [US14] Implement keyboard navigation enhancement: Arrow keys cycle through suggestions, Enter selects, Escape closes without selection
+
+#### Subphase 14.4: Integration & Usage Updates
+
+- [ ] T226 [US14] Update search-toolbar.tsx (dictionary): add storageKey="webimeLanguage:dictionary" and suggestionProvider={dictionarySuggestionProvider} props
+- [ ] T227 [US14] Update EntitySearchTiles.tsx: add storageKey="webimeLanguage:entity" prop to preserve entity search language separately
+- [ ] T228 [US14] Create useDictionarySuggestionProvider hook in src/hooks/: instantiate DictionarySuggestionProvider with debounced query (300ms) and caching
+- [ ] T229 [US14] Create useStaticSuggestionProvider hook in src/hooks/: instantiate StaticSuggestionProvider with preloaded word lists
+- [ ] T230 [US14] Add language preference migration logic: check for old "webimeLanguage" key and migrate to context-specific keys on first load
+- [ ] T231 [US14] Implement global language preference setting: add "Default Input Language" in user settings (AppSettings or user preferences) with UI in settings page
+- [ ] T232 [US14] Create LanguagePreferenceProvider context in src/contexts/: provide global language preference to all WebIMEIdeInput instances with useContext hook
+- [ ] T233 [US14] Update WebIMEIdeInput to use global preference as fallback: globalPreference → storedLanguage → prop → "NONE"
+
+#### Subphase 14.5: Testing & Documentation
+
+- [ ] T234 [P] [US14] Create unit tests for use-webime-language-persistence.ts in tests/hooks/: verify SSR-safety, validation, fallback chain, storage/retrieval
+- [ ] T235 [P] [US14] Create unit tests for suggestion-provider.ts in tests/lib/sanscript/: verify ranking algorithm, caching behavior, multi-script matching
+- [ ] T236 [P] [US14] Create integration tests for WebIMEIdeInput persistence in tests/components/: verify language persists across mounts, respects prop overrides
+- [ ] T237 [US14] Manual testing across different contexts: verify dictionary/entity/sanscript pages maintain separate language preferences
+- [ ] T238 [US14] Test suggestion performance: verify <50ms response time for static suggestions, <200ms for database suggestions with 100k+ words
+- [ ] T239 [US14] Test multi-script suggestions: verify Sanskrit text in Devanagari returns IAST/ITRANS suggestions and vice versa
+- [ ] T240 [US14] Create user documentation for language persistence in docs/webime-persistence.md: explain storage keys, global preferences, suggestion sources
+- [ ] T241 [US14] Create developer documentation for custom suggestion providers in docs/webime-customization.md: interface contracts, caching patterns, examples
+
+#### Subphase 14.6: Advanced Features (Optional Enhancements)
+
+- [ ] T242 [P] [US14] Implement language usage analytics: track which languages are used most frequently (localStorage-based, privacy-preserving)
+- [ ] T243 [P] [US14] Add "Smart Language Detection": analyze input text and suggest switching language if mismatch detected (e.g., typing Devanagari while "ITRANS" selected)
+- [ ] T244 [US14] Implement suggestion learning: track user-selected suggestions and boost them in future rankings (localStorage-based frequency map)
+- [ ] T245 [US14] Add suggestion history: show recently used words/phrases at top of suggestions (last 20 items, persisted to localStorage)
+- [ ] T246 [US14] Create suggestion export/import: allow users to export their custom suggestion lists and import on different devices (JSON format)
+- [ ] T247 [US14] Add multi-language quick-switch: keyboard shortcut (Ctrl+Shift+L) to cycle through recently used languages without opening dropdown
+- [ ] T248 [US14] Implement suggestion fuzzy matching: tolerate typos in input using Levenshtein distance (max edit distance: 2) for more forgiving suggestions
+- [ ] T249 [US14] Add contextual suggestions based on previous input: analyze last few words to suggest relevant continuations (e.g., "om namah" → suggest "shivaya")
+- [ ] T250 [US14] Create admin UI for managing global suggestion word lists: CRUD interface in admin panel for common-sanskrit.json, deity-names.json, etc.
+
+#### Subphase 14.7: WebIMEIde Textarea Enhancement (Parallel to WebIMEIdeInput)
+
+- [ ] T251 [P] [US14] Add storageKey prop to WebIMEIde component interface (WebIMEIdeProps) with optional string type for custom localStorage key (default: "webimeLanguage")
+- [ ] T252 [P] [US14] Add onLanguageChange callback prop to WebIMEIdeProps for parent component notification of language changes
+- [ ] T253 [US14] Integrate use-webime-language-persistence hook in WebIMEIde component replacing direct useState for language state
+- [ ] T254 [US14] Update language synchronization logic in WebIMEIde: respect prop changes only if user hasn't manually selected (preserve userHasSelectedLanguage flag)
+- [ ] T255 [US14] Implement controlled/uncontrolled component pattern in WebIMEIde: if language prop provided, use as controlled; otherwise, use persistence hook
+- [ ] T256 [US14] Add isLanguagePersisted flag to WebIMEIde component state to distinguish persisted vs. prop-provided languages for UI feedback
+- [ ] T257 [US14] Update language selector in WebIMEIde to show visual indicator (subtle badge/icon) when language is persisted vs. default
+- [ ] T258 [US14] Add "Reset to Default" option in WebIMEIde language selector dropdown to clear persisted language and revert to prop/default
+- [ ] T259 [US14] Add suggestionProvider prop to WebIMEIdeProps: accept SuggestionProvider instance for custom suggestion sources (default: DictionarySuggestionProvider)
+- [ ] T260 [US14] Update valuesCallbackIME function in WebIMEIde: integrate SuggestionProvider.getSuggestions() alongside existing transliterateText logic
+- [ ] T261 [US14] Implement suggestion result merging in WebIMEIde: combine transliteration results with provider suggestions, deduplicate, and rank (max 20 total)
+- [ ] T262 [US14] Add suggestion metadata display in WebIMEIde: show source type (transliteration/dictionary/static) as subtle indicator in dropdown items
+- [ ] T263 [US14] Update Sanscript page usage: add storageKey="webimeLanguage:sanscript" prop to WebIMEIde instances to preserve context-specific language
+- [ ] T264 [US14] Add enablePersistence prop to WebIMEIdeProps to allow toggling persistence on/off (default: true) for specific use cases
+- [ ] T265 [US14] Create integration tests for WebIMEIde persistence in tests/components/: verify language persists across mounts, respects prop overrides, works with textarea
+- [ ] T266 [US14] Manual testing WebIMEIde on Sanscript page: verify language persistence, suggestion providers work correctly with textarea input
+- [ ] T267 [US14] Verify WebIMEIde backward compatibility: ensure existing usage in Sanscript page works without breaking changes (language prop still works as controlled)
+
+**Checkpoint**: Language persistence should work across all contexts with isolated storage, enhanced suggestions provide relevant multilingual options for both Input and Textarea components
+
+---
+
 ## Phase 12: Polish & Cross-Cutting Concerns
 
 **Purpose**: Accessibility audit, performance optimization, responsive design verification, and final polish across all features with mobile-first focus
@@ -676,9 +801,17 @@ Each phase ends with a checkpoint where the user story should be:
 - **Phase 13 - User Story 10 (P2)**: 29 tasks (T201-T229) - Key-Based Word Field Search
   - Core Implementation: 25 tasks (T201-T225)
   - Database Optimization: 4 tasks (T226-T229)
+- **Phase 14 - User Story 14 (P2)**: 68 tasks (T200-T267) - WebIME Enhancement (Input + Textarea)
+  - Persistence Infrastructure: 6 tasks (T200-T205)
+  - WebIMEIdeInput Refactoring: 8 tasks (T206-T213)
+  - Suggestion System: 12 tasks (T214-T225)
+  - Integration & Usage: 8 tasks (T226-T233)
+  - Testing & Documentation: 8 tasks (T234-T241)
+  - Advanced Features: 9 tasks (T242-T250)
+  - WebIMEIde Textarea Enhancement: 17 tasks (T251-T267)
 
-**Parallelizable Tasks**: ~85 tasks marked with [P]  
-**Story-Specific Tasks**: 91 tasks marked with [US1]-[US8], 53 tasks marked [US9] refactoring, 29 tasks marked [US10] key search
+**Parallelizable Tasks**: ~95 tasks marked with [P]  
+**Story-Specific Tasks**: 91 tasks marked with [US1]-[US8], 53 tasks marked [US9] refactoring, 29 tasks marked [US10] key search, 68 tasks marked [US14] WebIME enhancement
 
 **Foundation Task Count**: 53 tasks (T001-T053) - MUST complete before any enhancements  
 **Foundation Estimated Time**: 18-24 hours  
@@ -686,9 +819,11 @@ Each phase ends with a checkpoint where the user story should be:
 **MVP Estimated Time**: 24-30 hours  
 **Key Search Enhancement**: 29 tasks (T201-T229) - Recommended for Release 2  
 **Key Search Estimated Time**: 20-24 hours  
+**WebIME Enhancement**: 68 tasks (T200-T267) - Comprehensive input/textarea persistence & suggestions  
+**WebIME Estimated Time**: 48-56 hours  
 **Polish & Mobile UX**: 46 tasks (T155-T200) - Essential for production readiness  
 **Polish Estimated Time**: 36-42 hours  
-**Total Project Estimate**: 130-164 hours including refactoring, key search, and comprehensive mobile optimization
+**Total Project Estimate**: 178-210 hours including refactoring, key search, WebIME enhancement, and comprehensive mobile optimization
 
 ### Mobile-First Priorities ✅
 
