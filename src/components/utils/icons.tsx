@@ -18,6 +18,7 @@ import {
   File,
   FileText,
   FlameIcon,
+  GitCompare,
   Globe2,
   HandCoins,
   HelpCircle,
@@ -153,6 +154,7 @@ export const Icons = {
   upload: Upload,
   download: Download,
   heart: Heart,
+  gitCompare: GitCompare,
 
   play: PlayIcon,
   pause: PauseIcon,

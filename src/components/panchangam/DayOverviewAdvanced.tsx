@@ -13,12 +13,7 @@ import {
 } from "../ui/dialog";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { Clock } from "lucide-react";
 import type { DayOverviewProps, ScheduleItem } from "./DayOverview";
 import { PANCHANGAM_PLACE_TIMEZONES } from "@/lib/constants";
@@ -316,145 +311,140 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
                   const isShortSlot = height < 50;
 
                   return (
-                    <TooltipProvider
-                      key={`tooltip-provider-${index}`}
-                      delayDuration={300}
-                    >
-                      <Dialog>
-                        <DialogContent
-                          className={cn(
-                            "max-w-md",
-                            schedule.negative
-                              ? "border-destructive"
-                              : "border-primary",
-                          )}
-                        >
-                          <DialogHeader>
-                            <DialogTitle className="text-lg">
-                              {schedule.title}
-                            </DialogTitle>
-                            <DialogDescription className="space-y-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <Clock className="h-4 w-4" />
-                                <span>
-                                  {schedule.startTime} - {schedule.endTime}
-                                </span>
-                                <Badge variant="outline">{duration}</Badge>
-                              </div>
-                              <Badge
-                                variant={
-                                  schedule.negative ? "destructive" : "default"
-                                }
-                                className="mt-2"
-                              >
-                                {schedule.negative
-                                  ? "Inauspicious"
-                                  : "Auspicious"}
-                              </Badge>
-                            </DialogDescription>
-                          </DialogHeader>
-                        </DialogContent>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <DialogTrigger asChild>
-                              <Card
+                    <Dialog>
+                      <DialogContent
+                        className={cn(
+                          "max-w-md",
+                          schedule.negative
+                            ? "border-destructive"
+                            : "border-primary",
+                        )}
+                      >
+                        <DialogHeader>
+                          <DialogTitle className="text-lg">
+                            {schedule.title}
+                          </DialogTitle>
+                          <DialogDescription className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {schedule.startTime} - {schedule.endTime}
+                              </span>
+                              <Badge variant="outline">{duration}</Badge>
+                            </div>
+                            <Badge
+                              variant={
+                                schedule.negative ? "destructive" : "default"
+                              }
+                              className="mt-2"
+                            >
+                              {schedule.negative
+                                ? "Inauspicious"
+                                : "Auspicious"}
+                            </Badge>
+                          </DialogDescription>
+                        </DialogHeader>
+                      </DialogContent>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DialogTrigger asChild>
+                            <Card
+                              className={cn(
+                                "absolute cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg",
+                                "border-l-4 overflow-visible",
+                                schedule.negative
+                                  ? "border-l-destructive hover:bg-destructive/5"
+                                  : "border-l-primary hover:bg-primary/5",
+                              )}
+                              style={{
+                                top: `${topPosition}px`,
+                                height: `${Math.max(height, 24)}px`,
+                                width: "100%",
+                              }}
+                            >
+                              <CardContent
                                 className={cn(
-                                  "absolute cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg",
-                                  "border-l-4 overflow-visible",
-                                  schedule.negative
-                                    ? "border-l-destructive hover:bg-destructive/5"
-                                    : "border-l-primary hover:bg-primary/5",
+                                  "h-full flex gap-1",
+                                  height < 35
+                                    ? "p-1 flex-row items-center"
+                                    : "p-2 flex-col justify-center gap-0.5",
                                 )}
-                                style={{
-                                  top: `${topPosition}px`,
-                                  height: `${Math.max(height, 24)}px`,
-                                  width: "100%",
-                                }}
                               >
-                                <CardContent
-                                  className={cn(
-                                    "h-full flex gap-1",
-                                    height < 35
-                                      ? "p-1 flex-row items-center"
-                                      : "p-2 flex-col justify-center gap-0.5",
-                                  )}
-                                >
-                                  {/* For very short slots, use horizontal compact layout */}
-                                  {height < 35 ? (
-                                    <>
-                                      <div
-                                        className={cn(
-                                          "font-medium leading-tight text-[10px] sm:text-xs truncate flex-1",
-                                          schedule.negative
-                                            ? "text-destructive"
-                                            : "text-primary",
-                                        )}
-                                        title={`${schedule.title} (${schedule.startTime} - ${schedule.endTime})`}
-                                      >
-                                        {schedule.title}
-                                      </div>
-                                      <div
-                                        className="text-[9px] sm:text-[10px] text-muted-foreground whitespace-nowrap shrink-0"
-                                        title={`${schedule.startTime} - ${schedule.endTime}`}
-                                      >
-                                        {schedule.startTime.slice(0, 5)}
-                                      </div>
-                                    </>
-                                  ) : (
-                                    /* Regular vertical layout for taller slots */
-                                    <>
-                                      <div
-                                        className={cn(
-                                          "font-medium leading-tight",
-                                          height < 50
-                                            ? "text-xs line-clamp-1"
-                                            : "text-sm line-clamp-2",
-                                          schedule.negative
-                                            ? "text-destructive"
-                                            : "text-primary",
-                                        )}
-                                        title={schedule.title}
-                                      >
-                                        {schedule.title}
-                                      </div>
-                                      {height >= 45 && (
-                                        <div className="text-xs text-muted-foreground leading-tight truncate">
-                                          {schedule.startTime}
-                                        </div>
+                                {/* For very short slots, use horizontal compact layout */}
+                                {height < 35 ? (
+                                  <>
+                                    <div
+                                      className={cn(
+                                        "font-medium leading-tight text-[10px] sm:text-xs truncate flex-1",
+                                        schedule.negative
+                                          ? "text-destructive"
+                                          : "text-primary",
                                       )}
-                                      {height >= 65 && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-[10px] h-4 px-1 w-fit"
-                                        >
-                                          {duration}
-                                        </Badge>
+                                      title={`${schedule.title} (${schedule.startTime} - ${schedule.endTime})`}
+                                    >
+                                      {schedule.title}
+                                    </div>
+                                    <div
+                                      className="text-[9px] sm:text-[10px] text-muted-foreground whitespace-nowrap shrink-0"
+                                      title={`${schedule.startTime} - ${schedule.endTime}`}
+                                    >
+                                      {schedule.startTime.slice(0, 5)}
+                                    </div>
+                                  </>
+                                ) : (
+                                  /* Regular vertical layout for taller slots */
+                                  <>
+                                    <div
+                                      className={cn(
+                                        "font-medium leading-tight",
+                                        height < 50
+                                          ? "text-xs line-clamp-1"
+                                          : "text-sm line-clamp-2",
+                                        schedule.negative
+                                          ? "text-destructive"
+                                          : "text-primary",
                                       )}
-                                    </>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            </DialogTrigger>
-                          </TooltipTrigger>
-                          {isShortSlot && (
-                            <TooltipContent side="right" className="max-w-xs">
-                              <div className="space-y-1">
-                                <div className="font-semibold">
-                                  {schedule.title}
-                                </div>
-                                <div className="text-xs flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {schedule.startTime} - {schedule.endTime}
-                                  <span className="text-muted-foreground">
-                                    ({duration})
-                                  </span>
-                                </div>
+                                      title={schedule.title}
+                                    >
+                                      {schedule.title}
+                                    </div>
+                                    {height >= 45 && (
+                                      <div className="text-xs text-muted-foreground leading-tight truncate">
+                                        {schedule.startTime}
+                                      </div>
+                                    )}
+                                    {height >= 65 && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-[10px] h-4 px-1 w-fit"
+                                      >
+                                        {duration}
+                                      </Badge>
+                                    )}
+                                  </>
+                                )}
+                              </CardContent>
+                            </Card>
+                          </DialogTrigger>
+                        </TooltipTrigger>
+                        {isShortSlot && (
+                          <TooltipContent side="right" className="max-w-xs">
+                            <div className="space-y-1">
+                              <div className="font-semibold">
+                                {schedule.title}
                               </div>
-                            </TooltipContent>
-                          )}
-                        </Tooltip>
-                      </Dialog>
-                    </TooltipProvider>
+                              <div className="text-xs flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {schedule.startTime} - {schedule.endTime}
+                                <span className="text-muted-foreground">
+                                  ({duration})
+                                </span>
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </Dialog>
                   );
                 })}
               </div>

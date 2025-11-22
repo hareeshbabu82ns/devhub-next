@@ -1,7 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect } from "react";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { fetchEveryDayEntities, updateEntityQuickAccessAttr } from "../actions";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import {
@@ -14,9 +19,11 @@ import { mapEntityToTileModel } from "../../entities/utils";
 import { Entity } from "@/lib/types";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Loader from "@/components/utils/loader";
+import { EntityGridSkeleton } from "@/components/blocks/entity-grid-skeleton";
+import { EmptyState } from "@/components/utils/EmptyState";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useDevotionalTabState } from "@/hooks/use-devotional-tab-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,17 +48,20 @@ import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface EverydayDevotionalTabProps {
   className?: string;
+  initialPage?: number;
 }
 
 const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
   className,
+  initialPage = 1,
 }) => {
   const router = useRouter();
   const language = useLanguageAtomValue();
   const queryClient = useQueryClient();
+  const { updateTabState } = useDevotionalTabState();
 
   const limit = parseInt(useQueryLimitAtomValue());
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState((initialPage || 1) - 1);
   const currentPage = page + 1;
 
   // Dialog state management
@@ -81,7 +91,36 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
       return result.data;
     },
     staleTime: QUERY_STALE_TIME_LONG,
+    placeholderData: keepPreviousData,
   });
+
+  // Prefetch next page for smoother navigation
+  useEffect(() => {
+    if (everydayData && everydayData.results.length === limit) {
+      // Only prefetch if there might be more data
+      const nextPage = page + 1;
+      queryClient.prefetchQuery({
+        queryKey: [
+          "devotional",
+          "everyday",
+          language,
+          { limit, offset: nextPage },
+        ],
+        queryFn: async () => {
+          const result = await fetchEveryDayEntities({
+            language,
+            pageIndex: nextPage,
+            pageSize: limit,
+          });
+          if (result.status === "error") {
+            throw new Error(result.error);
+          }
+          return result.data;
+        },
+        staleTime: QUERY_STALE_TIME_LONG,
+      });
+    }
+  }, [everydayData, page, limit, language, queryClient]);
 
   // Mutation to update devotional category
   const updateCategoryMutation = useMutation({
@@ -129,15 +168,24 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
 
   // Pagination handlers
   const paginatePageChangeAction = (newPage: number) => {
-    setPage(newPage - 1);
+    setPage(newPage - 1); // Convert from 1-based to 0-based
+    updateTabState({ page: newPage });
   };
 
   const onBackAction = () => {
-    setPage((prev) => Math.max(0, prev - 1));
+    setPage((prev) => {
+      const newPage = Math.max(0, prev - 1);
+      updateTabState({ page: newPage + 1 });
+      return newPage;
+    });
   };
 
   const onFwdAction = () => {
-    setPage((prev) => prev + 1);
+    setPage((prev) => {
+      const newPage = prev + 1;
+      updateTabState({ page: newPage + 1 });
+      return newPage;
+    });
   };
 
   const renderEntityTile = (entity: Entity, showActions = true) => {
@@ -228,9 +276,17 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
 
   return (
     <div className={cn("space-y-4", className)}>
-      <div className="flex items-center justify-between">
+      {/* Screen reader announcements */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {isLoading && "Loading everyday devotional content..."}
+        {!isLoading &&
+          everydayData &&
+          `Showing ${everydayData.results.length} of ${everydayData.total} everyday items`}
+      </div>
+
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-lg font-semibold"></h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <EntitySearchDlgTrigger
             forTypes={QUICK_ACCESS_ENTITIES}
             open={everydayDialogOpen}
@@ -250,29 +306,34 @@ const EverydayDevotionalTab: React.FC<EverydayDevotionalTabProps> = ({
             type="button"
             variant="outline"
             size="icon"
+            aria-label="Refresh content"
           >
             <Icons.refresh className="size-4" />
           </Button>
         </div>
       </div>
 
-      {(isFetching || isLoading) && <Loader />}
+      {isLoading && <EntityGridSkeleton count={limit} />}
       {everydayError && <SimpleAlert title="Error loading everyday content" />}
 
-      {everydayData && everydayData.results.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <Star className="h-12 w-12 mx-auto mb-2 opacity-50" />
-          <p>No everyday quick access content found.</p>
-          <p className="text-sm">
-            Use the search button above to add STHOTRAM and PURANAM entities to
-            your daily collection.
-          </p>
-        </div>
+      {!isLoading && everydayData && everydayData.results.length === 0 && (
+        <EmptyState
+          icon={Star}
+          title="No everyday content yet"
+          description="Add STHOTRAM and PURANAM entities to your daily devotional collection."
+          context="Everyday content appears here for quick daily access."
+          action={{
+            label: "Add Content",
+            onClick: () => setEverydayDialogOpen(true),
+          }}
+        />
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
-        {everydayData?.results.map((entity) => renderEntityTile(entity))}
-      </div>
+      {!isLoading && everydayData && everydayData.results.length > 0 && (
+        <div className="grid gap-4 lg:gap-6 grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+          {everydayData.results.map((entity) => renderEntityTile(entity))}
+        </div>
+      )}
     </div>
   );
 };

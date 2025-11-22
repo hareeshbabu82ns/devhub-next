@@ -20,6 +20,7 @@ import QuickAccessMenuTrigger from "./QuickAccessMenuTrigger";
 import QuickSettingsTrigger from "@/app/(app)/settings/_components/QuickSettingsTrigger";
 import { useSidebarMinimized } from "@/hooks/use-config";
 import { cn } from "@/lib/utils";
+import { DictionaryPopupWidget } from "@/components/features/dictionary/DictionaryPopupWidget";
 
 /**
  * Backdrop overlay for sidebar on desktop/tablet
@@ -73,6 +74,9 @@ const WithDefaultLayout = ({
 
         {/* Render the playlist sheet at the root level */}
         <PlaylistSheet />
+        
+        {/* T114: Dictionary Quick Lookup Popup - global availability */}
+        <DictionaryPopupWidget />
       </PlaylistSheetProvider>
     </ReactFlowProvider>
   );

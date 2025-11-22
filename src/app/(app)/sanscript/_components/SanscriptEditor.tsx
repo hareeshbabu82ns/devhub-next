@@ -8,9 +8,10 @@ const SanscriptEditor = () => {
       <div className="flex flex-1">
         <WebIMEIde
           label="Transliteration Editor"
-          language={language}
+          // language={language}
           withLanguageSelector
           showHelpIcon
+          storageKey="webimeLanguage:sanscript"
         />
       </div>
     </div>

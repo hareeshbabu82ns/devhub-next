@@ -6,13 +6,14 @@ import { DICTIONARY_ORIGINS_DDLB } from "../utils";
 import MultiSelectChips from "@/components/inputs/MultiSelectChips";
 import { FormSelectOptions } from "@/components/inputs/FormSelect";
 import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
 
 export const DICTIONARY_ORIGINS_SELECT_KEY = "dictionary-origins";
 
 const DictionariesMultiSelectChips = () => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
+  const { filters } = useDictionaryFilters();
 
   const [localOrigins, setLocalOrigins] = useLocalStorage<string[]>(
     DICTIONARY_ORIGINS_SELECT_KEY,
@@ -20,7 +21,7 @@ const DictionariesMultiSelectChips = () => {
   );
 
   const originParam = (
-    searchParams.get("origin")?.split(",") ??
+    searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   )
@@ -34,7 +35,7 @@ const DictionariesMultiSelectChips = () => {
     const originsChg = value.map((v) => v.value);
     setLocalOrigins(originsChg);
     updateSearchParams({
-      origin: originsChg.join(","),
+      origins: originsChg.join(","),
       offset: "0",
     });
   };

@@ -1,4 +1,13 @@
+/**
+ * SearchToolBar - Refactored Component
+ *
+ * Task: T089, T096, T097
+ * Purpose: Use hooks exclusively, remove inline business logic
+ * All filtering and validation delegated to hooks
+ */
+
 "use client";
+
 import { Button } from "@/components/ui/button";
 import {
   Settings2Icon as ExtraParamsIcon,
@@ -6,11 +15,12 @@ import {
   SearchIcon,
   ArrowDownAZIcon,
   ArrowDownUpIcon,
-  DownloadIcon,
+  FilterIcon,
+  BookmarkPlusIcon,
+  FileDownIcon,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useDebounceCallback } from "usehooks-ts";
-import { Switch } from "@/components/ui/switch";
 import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CollapsibleContent } from "@radix-ui/react-collapsible";
 import { Label } from "@/components/ui/label";
@@ -34,28 +44,55 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import SavedSearchesDropdown from "./SavedSearchesDropdown";
+import { useSession } from "next-auth/react";
+import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
+import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
+import { ViewMode } from "../types";
+import { Badge } from "@/components/ui/badge";
+import { SearchMode } from "@/lib/dictionary/types";
+import { TargetIcon, ZapIcon } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 interface SearchToolBarProps {
   asBrowse?: boolean;
+  onFilterToggle?: () => void;
+  onSaveSearch?: () => void;
+  onSelectSearch?: (search: {
+    queryText: string;
+    filters?: Record<string, any>;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => void;
+  onExport?: () => void; // T143: Export button handler
 }
 
-export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
+/**
+ * T096-T097: Refactored to use hooks exclusively
+ * Removed inline logic for validation, filtering, and query building
+ * T80: Added filter toggle button
+ * T100: Added Save Search button and Saved Searches dropdown
+ */
+export const SearchToolBar = ({
+  asBrowse,
+  onFilterToggle,
+  onSaveSearch,
+  onSelectSearch,
+  onExport, // T143
+}: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-
   const language = useLanguageAtomValue();
+  const { data: session } = useSession();
 
+  const { filters } = useDictionaryFilters();
+
+  // T089: Use hook-managed state instead of inline parsing
   const localOrigins =
     useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const originParam = (
-    searchParams.get("origin")?.split(",") ??
+    searchParams.get("origins")?.split(",") ??
     localOrigins ??
     []
   ).filter((o) => o.trim().length > 0);
@@ -65,13 +102,14 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
   const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
   const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
 
+  // T097: Simplified event handlers (no business logic)
   const onSearchChange = (value: string) => {
     updateSearchParams({ search: value, offset: "0" });
   };
 
   const debouncedSetParams = useDebounceCallback(onSearchChange, 1000);
 
-  // Download mutation
+  // T097: Download mutation (minimal logic, delegates to action)
   const downloadMutation = useMutation({
     mutationFn: downloadDictionary,
     onSuccess: (data) => {
@@ -110,31 +148,115 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
     });
   };
 
+  // T214: Dynamic placeholder based on search mode
+  const getPlaceholder = () => {
+    switch (filters.searchMode) {
+      case SearchMode.KEY_EXACT:
+        return "Type exact word to match...";
+      case SearchMode.KEY_PREFIX:
+        return "Type word prefix...";
+      case SearchMode.FULLTEXT:
+      default:
+        return "Search words, meanings, descriptions...";
+    }
+  };
+
   return (
     <Collapsible className="flex flex-col">
-      <div className="flex flex-1 items-center pb-4 space-x-4">
+      <div className="flex flex-1 flex-col sm:flex-row items-center pb-4 pt-2 sm:pt-0 gap-2">
         <div className="relative flex-1">
           <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
           <WebIMEIdeInput
             type="search"
-            placeholder="Search Dictionary..."
-            language={language}
+            placeholder={getPlaceholder()}
+            // language={language}
             defaultValue={searchParam}
             onTextChange={debouncedSetParams}
             className="w-full appearance-none bg-background shadow-none"
             withLanguageSelector
             showSearchIcon
+            storageKey="webimeLanguage:dictionary"
           />
         </div>
 
-        <CollapsibleTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <ExtraParamsIcon className="h-4 w-4" />
-          </Button>
-        </CollapsibleTrigger>
-
         <div className="flex items-center gap-2">
-          <DropdownMenu>
+          {/* T80: Filter toggle button */}
+          {onFilterToggle && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onFilterToggle}
+              title="Open advanced filters"
+              aria-label="Open advanced filters"
+            >
+              <FilterIcon className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* T213: Search Mode Badge - show when not using default FULLTEXT mode */}
+          {filters.searchMode && filters.searchMode !== SearchMode.FULLTEXT && (
+            <Badge
+              variant="secondary"
+              className="hidden sm:inline-flex gap-1.5 px-2 py-1"
+            >
+              {filters.searchMode === SearchMode.KEY_EXACT && (
+                <>
+                  <TargetIcon className="h-3 w-3" aria-hidden="true" />
+                  <span>Exact Match</span>
+                </>
+              )}
+              {filters.searchMode === SearchMode.KEY_PREFIX && (
+                <>
+                  <ZapIcon className="h-3 w-3" aria-hidden="true" />
+                  <span>Prefix</span>
+                </>
+              )}
+            </Badge>
+          )}
+
+          {/* T100: Save Search button - only for authenticated users */}
+          {session?.user && onSaveSearch && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onSaveSearch}
+              title="Save current search"
+              aria-label="Save current search"
+            >
+              <BookmarkPlusIcon className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* T99-T111: Saved Searches Dropdown */}
+          {session?.user && onSelectSearch && (
+            <SavedSearchesDropdown onSelectSearch={onSelectSearch} />
+          )}
+
+          {/* <CollapsibleTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              title="Toggle advanced search options"
+            >
+              <ExtraParamsIcon className="h-4 w-4" />
+            </Button>
+          </CollapsibleTrigger> */}
+
+          <div className="flex items-center gap-2">
+            {/* T143: Export button that opens modal */}
+            {onExport && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onExport}
+                title="Export search results"
+                aria-label="Export search results"
+              >
+                <FileDownIcon className="h-4 w-4" />
+              </Button>
+            )}
+
+            {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 disabled={downloadMutation.isPending}
@@ -171,20 +293,21 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
                 JSON Format
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
-          {!asBrowse && (
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push("/dictionary/new")}
-            >
-              <AddIcon className="size-4" />
-            </Button>
-          )}
+            {!asBrowse && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => router.push("/dictionary/new")}
+              >
+                <AddIcon className="size-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
-      <CollapsibleContent>
+      {/* <CollapsibleContent>
         <div className="border p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <DictionariesMultiSelectChips />
 
@@ -245,7 +368,7 @@ export const SearchToolBar = ({ asBrowse }: SearchToolBarProps) => {
             </Select>
           </div>
         </div>
-      </CollapsibleContent>
+      </CollapsibleContent> */}
     </Collapsible>
   );
 };

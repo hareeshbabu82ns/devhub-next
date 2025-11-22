@@ -36,7 +36,8 @@ model User {
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 
-  Playlist Playlist[]
+  Playlist     Playlist[]
+  SavedSearch  SavedSearch[]
 }
 
 model Account {
@@ -213,6 +214,26 @@ type AttributeValueType {
 }
 
 //********** Dictionary End **********//
+
+//********** SavedSearch Begin **********//
+model SavedSearch {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  name        String
+  queryText   String
+  filters     Json?    @db.Json // Flexible filter storage (origin, language, wordLength, hasAudio, etc.)
+  sortBy      String?  @default("relevance")
+  sortOrder   String?  @default("desc")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("SavedSearches")
+}
+
+//********** SavedSearch End **********//
 
 //********** Playlist Begin **********//
 model Playlist {
