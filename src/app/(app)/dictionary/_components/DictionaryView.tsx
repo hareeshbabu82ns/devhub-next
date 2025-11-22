@@ -228,8 +228,6 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
                   onSaveSearch={handleSaveSearch}
                   onSelectSearch={handleSelectSearch}
                   onExport={handleExport} // T143
-                  viewMode={viewMode} // T87
-                  onViewModeChange={handleViewModeChange} // T87
                 />
               </div>
             </div>
@@ -245,7 +243,12 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
 
           {/* T74-T86: Advanced Filter Sidebar with skip target */}
           <div id="dictionary-filters">
-            <DictionaryFilters open={filterOpen} onOpenChange={setFilterOpen} />
+            <DictionaryFilters
+              open={filterOpen}
+              onOpenChange={setFilterOpen}
+              viewMode={viewMode} // T87
+              onViewModeChange={handleViewModeChange} // T87
+            />
           </div>
         </main>
       </SkipLinkTarget>

@@ -23,7 +23,6 @@ import { ButtonGroup } from "@/components/ui/button-group";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -49,6 +48,9 @@ export function SearchModeToggle({
     {},
   );
 
+  // Track if this is the initial mount to avoid auto-focusing on open
+  const isInitialMount = useRef(true);
+
   // T217: ARIA live region for announcing mode changes
   const [announcement, setAnnouncement] = useState("");
 
@@ -65,7 +67,13 @@ export function SearchModeToggle({
   };
 
   // Ensure focus stays on selected button after mode change
+  // Skip focus on initial mount to prevent tooltip from auto-opening
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     if (buttonRefs.current[value]) {
       buttonRefs.current[value]?.focus();
     }
@@ -113,51 +121,49 @@ export function SearchModeToggle({
       >
         {announcement}
       </div>
-      <TooltipProvider delayDuration={300}>
-        <ButtonGroup>
-          {modes.map((mode) => {
-            const Icon = mode.icon;
-            const isActive = value === mode.value;
+      <ButtonGroup>
+        {modes.map((mode) => {
+          const Icon = mode.icon;
+          const isActive = value === mode.value;
 
-            return (
-              <Tooltip key={mode.value}>
-                <TooltipTrigger asChild>
-                  <Button
-                    ref={(el) => {
-                      buttonRefs.current[mode.value] = el;
-                    }}
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handleModeChange(mode.value)}
-                    role="radio"
-                    aria-checked={isActive}
-                    aria-label={`${mode.label} search mode`}
-                    className={cn(
-                      "min-h-12 gap-2 px-3 transition-all sm:min-h-9",
-                      isActive && "shadow-sm",
-                    )}
-                  >
-                    <Icon className="h-4 w-4" aria-hidden="true" />
-                    <span className="hidden sm:inline">{mode.label}</span>
-                    <span className="sm:hidden">{mode.label}</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="bottom"
-                  align="center"
-                  className="max-w-[280px] text-center text-xs"
+          return (
+            <Tooltip key={mode.value}>
+              <TooltipTrigger asChild>
+                <Button
+                  ref={(el) => {
+                    buttonRefs.current[mode.value] = el;
+                  }}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleModeChange(mode.value)}
+                  role="radio"
+                  aria-checked={isActive}
+                  aria-label={`${mode.label} search mode`}
+                  className={cn(
+                    "min-h-12 gap-2 px-3 transition-all sm:min-h-9",
+                    isActive && "shadow-sm",
+                  )}
                 >
-                  <p className="font-semibold">{mode.label} Search</p>
-                  <p className="mt-1 text-muted-foreground">{mode.tooltip}</p>
-                  <p className="mt-2 text-xs text-primary font-medium">
-                    {mode.example}
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </ButtonGroup>
-      </TooltipProvider>
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">{mode.label}</span>
+                  <span className="sm:hidden">{mode.label}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                align="center"
+                className="max-w-[280px] text-center text-xs"
+              >
+                <p className="font-semibold">{mode.label} Search</p>
+                <p className="mt-1 text-muted-foreground">{mode.tooltip}</p>
+                <p className="mt-2 text-xs text-primary font-medium">
+                  {mode.example}
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </ButtonGroup>
     </div>
   );
 }

@@ -18,9 +18,6 @@ import {
 } from "@/lib/dictionary/types";
 
 // localStorage keys for filter persistence
-const SEARCH_MODE_STORAGE_KEY = "dictionarySearchMode";
-const SORT_BY_STORAGE_KEY = "dictionarySortBy";
-const SORT_DIRECTION_STORAGE_KEY = "dictionarySortDirection";
 const FILTERS_STORAGE_KEY = "dictionaryFilters";
 
 interface UseDictionaryFiltersOptions {
@@ -95,33 +92,6 @@ export function useDictionaryFilters(
         }
         return parsed as UserFilter;
       }
-
-      // Fallback to individual keys (legacy support)
-      const searchMode = localStorage.getItem(SEARCH_MODE_STORAGE_KEY);
-      const sortBy = localStorage.getItem(SORT_BY_STORAGE_KEY);
-      const sortDirection = localStorage.getItem(SORT_DIRECTION_STORAGE_KEY);
-
-      if (searchMode || sortBy || sortDirection) {
-        const defaultFilters = FilterService.createEmptyFilter();
-        return {
-          ...defaultFilters,
-          searchMode: (searchMode &&
-          Object.values(SearchMode).includes(searchMode as SearchMode)
-            ? searchMode
-            : defaultFilters.searchMode) as SearchMode,
-          sortBy: (sortBy &&
-          ["wordIndex", "alphabetical", "relevance"].includes(sortBy)
-            ? sortBy
-            : defaultFilters.sortBy) as
-            | "wordIndex"
-            | "alphabetical"
-            | "relevance",
-          sortDirection: (sortDirection &&
-          ["asc", "desc"].includes(sortDirection)
-            ? sortDirection
-            : defaultFilters.sortDirection) as "asc" | "desc",
-        };
-      }
     } catch (error) {
       console.error("Failed to read filters from localStorage:", error);
     }
@@ -131,11 +101,17 @@ export function useDictionaryFilters(
   // Initialize filters from URL or localStorage
   // Priority hierarchy: URL params override localStorage, but localStorage fills in missing values
   const initialFilters = useMemo(() => {
+    // On server-side, just return empty filter (will be hydrated on client)
+    if (typeof window === "undefined") {
+      return FilterService.createEmptyFilter();
+    }
+
     // First, try to load from localStorage
     const storedFilters = loadFiltersFromStorage();
 
     if (opts.syncWithUrl && searchParams && searchParams.toString()) {
       // URL has params - deserialize them, using localStorage as defaults for missing values
+      console.log("Search Params:", searchParams);
       return FilterService.deserializeFromUrl(
         searchParams,
         storedFilters || undefined,
@@ -153,6 +129,9 @@ export function useDictionaryFilters(
   // Pending filters (not yet applied)
   const [pendingFilters, setPendingFilters] =
     useState<UserFilter>(initialFilters);
+
+  // Track if this is the first mount (to skip useEffect on initial hydration)
+  const [isInitialMount, setIsInitialMount] = useState(true);
 
   // Check if there are pending changes
   const hasPendingChanges = useMemo(() => {
@@ -187,23 +166,6 @@ export function useDictionaryFilters(
         try {
           // Store complete filters object
           localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(newFilters));
-
-          // Also store individual keys for backward compatibility
-          if (newFilters.searchMode) {
-            localStorage.setItem(
-              SEARCH_MODE_STORAGE_KEY,
-              newFilters.searchMode,
-            );
-          }
-          if (newFilters.sortBy) {
-            localStorage.setItem(SORT_BY_STORAGE_KEY, newFilters.sortBy);
-          }
-          if (newFilters.sortDirection) {
-            localStorage.setItem(
-              SORT_DIRECTION_STORAGE_KEY,
-              newFilters.sortDirection,
-            );
-          }
         } catch (error) {
           console.error("Failed to save filters to localStorage:", error);
         }
@@ -257,16 +219,47 @@ export function useDictionaryFilters(
     setFilters(emptyFilters);
   }, [setFilters]);
 
-  // Restore filters from URL on mount (only if URL changes externally)
+  // Hydration effect: Load from localStorage on client-side mount
   useEffect(() => {
-    if (opts.syncWithUrl && searchParams) {
-      const urlFilters = FilterService.deserializeFromUrl(searchParams);
+    if (isInitialMount) {
+      // On first client-side mount, load from localStorage and URL
+      const storedFilters = loadFiltersFromStorage();
+
+      if (opts.syncWithUrl && searchParams && searchParams.toString()) {
+        // URL has params - use them with localStorage defaults
+        const urlFilters = FilterService.deserializeFromUrl(
+          searchParams,
+          storedFilters || undefined,
+        );
+        setFiltersState(urlFilters);
+        setPendingFilters(urlFilters);
+      } else if (storedFilters) {
+        // No URL params - use localStorage
+        setFiltersState(storedFilters);
+        setPendingFilters(storedFilters);
+      }
+
+      setIsInitialMount(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
+  // Restore filters from URL when URL changes (not on initial mount)
+  useEffect(() => {
+    if (!isInitialMount && opts.syncWithUrl && searchParams) {
+      // Load localStorage as defaults to preserve non-URL filter values (e.g., sortBy, searchMode)
+      const storedFilters = loadFiltersFromStorage();
+      const urlFilters = FilterService.deserializeFromUrl(
+        searchParams,
+        storedFilters || undefined,
+      );
       // Only update if different from current
       if (JSON.stringify(urlFilters) !== JSON.stringify(filters)) {
         setFiltersState(urlFilters);
         setPendingFilters(urlFilters);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams?.toString()]); // Only react to URL changes
 
   return {

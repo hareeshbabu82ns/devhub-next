@@ -18,11 +18,11 @@
 
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
+// import { Checkbox } from "@/components/ui/checkbox";
+// import { Slider } from "@/components/ui/slider";
 import {
   Sheet,
   SheetContent,
@@ -32,13 +32,13 @@ import {
   SheetFooter,
   SheetClose,
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
 import MultiSelectChips from "@/components/inputs/MultiSelectChips";
 import { FormSelectOptions } from "@/components/inputs/FormSelect";
 import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
@@ -51,16 +51,20 @@ import {
   ArrowDownIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+// import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { SearchModeToggle } from "./SearchModeToggle";
 import { SearchMode } from "@/lib/dictionary/types";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ViewMode } from "../types";
+import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 
 interface DictionaryFiltersProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onApply?: () => void;
+  viewMode: ViewMode;
+  onViewModeChange: (mode: ViewMode) => void;
 }
 
 /**
@@ -68,11 +72,14 @@ interface DictionaryFiltersProps {
  * Mobile-responsive drawer with sticky Apply button
  */
 export function DictionaryFilters({
+  viewMode, // T87
+  onViewModeChange, // T87
   open,
   onOpenChange,
   onApply,
 }: DictionaryFiltersProps) {
   const {
+    filters,
     pendingFilters,
     updatePendingFilter,
     applyFilters,
@@ -164,6 +171,12 @@ export function DictionaryFilters({
         </SheetHeader>
 
         <div className="flex-1 space-y-6 py-6">
+          {/* T87: View Mode Selector */}
+          <DictionaryViewModeSelector
+            value={viewMode}
+            onChange={onViewModeChange}
+          />
+
           {/* T211: Search Mode Toggle */}
           <div className="space-y-2">
             <Label className="text-base font-medium">Search Mode</Label>

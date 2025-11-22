@@ -65,8 +65,6 @@ interface SearchToolBarProps {
     sortOrder?: string;
   }) => void;
   onExport?: () => void; // T143: Export button handler
-  viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
 }
 
 /**
@@ -81,8 +79,6 @@ export const SearchToolBar = ({
   onSaveSearch,
   onSelectSearch,
   onExport, // T143
-  viewMode, // T87
-  onViewModeChange, // T87
 }: SearchToolBarProps) => {
   const router = useRouter();
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
@@ -216,12 +212,6 @@ export const SearchToolBar = ({
               )}
             </Badge>
           )}
-
-          {/* T87: View Mode Selector */}
-          {/* <DictionaryViewModeSelector
-            value={viewMode}
-            onChange={onViewModeChange}
-          /> */}
 
           {/* T100: Save Search button - only for authenticated users */}
           {session?.user && onSaveSearch && (
