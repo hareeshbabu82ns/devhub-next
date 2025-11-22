@@ -75,13 +75,14 @@ const EntitySearchTiles = ({
           <WebIMEIdeInput
             type="search"
             placeholder="Search Entities..."
-            language={language}
+            // language={language}
             valueAs={language}
             defaultValue={searchParam}
             onTextChange={debouncedSetParams}
             className="w-full appearance-none bg-background shadow-none"
             withLanguageSelector
             showSearchIcon
+            storageKey="webimeLanguage:entity"
           />
         </div>
         <div className="ml-auto flex flex-row space-x-2">{actionButtons}</div>

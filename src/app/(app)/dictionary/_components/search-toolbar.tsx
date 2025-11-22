@@ -169,12 +169,13 @@ export const SearchToolBar = ({
           <WebIMEIdeInput
             type="search"
             placeholder={getPlaceholder()}
-            language={language}
+            // language={language}
             defaultValue={searchParam}
             onTextChange={debouncedSetParams}
             className="w-full appearance-none bg-background shadow-none"
             withLanguageSelector
             showSearchIcon
+            storageKey="webimeLanguage:dictionary"
           />
         </div>
 
