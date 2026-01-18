@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Search, X, Terminal } from "lucide-react";
+import { Search, X, Terminal, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface AssetSearchProps {
   searchQuery: string;
@@ -35,97 +41,98 @@ const AssetSearchInput = ({
   handleClearSearch,
 }: AssetSearchProps) => {
   return (
-    <>
-      <div className="flex flex-row gap-2">
-        <div className="flex-1 relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input
             type="search"
             placeholder={
-              useRegex ? "Search with regex pattern..." : "Search assets..."
+              useRegex ? "Search with regex pattern... (e.g. ^img_.*\\.png$)" : "Search assets by name..."
             }
-            className="pl-9 pr-10"
+            className={cn(
+              "pl-9 pr-10 h-10 bg-background/50 backdrop-blur-sm border-muted transition-all focus:bg-background",
+              regexError ? "border-destructive focus-visible:ring-destructive" : ""
+            )}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          {/* {searchQuery && (
+          {searchQuery && (
             <button
               onClick={handleClearSearch}
-              className="absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
               aria-label="Clear search"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </button>
-          )} */}
-        </div>
-
-        {/* Regex toggle switch */}
-        <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center gap-2">
-            <Switch
-              id="regex-toggle"
-              checked={useRegex}
-              onCheckedChange={setUseRegex}
-            />
-            <div className="flex items-center gap-1.5">
-              <Label htmlFor="regex-toggle" className="text-sm cursor-pointer">
-                Regex
-              </Label>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Enable regular expression pattern search</p>
-                  <p className="text-xs text-secondary-foreground mt-1">
-                    Examples:
-                  </p>
-                  <ul className="text-xs text-secondary-foreground list-disc pl-4 mt-0.5 space-y-0.5">
-                    <li>^img - starts with &quot;img&quot;</li>
-                    <li>\.jpg$ - ends with &quot;.jpg&quot;</li>
-                    <li>\d{4} - contains 4 digits</li>
-                  </ul>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </div>
-
-          {regexError && (
-            <div className="text-xs text-destructive">
-              Invalid regex: {regexError}
-            </div>
           )}
         </div>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant={useRegex ? "secondary" : "outline"} size="icon" className="h-10 w-10 shrink-0">
+              <Filter className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-80">
+            <div className="space-y-4">
+              <h4 className="font-medium leading-none">Search Options</h4>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Terminal className="h-4 w-4 text-muted-foreground" />
+                  <Label htmlFor="regex-toggle" className="cursor-pointer">
+                    Use Regular Expressions
+                  </Label>
+                </div>
+                <Switch
+                  id="regex-toggle"
+                  checked={useRegex}
+                  onCheckedChange={setUseRegex}
+                />
+              </div>
+
+              {useRegex && (
+                <div className="bg-muted/50 p-3 rounded-md text-xs space-y-2">
+                  <p className="font-medium">Quick Reference:</p>
+                  <ul className="space-y-1 text-muted-foreground list-disc pl-4">
+                    <li><code className="bg-muted px-1 rounded">^start</code> - Starts with</li>
+                    <li><code className="bg-muted px-1 rounded">end$</code> - Ends with</li>
+                    <li><code className="bg-muted px-1 rounded">\d+</code> - Numbers</li>
+                    <li><code className="bg-muted px-1 rounded">.</code> - Any character</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
-      {debouncedSearchQuery && !regexError && (
-        <div className="mt-2 text-sm text-muted-foreground">
-          {totalItems === 0 ? (
-            <span>No results found for &quot;{debouncedSearchQuery}&quot;</span>
-          ) : (
-            <span>
-              Found {totalItems} result{totalItems !== 1 ? "s" : ""} for &quot;
-              {debouncedSearchQuery}&quot;
-            </span>
-          )}
+      {regexError && (
+        <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 p-2 rounded-md animate-in fade-in slide-in-from-top-1">
+          <X className="h-4 w-4" />
+          <span>Invalid regex pattern: {regexError}</span>
         </div>
       )}
 
-      {totalItems === 0 && debouncedSearchQuery && (
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-muted-foreground text-center">No assets found</p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleClearSearch}
-            className="mt-2"
-          >
-            Clear search
-          </Button>
+      {debouncedSearchQuery && !regexError && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+          <span>
+            {totalItems === 0 ? (
+              "No results found"
+            ) : (
+              <>Found <span className="font-medium text-foreground">{totalItems}</span> result{totalItems !== 1 ? "s" : ""}</>
+            )}
+          </span>
+          {totalItems === 0 && (
+            <Button variant="link" size="sm" onClick={handleClearSearch} className="h-auto p-0">
+              Clear search
+            </Button>
+          )}
         </div>
       )}
-    </>
+    </div>
   );
 };
 
 export default AssetSearchInput;
+

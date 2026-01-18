@@ -10,7 +10,7 @@ import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import AssetFileTile from "./AssetFileTile";
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, ChevronsRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsRight, SearchCode } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import {
   Select,
@@ -23,6 +23,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import AssetSearchInput from "./AssetSearchInput";
 import FullscreenImageViewer from "./FullscreenImageViewer";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { Separator } from "@/components/ui/separator";
 
 const AssetFileExplorer = ({ path }: { path: string }) => {
   const router = useRouter();
@@ -155,11 +156,17 @@ const AssetFileExplorer = ({ path }: { path: string }) => {
     setIsImageViewerOpen(false);
   };
 
-  if (isFetching || isPending) return <Loader />;
-  if (error) return <SimpleAlert title={error.message} />;
+  if (isFetching || isPending) return (
+    <div className="flex-1 flex flex-col items-center justify-center min-h-[400px]">
+      <Loader />
+      <p className="mt-4 text-muted-foreground animate-pulse">Loading assets...</p>
+    </div>
+  );
+
+  if (error) return <SimpleAlert title="Error Loading Assets" extraMessages={[error.message]} variant="destructive" />;
 
   if (!data || !data.assets)
-    return <SimpleAlert title={`Could not fetch assets at path ${path}`} />;
+    return <SimpleAlert title={`Could not fetch assets at path ${path}`} extraMessages={[]} variant="destructive" />;
 
   // Calculate pagination values
   const totalItems = filteredAssets.length;
@@ -199,7 +206,7 @@ const AssetFileExplorer = ({ path }: { path: string }) => {
       : null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       {/* Search component */}
       <AssetSearchInput
         searchQuery={searchQuery}
@@ -213,13 +220,17 @@ const AssetFileExplorer = ({ path }: { path: string }) => {
         handleClearSearch={handleClearSearch}
       />
 
+      <Separator />
+
       {totalItems === 0 && !debouncedSearchQuery ? (
-        <div className="flex flex-col items-center justify-center py-8">
-          <p className="text-muted-foreground text-center">No assets found</p>
+        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-xl bg-muted/30">
+          <FolderIcon className="w-16 h-16 text-muted-foreground/50 mb-4" />
+          <p className="text-xl font-medium text-foreground">No assets found</p>
+          <p className="text-muted-foreground text-sm mt-1">This folder is empty</p>
         </div>
       ) : (
         totalItems > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
             {currentItems.map((file, index) => (
               <AssetFileTile
                 key={file.name}
@@ -248,99 +259,87 @@ const AssetFileExplorer = ({ path }: { path: string }) => {
         />
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex flex-wrap justify-center items-center gap-2 mt-6 pb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
+        <div className="sticky bottom-4 z-30 flex justify-center pointer-events-none">
+          <div className="bg-background/80 backdrop-blur-md border shadow-lg rounded-full px-4 py-2 flex items-center gap-2 pointer-events-auto transition-all hover:scale-105">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
 
-          <div className="flex items-center gap-1">
-            {[...Array(totalPages)].map((_, index) => {
-              const pageNumber = index + 1;
-              // Show first page, last page, current page, and one before/after current
-              const shouldShow =
-                pageNumber === 1 ||
-                pageNumber === totalPages ||
-                Math.abs(pageNumber - currentPage) <= 1;
-
-              if (!shouldShow) {
-                // Show ellipsis if there's a gap (only once per gap)
-                if (
-                  (pageNumber === 2 && currentPage > 3) ||
-                  (pageNumber === totalPages - 1 &&
-                    currentPage < totalPages - 2)
-                ) {
-                  return (
-                    <span key={pageNumber} className="mx-1">
-                      ...
-                    </span>
-                  );
-                }
-                return null;
-              }
-
-              return (
-                <Button
-                  key={pageNumber}
-                  variant={currentPage === pageNumber ? "default" : "outline"}
-                  size="sm"
-                  className="size-8 md:size-9"
-                  onClick={() => handlePageChange(pageNumber)}
-                >
-                  {pageNumber}
-                </Button>
-              );
-            })}
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            aria-label="Next page"
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-
-          {totalPages > 5 && (
-            <div className="flex items-center gap-2 ml-1 sm:ml-4">
-              <Select
-                value={currentPage.toString()}
-                onValueChange={handleJumpToPage}
-              >
-                <SelectTrigger
-                  className="h-8 w-[70px] sm:w-[110px] flex-shrink-0"
-                  aria-label="Jump to page"
-                >
-                  <SelectValue placeholder="Page" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pageOptions.map((pageNum) => (
-                    <SelectItem key={pageNum} value={pageNum.toString()}>
-                      Page {pageNum}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-1 mx-2">
+              <span className="text-sm font-medium">
+                Page {currentPage} of {totalPages}
+              </span>
             </div>
-          )}
-        </div>
-      )}
 
-      {totalItems > 0 && (
-        <div className="text-center text-sm text-muted-foreground">
-          Showing {startIndex + 1}-{endIndex} of {totalItems} items
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              aria-label="Next page"
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+
+            {totalPages > 5 && (
+              <>
+                <div className="h-4 w-px bg-border mx-1" />
+                <Select
+                  value={currentPage.toString()}
+                  onValueChange={handleJumpToPage}
+                >
+                  <SelectTrigger
+                    className="h-7 w-[70px] border-none shadow-none bg-transparent focus:ring-0 focus:ring-offset-0 px-1"
+                    aria-label="Jump to page"
+                  >
+                    <SelectValue placeholder="Page" />
+                  </SelectTrigger>
+                  <SelectContent align="center">
+                    {pageOptions.map((pageNum) => (
+                      <SelectItem key={pageNum} value={pageNum.toString()}>
+                        Page {pageNum}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
+// Helper for empty state
+function FolderIcon(props: React.ComponentProps<"svg">) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+
 export default AssetFileExplorer;
+

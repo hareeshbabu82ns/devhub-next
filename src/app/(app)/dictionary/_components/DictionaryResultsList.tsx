@@ -45,6 +45,7 @@ import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
 import { SearchMode } from "@/lib/dictionary/types";
 
 import { ViewMode } from "../types";
+import { DictionaryResultCard } from "./DictionaryResultCard";
 
 interface DictionaryResultsListProps {
   // Data
@@ -244,15 +245,15 @@ export function DictionaryResultsList({
         </div>
       </CardHeader>
 
-      <CardContent>
-        {/* T089, T093: Responsive grid with @container queries - layout changes based on view mode */}
+      <CardContent className="p-0 sm:p-6">
+        {/* T089, T093: Premium Responsive grid with layout mapping based on view mode */}
         <div
           className={cn(
-            "gap-4",
-            viewMode === "compact" && "flex flex-col space-y-2",
+            "transition-all duration-500",
+            viewMode === "compact" && "flex flex-col gap-3",
             viewMode === "card" &&
-              "grid grid-cols-1 @6xl:grid-cols-2 @7xl:grid-cols-3",
-            viewMode === "detailed" && "flex flex-col space-y-4",
+            "grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6",
+            viewMode === "detailed" && "flex flex-col gap-6",
           )}
         >
           {results.map((item) => (
@@ -267,7 +268,7 @@ export function DictionaryResultsList({
               viewMode={viewMode}
               onCopyDescription={onCopyDescription}
               onEditItem={onEditItem}
-              onCompare={onCompare} // T148
+              onCompare={onCompare}
             />
           ))}
         </div>
@@ -289,319 +290,5 @@ export function DictionaryResultsList({
   );
 }
 
-/**
- * Individual result card component
- * Extracted for better maintainability
- * T122-T123: Enhanced with relevance scores and highlighting
- * T89-T92: Support for different view modes (Compact/Card/Detailed)
- */
-interface DictionaryResultCardProps {
-  item: Partial<DictionaryItem>;
-  language: string;
-  textSize: string;
-  isTouchDevice: boolean;
-  asBrowse?: boolean;
-  searchTerm?: string;
-  viewMode?: ViewMode;
-  onCopyDescription: (description: string) => void;
-  onEditItem: (itemId: string) => void;
-  onCompare?: (word: string) => void; // T148
-}
-
-function DictionaryResultCard({
-  item,
-  language,
-  textSize,
-  isTouchDevice,
-  asBrowse,
-  searchTerm,
-  viewMode = "card",
-  onCopyDescription,
-  onEditItem,
-  onCompare, // T148
-}: DictionaryResultCardProps) {
-  // T90: Description truncation state for Compact/Card modes
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // T128-T129: Check if audio is available (from sourceData or future audio field)
-  const audioUrl =
-    (item as any).audio || item.sourceData?.audioUrl || item.sourceData?.audio;
-  const hasAudio = Boolean(audioUrl);
-
-  // T122: Get relevance score and category for display
-  const hasRelevanceScore = typeof item.relevanceScore === "number";
-  const relevanceScore = item.relevanceScore ?? 0;
-  const relevanceLabel = hasRelevanceScore
-    ? getRelevanceLabel(relevanceScore)
-    : "";
-  const relevanceCategory = hasRelevanceScore
-    ? getRelevanceCategory(relevanceScore)
-    : null;
-
-  // Color coding for relevance scores
-  const relevanceBadgeVariant =
-    relevanceScore >= 90
-      ? "default" // Excellent - green
-      : relevanceScore >= 70
-        ? "secondary" // Good - blue
-        : relevanceScore >= 50
-          ? "outline" // Fair - gray
-          : "destructive"; // Poor - red (shouldn't show much in results)
-
-  // T90: Description truncation logic - truncate at 200 chars for compact/card
-  const shouldTruncate =
-    (viewMode === "compact" || viewMode === "card") && !isExpanded;
-  const description = item.description ?? "";
-  const truncatedDescription =
-    shouldTruncate && description.length > 200
-      ? description.slice(0, 200) + "..."
-      : description;
-  const showReadMore =
-    (viewMode === "compact" || viewMode === "card") && description.length > 200;
-
-  // T89: Different rendering based on view mode
-  if (viewMode === "compact") {
-    return (
-      <div className="group border-b py-2 flex items-center justify-between gap-4 transition-colors hover:bg-muted/30">
-        {/* Compact: single-line with word + brief meaning */}
-        <div className="flex-1 flex items-center gap-3 min-w-0">
-          <div
-            className={cn(
-              "font-medium text-sm truncate",
-              LANGUAGE_FONT_FAMILY[
-                language as keyof typeof LANGUAGE_FONT_FAMILY
-              ],
-            )}
-          >
-            {searchTerm ? (
-              <SearchResultHighlight
-                text={item.word ?? ""}
-                searchTerm={searchTerm}
-                language={language}
-                ariaLabel={`Word: ${item.word}`}
-              />
-            ) : (
-              item.word
-            )}
-          </div>
-          {hasRelevanceScore && (
-            <Badge variant="outline" className="text-xs shrink-0">
-              {relevanceScore}
-            </Badge>
-          )}
-          <span className="text-sm text-muted-foreground truncate">
-            {truncatedDescription}
-          </span>
-        </div>
-        <div className="flex gap-1 shrink-0">
-          {/* T128: Audio icon display for entries with audio */}
-          {hasAudio && (
-            <AudioPlayer audioUrl={audioUrl} wordId={item.id!} compact />
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            className="h-8 w-8"
-            onClick={() => onCopyDescription(description)}
-            aria-label="Copy description"
-          >
-            <Icons.clipboard className="h-3 w-3" />
-          </Button>
-          {!asBrowse && (
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="h-8 w-8"
-              onClick={() => onEditItem(item.id!)}
-              aria-label="Edit"
-            >
-              <Icons.edit className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className={cn(
-        "group border rounded-sm flex flex-col transition-colors hover:bg-muted/50",
-        viewMode === "card" ? "p-4" : "p-6", // T89: Detailed mode has more padding
-      )}
-    >
-      {/* Header with word, relevance score, and actions */}
-      <div className="pb-4 flex justify-between items-start gap-2">
-        <div
-          className={`font-medium subpixel-antialiased text-${textSize} leading-loose tracking-widest flex-1`}
-        >
-          {/* T123: Word with highlighting */}
-          <h3 className="flex items-center gap-2 flex-wrap justify-between">
-            {searchTerm && searchTerm.trim().length > 0 ? (
-              <SearchResultHighlight
-                text={item.word ?? ""}
-                searchTerm={searchTerm}
-                language={language}
-                ariaLabel={`Search result word: ${item.word}`}
-              />
-            ) : (
-              <span>{item.word}</span>
-            )}
-
-            {/* T122: Relevance score badge */}
-            {/* {hasRelevanceScore && (
-              <Badge
-                variant={relevanceBadgeVariant}
-                className="text-xs font-normal"
-                style={{ opacity: 0.3 }}
-                aria-label={`Relevance: ${relevanceLabel}, score ${relevanceScore}`}
-              >
-                {relevanceScore}
-              </Badge>
-            )} */}
-          </h3>
-          <h4 className="text-muted-foreground text-sm flex items-center gap-2">
-            <span>{item.origin}</span>
-            {item.matchType && searchTerm && (
-              <Badge variant="outline" className="text-xs">
-                {item.matchType}
-              </Badge>
-            )}
-          </h4>
-        </div>
-
-        {/* T095: Mobile-optimized actions (min 44x44px touch targets) */}
-        <div
-          className={cn(
-            "flex gap-1",
-            isTouchDevice ? "opacity-100" : "opacity-0 group-hover:opacity-100",
-          )}
-        >
-          {/* T128: Audio icon display for entries with audio */}
-          {hasAudio && (
-            <AudioPlayer audioUrl={audioUrl} wordId={item.id!} compact />
-          )}
-          {/* T148: Compare button (min 44x44px touch target) */}
-          {onCompare && item.word && (
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="p-0 min-w-11 min-h-11"
-              onClick={() => onCompare(item.word!)}
-              aria-label={`Compare ${item.word} across dictionaries`}
-              title="Compare across dictionaries"
-            >
-              <Icons.gitCompare className="size-4" />
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            type="button"
-            className="p-0 min-w-11 min-h-11"
-            onClick={() => onCopyDescription(item.description ?? "")}
-            aria-label="Copy description to clipboard"
-          >
-            <Icons.clipboard className="size-4" />
-          </Button>
-          {!asBrowse && (
-            <Button
-              variant="ghost"
-              size="icon"
-              type="button"
-              className="p-0 min-w-11 min-h-11"
-              onClick={() => onEditItem(item.id!)}
-              aria-label={`Edit ${item.word}`}
-            >
-              <Icons.edit className="size-4" />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Description content with highlighting */}
-      <div
-        className={cn(
-          LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
-          `flex-1 subpixel-antialiased text-${textSize} leading-loose tracking-widest`,
-          viewMode === "card" && "max-h-48",
-          "overflow-y-auto no-scrollbar markdown-content",
-        )}
-      >
-        {/* T123: Description with highlighting if search term provided */}
-        {searchTerm && searchTerm.trim().length > 0 ? (
-          <div className="prose dark:prose-invert max-w-none">
-            <SearchResultHighlight
-              text={truncatedDescription}
-              searchTerm={searchTerm}
-              language={language}
-              ariaLabel="Search result description"
-            />
-          </div>
-        ) : (
-          <Markdown remarkPlugins={[remarkGfm]}>
-            {truncatedDescription}
-          </Markdown>
-        )}
-      </div>
-
-      {/* T90: Read more / Show less button for Card mode */}
-      {showReadMore && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-2 h-10 min-h-11 self-start"
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? "Show less" : "Read more"}
-        >
-          {isExpanded ? "Show less" : "Read more"}
-        </Button>
-      )}
-
-      {/* T128: Full audio player for card/detailed views */}
-      {hasAudio && (viewMode === "card" || viewMode === "detailed") && (
-        <div className="mt-3">
-          <AudioPlayer audioUrl={audioUrl} wordId={item.id!} />
-        </div>
-      )}
-
-      {/* T89: Detailed mode shows additional fields */}
-      {viewMode === "detailed" && (
-        <div className="mt-4 pt-4 border-t space-y-2 text-sm">
-          {item.phonetic && (
-            <div>
-              <span className="font-medium">Phonetic: </span>
-              <span className="text-muted-foreground">{item.phonetic}</span>
-            </div>
-          )}
-          {item.attributes && item.attributes.length > 0 && (
-            <div>
-              <span className="font-medium">Attributes: </span>
-              <div className="flex flex-wrap gap-1 mt-1">
-                {item.attributes.map((attr, idx) => (
-                  <Badge key={idx} variant="outline" className="text-xs">
-                    {attr.key}: {attr.value}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-          {item.sourceData && (
-            <div>
-              <span className="font-medium">Source Data: </span>
-              <pre className="text-xs bg-muted p-2 rounded mt-1 overflow-x-auto">
-                {JSON.stringify(item.sourceData, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default DictionaryResultsList;

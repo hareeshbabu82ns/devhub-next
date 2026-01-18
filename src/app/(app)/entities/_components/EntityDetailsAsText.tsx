@@ -18,62 +18,62 @@ interface CompProps {
   type?: string;
   entityData?: EntityWithRelations;
 }
-const EntityDetailsAsText = ( { entityData, parentId, type, entityId }: CompProps ) => {
+const EntityDetailsAsText = ({ entityData, parentId, type, entityId }: CompProps) => {
   const router = useRouter();
 
   const entityCreateInput = { ...defaultEntityCreateInput };
-  if ( type ) entityCreateInput.type = type;
-  if ( parentId ) entityCreateInput.parentsRel = {
+  if (type) entityCreateInput.type = type;
+  if (parentId) entityCreateInput.parentsRel = {
     connect: {
       id: parentId
     }
   };
   const { id: eid, childrenCount, parentsCount, meaning, text: eText, attributes, textData, meaningData, ...entityRest } = entityData || {};
 
-  const [ text, setText ] = React.useState<string>( JSON.stringify( entityId ? entityData ? { ...entityRest, text: textData, meaning: meaningData } : {} : entityCreateInput, null, 2 ) );
+  const [text, setText] = React.useState<string>(JSON.stringify(entityId ? entityData ? { ...entityRest, text: textData, meaning: meaningData } : {} : entityCreateInput, null, 2));
 
   const {
     mutateAsync: createEntityFn,
     isPending: createLoading,
     error: createEntityError,
-  } = useMutation( {
-    mutationKey: [ "createEntity", text ],
-    mutationFn: async ( { data }: { data: Prisma.EntityCreateInput } ) => {
-      const res = await createEntity( { entity: data } );
+  } = useMutation({
+    mutationKey: ["createEntity", text],
+    mutationFn: async ({ data }: { data: Prisma.EntityCreateInput }) => {
+      const res = await createEntity({ entity: data });
       return res;
     }
-  } );
+  });
 
   const {
     mutateAsync: updateEntityFn,
     isPending: updateLoading,
     error: updateEntityError,
-  } = useMutation( {
-    mutationKey: [ "updateEntity", text ],
-    mutationFn: async ( { data }: { data: Prisma.EntityUpdateInput } ) => {
-      const res = await updateEntity( entityId!, { entity: data } );
+  } = useMutation({
+    mutationKey: ["updateEntity", text],
+    mutationFn: async ({ data }: { data: Prisma.EntityUpdateInput }) => {
+      const res = await updateEntity(entityId!, { entity: data });
       return res;
     },
-  } );
+  });
 
   const saveEntityAction = async () => {
-    const data = JSON.parse( text );
-    if ( entityId ) {
-      await updateEntityFn( { data }, {
-        onSuccess: ( data ) => {
+    const data = JSON.parse(text);
+    if (entityId) {
+      await updateEntityFn({ data }, {
+        onSuccess: (data) => {
           // console.log("Entity created successfully",data);
-          toast.success( "Entity updated successfully" );
+          toast.success("Entity updated successfully");
         }
-      } );
+      });
     } else {
-      const res = await createEntityFn( { data }, {
-        onSuccess: ( data ) => {
+      const res = await createEntityFn({ data }, {
+        onSuccess: (data) => {
           // console.log("Entity created successfully",data);
-          toast.success( "Entity created successfully" );
-          if ( data?.id )
-            router.replace( `/entities/${data.id}/edit` );
+          toast.success("Entity created successfully");
+          if (data?.id)
+            router.replace(`/entities/${data.id}/edit`);
         }
-      } );
+      });
     }
   }
 
@@ -97,9 +97,9 @@ const EntityDetailsAsText = ( { entityData, parentId, type, entityId }: CompProp
         <Textarea
           className="h-full resize-none"
           value={text}
-          onChange={( e ) => {
+          onChange={(e) => {
             const value = e.target.value;
-            setText( value );
+            setText(value);
           }}
         />
       </div>
