@@ -59,6 +59,26 @@
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
 }
 
 body {
@@ -168,7 +188,6 @@ button {
   --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
-
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -186,7 +205,6 @@ button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary);
 }
-
 
 @layer base {
   * {

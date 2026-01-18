@@ -8,8 +8,8 @@ git config --local user.email hareeshbabu82ns@gmail.com
 ```
 
 ```sh
-pnpm dlx shadcn-ui@latest init
-pnpm dlx shadcn-ui@latest add -a
+pnpm dlx shadcn@latest init
+pnpm dlx shadcn@latest add -a
 ```
 
 ```sh

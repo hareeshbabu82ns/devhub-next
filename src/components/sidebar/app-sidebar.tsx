@@ -70,6 +70,11 @@ const getNavItems = (isAdmin: boolean): NavItemProps[] => {
           path: "/sanscript?tab=transConv",
           activeSearchParams: { tab: "transConv" },
         },
+        {
+          title: "Utils",
+          path: "/sanscript?tab=utils",
+          activeSearchParams: { tab: "utils" },
+        },
       ],
     },
   ];
