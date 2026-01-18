@@ -9,22 +9,24 @@ import SanscriptUtils from "@/components/sanscript/sanscript-utils";
 const SanscriptPage = () => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
 
-  const onTabValueChanged = ( value: string ) => {
-    updateSearchParams( { tab: value } );
+  const onTabValueChanged = (value: string) => {
+    updateSearchParams({ tab: value });
   };
 
   return (
     <main className="flex flex-1 flex-col gap-4 h-[calc(100vh_-_theme(spacing.20))]">
       <Tabs
-        defaultValue={searchParams.get( "tab" ) || "editor"}
+        defaultValue={searchParams.get("tab") || "editor"}
         className="flex flex-col flex-1 space-y-6"
         onValueChange={onTabValueChanged}
       >
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="editor">Editor</TabsTrigger>
-          <TabsTrigger value="transConv">Convertor</TabsTrigger>
-          <TabsTrigger value="utils">Sanskrit Utils</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between">
+          <TabsList className="grid w-full max-w-md grid-cols-3 bg-muted/50 p-1">
+            <TabsTrigger value="editor" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Editor</TabsTrigger>
+            <TabsTrigger value="transConv" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Convertor</TabsTrigger>
+            <TabsTrigger value="utils" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Sanskrit Utils</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent
           value="editor"

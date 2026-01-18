@@ -131,16 +131,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const navItems = React.useMemo(() => getNavItems(isAdmin), [isAdmin]);
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="border-b px-0">
+    <Sidebar collapsible="icon" variant="floating" {...props}>
+      <SidebarHeader className="border-b border-sidebar-border/50">
         <BaseHeader />
       </SidebarHeader>
-      <SidebarContent className="gap-0">
+      <SidebarContent className="gap-0 py-2">
         <NavMain items={navItems} />
-        {/* <NavProjects projects={data.projects} /> */}
       </SidebarContent>
-      <SidebarFooter className="border-t mt-auto">
-        {/* <SidebarDocs /> */}
+      <SidebarFooter className="border-t border-sidebar-border/50 mt-auto py-2">
         <AudioPlayer
           className={cn(
             "hidden",

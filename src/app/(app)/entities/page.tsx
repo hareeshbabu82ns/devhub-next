@@ -34,7 +34,8 @@ const Page = () => {
       <Button
         size="icon"
         type="button"
-        variant="outline"
+        variant="ghost"
+        className="h-8 w-8 hover:bg-muted"
         title="Upload Entity"
         onClick={() => document?.getElementById("upload-entity-file")?.click()}
       >
@@ -56,7 +57,8 @@ const Page = () => {
       <Button
         size="icon"
         type="button"
-        variant="outline"
+        variant="ghost"
+        className="h-8 w-8 hover:bg-muted"
         title="Create Entity"
         onClick={() => router.push(`/entities/new?type=${type}`)}
       >

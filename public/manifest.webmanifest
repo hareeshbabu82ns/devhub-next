@@ -3,12 +3,15 @@
   "short_name": "DevHub",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#869CB5",
+  "background_color": "#ffffff",
   "lang": "en",
   "scope": "/",
-  "theme_color": "#324C69",
+  "theme_color": "#020817",
+  "orientation": "portrait",
   "display_override": [
-    "standalone"
+    "window-controls-overlay",
+    "standalone",
+    "minimal-ui"
   ],
   "icons": [
     {

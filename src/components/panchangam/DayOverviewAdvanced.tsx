@@ -311,7 +311,7 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
                   const isShortSlot = height < 50;
 
                   return (
-                    <Dialog>
+                    <Dialog key={`${schedule}-${index}`}>
                       <DialogContent
                         className={cn(
                           "max-w-md",

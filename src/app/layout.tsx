@@ -1,10 +1,21 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "react-datepicker/dist/react-datepicker.css";
 import "./globals.css";
 import { fontSans, fontSansTelugu } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import { ThemeProvider } from "@/components/utils/providers";
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "white" },
+    { media: "(prefers-color-scheme: dark)", color: "black" },
+  ],
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
@@ -13,16 +24,19 @@ export const metadata: Metadata = {
     template: `%s - ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  // themeColor: [
-  //   { media: "(prefers-color-scheme: light)", color: "white" },
-  //   { media: "(prefers-color-scheme: dark)", color: "black" },
-  // ],
-  // icons: {
-  //   // icon: "/favicon.ico",
-  //   icon: "/pwa-64x64.png",
-  //   shortcut: "/pwa-16x16.png",
-  //   apple: "/apple-touch-icon-180x180.png",
-  // },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: siteConfig.name,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/pwa-192x192.png",
+    apple: "/apple-touch-icon-180x180.png",
+  },
 };
 
 export default function RootLayout({

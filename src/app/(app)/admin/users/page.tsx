@@ -239,27 +239,28 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="container max-w-6xl py-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background/60 backdrop-blur-md p-4 rounded-xl border border-border/40 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground">Manage all user accounts</p>
+          <h1 className="text-2xl font-semibold tracking-tight">User Management</h1>
+          <p className="text-sm text-muted-foreground">Manage all user accounts</p>
         </div>
         <Button
           onClick={() => router.push("/admin/settings")}
           variant="outline"
+          className="w-full sm:w-auto bg-background/50 backdrop-blur-sm border-border/40 hover:bg-muted/80 transition-all"
         >
           <Icons.settings className="mr-2 h-4 w-4" />
           App Settings
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Users ({users.length})</CardTitle>
+      <Card className="rounded-xl border-border/40 bg-background/60 backdrop-blur-md shadow-sm">
+        <CardHeader className="p-4 border-b border-border/40">
+          <CardTitle className="text-lg font-medium">All Users ({users.length})</CardTitle>
           <CardDescription>View and manage user accounts</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
             <TableHeader>
               <TableRow>

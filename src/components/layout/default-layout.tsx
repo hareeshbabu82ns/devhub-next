@@ -74,7 +74,7 @@ const WithDefaultLayout = ({
 
         {/* Render the playlist sheet at the root level */}
         <PlaylistSheet />
-        
+
         {/* T114: Dictionary Quick Lookup Popup - global availability */}
         <DictionaryPopupWidget />
       </PlaylistSheetProvider>
@@ -85,7 +85,7 @@ const WithDefaultLayout = ({
 const TopNavBar = () => {
   const { open: isSidebarOpened, isMobile } = useSidebar();
   return (
-    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
+    <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
       <div className="flex flex-1 items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 justify-between">
         <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
           <SidebarTrigger className="-ml-1 shrink-0" />

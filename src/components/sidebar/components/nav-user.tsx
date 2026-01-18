@@ -44,28 +44,28 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground min-h-10 touch-manipulation"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground min-h-12 touch-manipulation transition-all duration-300 rounded-2xl hover:bg-primary/5 active:scale-[0.98]"
             >
-              <Avatar className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg shrink-0 group-data-[collapsible=icon]:size-8">
+              <Avatar className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl shrink-0 group-data-[collapsible=icon]:size-9 shadow-sm transition-transform duration-300 group-hover:scale-105">
                 <AvatarImage
                   src={session?.data?.user.image}
                   alt={session?.data?.user.name || ""}
                 />
-                <AvatarFallback className="rounded-lg">
+                <AvatarFallback className="rounded-xl bg-primary/10 text-primary font-bold">
                   {avatarAltName(session?.data?.user.name || "")}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight min-w-0">
-                <span className="truncate font-semibold">
+              <div className="grid flex-1 text-left text-sm leading-tight min-w-0 ml-1 group-data-[collapsible=icon]:hidden">
+                <span className="truncate font-bold text-foreground">
                   {session?.data?.user.name
                     ? session?.data?.user.name
                     : "User Not Found"}
                 </span>
-                <span className="truncate text-xs">
+                <span className="truncate text-xs text-muted-foreground font-medium">
                   {session?.data?.user.email}
                 </span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4 shrink-0" />
+              <ChevronsUpDown className="ml-auto size-4 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

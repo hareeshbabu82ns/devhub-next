@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const SettingsPage = ({
   children,
@@ -24,36 +25,40 @@ const SettingsPage = ({
         <h1 className="text-3xl font-semibold">Settings</h1>
       </div>
       <div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
-        <nav className="grid gap-4 text-sm text-muted-foreground">
+        <nav className="grid gap-1 text-sm text-muted-foreground p-1">
           <Link
             href={`${pathPrefix}profile`}
-            className={
-              isActivePath("profile") ? "font-semibold text-primary" : ""
-            }
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+              isActivePath("profile") ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+            )}
           >
             Profile
           </Link>
           <Link
             href={`${pathPrefix}general`}
-            className={
-              isActivePath("general") ? "font-semibold text-primary" : ""
-            }
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+              isActivePath("general") ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+            )}
           >
             General
           </Link>
           <Link
             href={`${pathPrefix}security`}
-            className={
-              isActivePath("security") ? "font-semibold text-primary" : ""
-            }
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+              isActivePath("security") ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+            )}
           >
             Security
           </Link>
           <Link
             href={`${pathPrefix}advanced`}
-            className={
-              isActivePath("advanced") ? "font-semibold text-primary" : ""
-            }
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+              isActivePath("advanced") ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+            )}
           >
             Advanced
           </Link>

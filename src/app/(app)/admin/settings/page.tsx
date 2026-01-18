@@ -165,28 +165,32 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="flex-1 flex flex-col gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-background/60 backdrop-blur-md p-4 rounded-xl border border-border/40 shadow-sm">
         <div>
-          <h1 className="text-3xl font-bold">Admin Settings</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-semibold tracking-tight">Admin Settings</h1>
+          <p className="text-sm text-muted-foreground">
             Manage application settings and signup restrictions
           </p>
         </div>
-        <Button onClick={() => router.push("/admin/users")} variant="outline">
+        <Button
+          onClick={() => router.push("/admin/users")}
+          variant="outline"
+          className="w-full sm:w-auto bg-background/50 backdrop-blur-sm border-border/40 hover:bg-muted/80 transition-all"
+        >
           <Icons.user className="mr-2 h-4 w-4" />
           Manage Users
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Signup Restrictions</CardTitle>
+      <Card className="rounded-xl border-border/40 bg-background/60 backdrop-blur-md shadow-sm">
+        <CardHeader className="p-4 border-b border-border/40">
+          <CardTitle className="text-lg font-medium">Signup Restrictions</CardTitle>
           <CardDescription>
             Control who can sign up for new accounts
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 p-6">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="restrict-signup">Restrict Signups</Label>

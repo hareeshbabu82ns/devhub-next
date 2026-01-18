@@ -208,20 +208,20 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
   );
 
   return (
-    <div className="dictionary-component flex flex-col w-full h-full">
+    <div className="dictionary-component flex flex-col w-full h-full space-y-4">
       {/* T164: Skip links for keyboard navigation */}
       <DictionarySkipLinks />
 
       <SkipLinkTarget id="dictionary-main-content" as="main">
         <main
           className={cn(
-            "flex flex-1 flex-col gap-4 min-h-[calc(100vh-(--spacing(20)))]",
+            "flex flex-1 flex-col gap-6 min-h-[calc(100vh-(--spacing(20)))]",
             "focus:outline-none", // Remove focus outline on main since it's just a skip target
           )}
         >
           <SkipLinkTarget id="dictionary-search">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex-1 w-full sm:w-auto">
+            <div className="flex flex-col gap-4">
+              <div className="w-full">
                 <SearchToolBar
                   asBrowse={asBrowse}
                   onFilterToggle={() => setFilterOpen(true)}
@@ -234,11 +234,13 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
           </SkipLinkTarget>
 
           <SkipLinkTarget id="dictionary-results">
-            <DictionaryResults
-              asBrowse={asBrowse}
-              viewMode={viewMode}
-              onCompare={handleCompare} // T148
-            />
+            <div className="bg-background/40 backdrop-blur-sm rounded-xl border border-border/40 p-1 min-h-[500px]">
+              <DictionaryResults
+                asBrowse={asBrowse}
+                viewMode={viewMode}
+                onCompare={handleCompare} // T148
+              />
+            </div>
           </SkipLinkTarget>
 
           {/* T74-T86: Advanced Filter Sidebar with skip target */}
