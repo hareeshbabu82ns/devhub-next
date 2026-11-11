@@ -39,6 +39,7 @@ const FormInputText = ( {
   maxLength,
   className,
   type,
+  placeholder,
 }: FormInputTextProps ) => {
   return (
     <FormField
@@ -51,7 +52,12 @@ const FormInputText = ( {
           ? ( e: never ) => handleMaxLengthChange( e, maxLength, onChange )
           : ( e: any ) =>
             onChange(
-              type === "number" ? e.target.valueAsNumber : e.target.value,
+              type === "number"
+                ? // an emptied number field means "not set", not NaN
+                  Number.isNaN( e.target.valueAsNumber )
+                  ? undefined
+                  : e.target.valueAsNumber
+                : e.target.value,
             );
 
         return (
@@ -59,9 +65,10 @@ const FormInputText = ( {
             <FormLabel>{label}</FormLabel>
             <FormControl>
               <Input
-                placeholder={label}
+                placeholder={placeholder ?? label}
                 type={type}
                 {...field}
+                value={field.value ?? ""}
                 onChange={customOnChange}
               />
             </FormControl>

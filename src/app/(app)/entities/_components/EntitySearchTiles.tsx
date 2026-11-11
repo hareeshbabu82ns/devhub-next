@@ -13,7 +13,11 @@ import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+} from "@tanstack/react-query";
 import { fetchAudioLinksIncludingChildren, fetchEntities } from "../actions";
 import { ColumnFiltersState } from "@tanstack/react-table";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
@@ -39,6 +43,8 @@ interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   mode?: "search" | "browse";
   actionButtons?: React.ReactNode;
   actionPreButtons?: React.ReactNode;
+  /** Rendered under the list, e.g. a link to the next chapter. */
+  footer?: React.ReactNode;
 }
 
 const EntitySearchTiles = ({
@@ -52,6 +58,7 @@ const EntitySearchTiles = ({
   mode = "search",
   actionButtons,
   actionPreButtons,
+  footer,
 }: EntitySearchTilesProps) => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -66,11 +73,12 @@ const EntitySearchTiles = ({
 
   return (
     <div className={cn("flex-1 flex flex-col", className)}>
-      <div className="flex items-center justify-between gap-2">
+      {/* on phones the search box takes its own row under the buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {actionPreButtons && (
-          <div className="flex flex-row space-x-2">{actionPreButtons}</div>
+          <div className="flex flex-row gap-2">{actionPreButtons}</div>
         )}
-        <div className="relative flex-1">
+        <div className="relative order-last basis-full sm:order-none sm:basis-0 sm:flex-1 min-w-0">
           <SearchIcon className="absolute left-2.5 top-3 h-4 w-4 text-muted-foreground" />
           <WebIMEIdeInput
             type="search"
@@ -85,7 +93,9 @@ const EntitySearchTiles = ({
             storageKey="webimeLanguage:entity"
           />
         </div>
-        <div className="ml-auto flex flex-row space-x-2">{actionButtons}</div>
+        <div className="ml-auto flex flex-row flex-wrap justify-end gap-2">
+          {actionButtons}
+        </div>
       </div>
       <EntitySearchGrid
         query={mode === "browse" && searchParam === "" ? ".*" : searchParam}
@@ -96,6 +106,7 @@ const EntitySearchTiles = ({
         forTypes={forTypes}
         forEntity={forEntity}
       />
+      {footer}
     </div>
   );
 };
@@ -197,9 +208,12 @@ function EntitySearchGrid({
       return entities;
     },
     staleTime: QUERY_STALE_TIME_LONG,
+    // keep the current page on screen while the next one (or a refresh after
+    // an edit) loads, instead of replacing the whole list with a spinner
+    placeholderData: keepPreviousData,
   });
 
-  if (isFetching || isLoading) return <Loader />;
+  if (isLoading) return <Loader />;
   if (error) return <SimpleAlert title={error.message} />;
   if (!data || !data.results) return <SimpleAlert title={"no data found"} />;
 
@@ -285,8 +299,11 @@ function EntitySearchGrid({
           />
         </div>
       </div>
-      <div className="flex-1">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-y-8 xl:gap-x-8">
+      <div
+        className={cn("flex-1 transition-opacity", isFetching && "opacity-60")}
+        aria-busy={isFetching}
+      >
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 lg:gap-y-8 xl:gap-x-8">
           {entities.map((entity, i) => {
             if (entity.type === "SLOKAM")
               return (
@@ -294,7 +311,7 @@ function EntitySearchGrid({
                   key={entity.id}
                   index={limit * page + i + 1}
                   model={entity}
-                  className="col-span-4"
+                  className="col-span-full"
                   onTileClicked={onTileClicked}
                   onEditClicked={onEditClickedAction}
                   onDeleteClicked={onDeleteClickedAction}

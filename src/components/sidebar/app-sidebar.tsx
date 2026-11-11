@@ -18,6 +18,7 @@ import AudioPlayer from "../audio-player/player";
 import { cn } from "@/lib/utils";
 import { useSidebarMinimized } from "@/hooks/use-config";
 import { useSession } from "next-auth/react";
+import { Sparkles } from "lucide-react";
 import type { NavItemProps } from "./components/nav-main";
 
 const getNavItems = (isAdmin: boolean): NavItemProps[] => {
@@ -38,6 +39,11 @@ const getNavItems = (isAdmin: boolean): NavItemProps[] => {
       path: "/entities?type=AUTHOR&offset=0",
       activeSearchParams: { type: "AUTHOR" },
       icon: <Icons.artist className="size-4 stroke-2 text-inherit" />,
+    },
+    {
+      title: "Ask AI",
+      path: "/ask",
+      icon: <Sparkles className="size-4 stroke-2 text-inherit" />,
     },
     {
       title: "Dictionary",

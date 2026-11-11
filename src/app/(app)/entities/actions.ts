@@ -14,7 +14,13 @@ import {
 import { columns } from "./columns";
 import { Prisma, Entity } from "@/app/generated/prisma";
 import { EntityTypeEnum, EntityWithRelations } from "@/lib/types";
-import { transliteratedText } from "../sanscript/_components/utils";
+import {
+  prepareTextForSave,
+  setLanguageValue,
+  syncScripts,
+} from "@/lib/entity-text";
+import { isEntityTypeCode } from "@/lib/entity-types";
+import { getReadingNeighbours, ReadingRef } from "@/lib/db/entity-flow";
 import { callTTSApi, mapDbToEntity } from "./utils";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
@@ -160,6 +166,17 @@ export const deleteEntity = async (
     async (txn) => {
       const entity = await txn.entity.delete({ where: { id } });
 
+      // keep sibling numbering contiguous after the removal
+      if (entity.parents?.[0]) {
+        await txn.entity.updateMany({
+          where: {
+            parents: { has: entity.parents[0] },
+            order: { gt: entity.order },
+          },
+          data: { order: { decrement: 1 } },
+        });
+      }
+
       if (cascadingChildren && entity.children && entity.children.length) {
         await deleteChildrenRecursively(entity.children, txn);
       }
@@ -206,8 +223,13 @@ export const updateEntity = async (
 
   const entityData = {
     ...data.entity,
-    text: transliteratedText(data.entity.text as any),
+    text: data.entity.text
+      ? prepareTextForSave(data.entity.text as any)
+      : undefined,
   };
+  if (entityData.text && entityData.text.length === 0) {
+    throw new Error("Text cannot be empty");
+  }
 
   const res = await db.$transaction(async (txn) => {
     const entity = await txn.entity.update({ where: { id }, data: entityData });
@@ -254,10 +276,19 @@ export const createEntity = async (data: {
 
   const entityData = {
     ...data.entity,
-    text: transliteratedText(data.entity.text as any),
+    text: prepareTextForSave(data.entity.text as any),
   };
+  if (entityData.text.length === 0) {
+    throw new Error("Text cannot be empty");
+  }
 
   const res = await db.$transaction(async (txn) => {
+    // No explicit order: append after the last sibling of the first parent.
+    if (typeof entityData.order !== "number" || Number.isNaN(entityData.order)) {
+      const connect = data.entity.parentsRel?.connect;
+      const parentId = (Array.isArray(connect) ? connect[0] : connect)?.id;
+      entityData.order = parentId ? await nextChildOrder(txn, parentId) : 0;
+    }
     const entity = await txn.entity.create({ data: entityData });
     if (data.children) {
       const childenData = data.children.map(
@@ -291,10 +322,16 @@ export const createEntity = async (data: {
   return res;
 };
 
+/**
+ * Reads one entity with its parents. Children are NOT loaded by default — a
+ * chapter can have thousands of verses, and callers that list children page
+ * through them with `fetchEntities` instead. `childIds` is always returned.
+ */
 export const readEntity = async (
   entityId: string,
   language: string,
   meaning?: string,
+  options: { withChildren?: boolean } = {},
 ) => {
   const session = await auth();
   if (!session) {
@@ -304,17 +341,26 @@ export const readEntity = async (
   const entity = await db.entity.findUnique({
     where: { id: entityId },
     include: {
-      // children: true,
-      // parentsRel: true,
-      childrenRel: {
-        select: { id: true, type: true, text: true, imageThumbnail: true },
-      },
+      ...(options.withChildren
+        ? {
+            childrenRel: {
+              select: {
+                id: true,
+                type: true,
+                text: true,
+                imageThumbnail: true,
+              },
+            },
+          }
+        : {}),
       parentsRel: {
         select: { id: true, type: true, text: true, imageThumbnail: true },
       },
     },
   });
-  return entity ? mapDbToEntity(entity, language, meaning) : entity;
+  return entity
+    ? { ...mapDbToEntity(entity, language, meaning), childIds: entity.children }
+    : entity;
 };
 
 export const getEntityByText = async (text: string, types: string[]) => {
@@ -349,7 +395,10 @@ export const findEntities = async ({
   pagination?: PaginationState;
   orderBy?: Prisma.EntityFindManyArgs["orderBy"];
 }) => {
-  // console.dir({ filters, where }, { depth: 4 });
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
 
   const entities = await db.entity.findMany({
     ...(pagination
@@ -412,23 +461,24 @@ export const fetchEntities = async ({
 
   // console.dir({ filters, where }, { depth: 4 });
 
-  const entitiesCount = await db.entity.count({
-    where,
-  });
+  const [entitiesCount, entities] = await Promise.all([
+    db.entity.count({ where }),
+    db.entity.findMany({
+      skip: pagination.pageIndex * pagination.pageSize,
+      take: pagination.pageSize,
+      orderBy: sorting?.length ? (orderBy as any) : { order: "asc" },
+      where,
+    }),
+  ]);
 
-  const entities = await db.entity.findMany({
-    skip: pagination.pageIndex * pagination.pageSize,
-    take: pagination.pageSize,
-    orderBy: sorting?.length ? (orderBy as any) : { order: "asc" },
-    where,
-    // include: {
-    //   // children: true,
-    //   childrenRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
-    //   parentsRel: { select: { id: true, type: true, text: true, imageThumbnail: true } },
-    // },
+  // Lists only render tiles, so leave the per-language payload on the server.
+  const results = entities.map((e) => {
+    const { textData, meaningData, attributes, notes, ...tile } = mapDbToEntity(
+      e,
+      language,
+    );
+    return tile;
   });
-
-  const results = entities.map((e) => mapDbToEntity(e, language));
   return { results, total: entitiesCount };
 };
 
@@ -474,9 +524,8 @@ export async function uploadEntityWithChildrenInternal(
   }
 
   // children with children - create individual entities and update parent
-  const childrenWithChildren = children?.filter(
-    (c: any) => c.children && c.children.length > 0,
-  );
+  const childrenWithChildren: any[] =
+    children?.filter((c: any) => c.children && c.children.length > 0) ?? [];
 
   const childrenWithChildrenIds: string[] = [];
   for (const child of childrenWithChildren) {
@@ -507,8 +556,13 @@ export async function uploadEntityWithChildrenInternal(
       data: childrenData,
     });
     if (childResponse && childResponse.count > 0) {
+      // children created above (those with their own children) are already
+      // linked to this entity, so only pick up the ones just inserted
       const childIds = await db.entity.findMany({
-        where: { parents: { has: entityId } },
+        where: {
+          parents: { has: entityId },
+          id: { notIn: childrenWithChildrenIds },
+        },
         select: { id: true },
       });
       childrenWithoutChildrenIds.push(...childIds.map((c) => c.id));
@@ -712,4 +766,257 @@ export async function generateAudioForEntity(
   });
 
   return audioUrl;
+}
+
+//********** Fast content entry **********//
+
+export type EntityActionResponse<T = unknown> =
+  | { status: "success"; data: T }
+  | { status: "error"; error: string };
+
+const MAX_BULK_ITEMS = 2000;
+
+const errorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : "Unexpected error";
+
+/** Order value that places a new child after every existing child. */
+const nextChildOrder = async (
+  txn: Prisma.TransactionClient,
+  parentId: string,
+): Promise<number> => {
+  const last = await txn.entity.findFirst({
+    where: { parents: { has: parentId } },
+    orderBy: { order: "desc" },
+    select: { order: true },
+  });
+  return last ? last.order + 1 : 0;
+};
+
+/**
+ * Rebuilds a parent's `children` list from the entities that point at it,
+ * in display order. The child's `parents` field is the source of truth.
+ */
+const syncParentChildren = async (
+  txn: Prisma.TransactionClient,
+  parentId: string,
+) => {
+  const children = await txn.entity.findMany({
+    where: { parents: { has: parentId } },
+    orderBy: { order: "asc" },
+    select: { id: true },
+  });
+  await txn.entity.update({
+    where: { id: parentId },
+    data: { children: { set: children.map((c) => c.id) } },
+  });
+};
+
+/**
+ * Creates many children under a parent in one go (e.g. every verse of a
+ * stotram pasted as one block). Text is given in a single language; the other
+ * scripts are generated. New children are appended, or inserted at `position`
+ * (0-based) with the following children shifted down.
+ */
+export async function addChildEntities(input: {
+  parentId: string;
+  type: string;
+  language: string;
+  items: { text: string; meaning?: string }[];
+  meaningLanguage?: string;
+  position?: number;
+}): Promise<EntityActionResponse<{ created: number; firstOrder: number }>> {
+  try {
+    const session = await auth();
+    if (!session) return { status: "error", error: "Unauthorized" };
+
+    const { parentId, type, language, meaningLanguage, position } = input;
+    if (!isEntityTypeCode(type)) {
+      return { status: "error", error: `Unknown entity type: ${type}` };
+    }
+    const items = (input.items ?? []).filter((item) => item.text?.trim());
+    if (items.length === 0) {
+      return { status: "error", error: "Nothing to add" };
+    }
+    if (items.length > MAX_BULK_ITEMS) {
+      return {
+        status: "error",
+        error: `Too many items (${items.length}); add at most ${MAX_BULK_ITEMS} at a time`,
+      };
+    }
+
+    const result = await db.$transaction(
+      async (txn) => {
+        const parent = await txn.entity.findUnique({
+          where: { id: parentId },
+          select: { id: true },
+        });
+        if (!parent) throw new Error("Parent not found");
+
+        const endOrder = await nextChildOrder(txn, parentId);
+        let firstOrder = endOrder;
+        if (
+          typeof position === "number" &&
+          position >= 0 &&
+          position < endOrder
+        ) {
+          firstOrder = Math.floor(position);
+          await txn.entity.updateMany({
+            where: { parents: { has: parentId }, order: { gte: firstOrder } },
+            data: { order: { increment: items.length } },
+          });
+        }
+
+        await txn.entity.createMany({
+          data: items.map((item, idx) => ({
+            type,
+            order: firstOrder + idx,
+            parents: [parentId],
+            text: prepareTextForSave([{ language, value: item.text.trim() }]),
+            meaning: item.meaning?.trim()
+              ? [
+                  {
+                    language: meaningLanguage || language,
+                    value: item.meaning.trim(),
+                  },
+                ]
+              : [],
+          })),
+        });
+        await syncParentChildren(txn, parentId);
+        return { created: items.length, firstOrder };
+      },
+      { timeout: 60000 },
+    );
+    return { status: "success", data: result };
+  } catch (error) {
+    console.error("addChildEntities failed:", error);
+    return { status: "error", error: errorMessage(error) };
+  }
+}
+
+/**
+ * Edits the text and/or meaning of an entity in one language without sending
+ * the whole document. With `syncScripts` the other transliterable scripts are
+ * regenerated from the edited text so they never drift apart.
+ */
+export async function updateEntityContent(
+  id: Entity["id"],
+  input: {
+    text?: { language: string; value: string };
+    meaning?: { language: string; value: string };
+    syncScripts?: boolean;
+  },
+): Promise<EntityActionResponse<{ id: string }>> {
+  try {
+    const session = await auth();
+    if (!session) return { status: "error", error: "Unauthorized" };
+
+    const entity = await db.entity.findUnique({
+      where: { id },
+      select: { text: true, meaning: true },
+    });
+    if (!entity) return { status: "error", error: "Entity not found" };
+
+    const data: Prisma.EntityUpdateInput = {};
+    if (input.text) {
+      if (!input.text.value.trim()) {
+        return { status: "error", error: "Text cannot be empty" };
+      }
+      let text = setLanguageValue(
+        entity.text,
+        input.text.language,
+        input.text.value,
+      );
+      if (input.syncScripts) text = syncScripts(text, input.text.language);
+      data.text = prepareTextForSave(text);
+    }
+    if (input.meaning) {
+      data.meaning = setLanguageValue(
+        entity.meaning,
+        input.meaning.language,
+        input.meaning.value,
+      ).filter((m) => m.value.trim());
+    }
+    if (Object.keys(data).length > 0) {
+      await db.entity.update({ where: { id }, data });
+    }
+    return { status: "success", data: { id } };
+  } catch (error) {
+    console.error("updateEntityContent failed:", error);
+    return { status: "error", error: errorMessage(error) };
+  }
+}
+
+/**
+ * Moves an entity to a new position (0-based) among its siblings, shifting
+ * the entities in between so numbering stays contiguous.
+ */
+export async function moveEntity(
+  id: Entity["id"],
+  toOrder: number,
+): Promise<EntityActionResponse<{ id: string; order: number }>> {
+  try {
+    const session = await auth();
+    if (!session) return { status: "error", error: "Unauthorized" };
+    if (!Number.isInteger(toOrder) || toOrder < 0) {
+      return { status: "error", error: "Position must be 1 or greater" };
+    }
+
+    const order = await db.$transaction(
+      async (txn) => {
+        const entity = await txn.entity.findUnique({
+          where: { id },
+          select: { order: true, parents: true },
+        });
+        if (!entity) throw new Error("Entity not found");
+
+        const parentId = entity.parents[0];
+        let target = toOrder;
+        if (parentId) {
+          const last = (await nextChildOrder(txn, parentId)) - 1;
+          target = Math.min(toOrder, Math.max(last, 0));
+          if (target < entity.order) {
+            await txn.entity.updateMany({
+              where: {
+                parents: { has: parentId },
+                order: { gte: target, lt: entity.order },
+              },
+              data: { order: { increment: 1 } },
+            });
+          } else if (target > entity.order) {
+            await txn.entity.updateMany({
+              where: {
+                parents: { has: parentId },
+                order: { gt: entity.order, lte: target },
+              },
+              data: { order: { decrement: 1 } },
+            });
+          }
+        }
+        if (target !== entity.order) {
+          await txn.entity.update({ where: { id }, data: { order: target } });
+          if (parentId) await syncParentChildren(txn, parentId);
+        }
+        return target;
+      },
+      { timeout: 60000 },
+    );
+    return { status: "success", data: { id, order } };
+  } catch (error) {
+    console.error("moveEntity failed:", error);
+    return { status: "error", error: errorMessage(error) };
+  }
+}
+
+//********** Reading flow **********//
+
+/** Previous and next entity in reading order, crossing chapter boundaries. */
+export async function fetchReadingNeighbours(
+  entityId: string,
+): Promise<{ prev: ReadingRef | null; next: ReadingRef | null }> {
+  const session = await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+  return getReadingNeighbours(entityId);
 }

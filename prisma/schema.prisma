@@ -131,12 +131,18 @@ model Entity {
   // rootEntityId String   @db.ObjectId
   // allChildren  Entity[] @relation("RootEntityRels")
 
+  annotations EntityAnnotation[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([order, type, text])
+  // Listing the children of a parent in reading order is the hottest query
+  // (every chapter page, prev/next navigation); this index serves it without
+  // loading and sorting all siblings. It also covers lookups by parent alone.
+  @@index([parents, order])
+  // Browsing a type (all deities, all stotrams) in order.
+  @@index([type, order])
   @@index([type, bookmarked, updatedAt(sort: Desc)])
-  @@index([parents])
   @@index([children])
   @@index([audio])
   @@index([bookmarked, updatedAt(sort: Desc)])
@@ -144,6 +150,32 @@ model Entity {
   @@index([createdAt(sort: Desc)])
   @@fulltext([order, type, text, meaning])
   @@map("Entities")
+}
+
+// Commentaries, personal thoughts and any other long-form writing about an
+// entity (a verse, a chapter, a book). Kept out of the Entity document so a
+// verse can carry any number of them, in any language, without making the
+// list queries heavier. `kind` is an open string — see src/lib/annotations.ts.
+model EntityAnnotation {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  entityId String  @db.ObjectId
+  entity   Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  kind     String
+  language String
+  // commentator, source or heading
+  title    String? @default("")
+  // markdown
+  text     String
+  order    Int     @default(0)
+  // who wrote it; private kinds (thoughts) are only shown to this user
+  userId   String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityId, kind, order])
+  @@index([userId, kind, updatedAt(sort: Desc)])
+  @@map("EntityAnnotations")
 }
 
 type TypeEntityType {

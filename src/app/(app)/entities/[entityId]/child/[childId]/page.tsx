@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import AskAITrigger from "@/components/features/ai/AskAITrigger";
 import SlokamDetails from "@/components/blocks/SlokamDetails";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -12,7 +13,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { fetchEntitySiblings } from "../../../actions";
+import {
+  fetchEntitySiblings,
+  fetchReadingNeighbours,
+} from "../../../actions";
+import type { ReadingRef } from "@/lib/db/entity-flow";
+import { entityChildTypes } from "@/lib/entity-types";
 import React, {
   useCallback,
   useEffect,
@@ -81,6 +87,31 @@ const Page = () => {
     return { prev, next, current };
   }, [siblingData?.siblings, currentSlokamId]);
 
+  // At the first / last verse of a chapter, reading continues in the
+  // neighbouring chapter instead of stopping.
+  const atEdge =
+    !!navigationInfo.current && (!navigationInfo.prev || !navigationInfo.next);
+  const { data: flow } = useQuery({
+    queryKey: ["entity", currentSlokamId, "neighbours"],
+    queryFn: () => fetchReadingNeighbours(currentSlokamId),
+    enabled: atEdge,
+    staleTime: QUERY_STALE_TIME_LONG,
+  });
+  const crossPrev = !navigationInfo.prev ? (flow?.prev ?? null) : null;
+  const crossNext = !navigationInfo.next ? (flow?.next ?? null) : null;
+  const hasPrev = !!(navigationInfo.prev || crossPrev);
+  const hasNext = !!(navigationInfo.next || crossNext);
+
+  const openReadingRef = useCallback(
+    (ref: ReadingRef) =>
+      router.push(
+        entityChildTypes(ref.type).length === 0 && ref.parentId
+          ? `/entities/${ref.parentId}/child/${ref.id}`
+          : `/entities/${ref.id}`,
+      ),
+    [router],
+  );
+
   // Update URL without reloading the page
   const updateUrl = useCallback(
     (newSlokamId: string) => {
@@ -99,16 +130,20 @@ const Page = () => {
       setNavigationDirection("right"); // Moving backwards
       setCurrentSlokamId(navigationInfo.prev.id);
       updateUrl(navigationInfo.prev.id);
+    } else if (crossPrev) {
+      openReadingRef(crossPrev);
     }
-  }, [navigationInfo.prev, updateUrl]);
+  }, [navigationInfo.prev, updateUrl, crossPrev, openReadingRef]);
 
   const handleNext = useCallback(() => {
     if (navigationInfo.next) {
       setNavigationDirection("left"); // Moving forwards
       setCurrentSlokamId(navigationInfo.next.id);
       updateUrl(navigationInfo.next.id);
+    } else if (crossNext) {
+      openReadingRef(crossNext);
     }
-  }, [navigationInfo.next, updateUrl]);
+  }, [navigationInfo.next, updateUrl, crossNext, openReadingRef]);
 
   const handleSlokamSelect = useCallback(
     (slokamId: string) => {
@@ -137,14 +172,14 @@ const Page = () => {
   useKeyboardNavigation({
     keyMap: {
       [KEYS.ARROW_LEFT]: () => {
-        if (navigationInfo.prev) {
+        if (hasPrev) {
           handlePrevious();
           return true;
         }
         return false;
       },
       [KEYS.ARROW_RIGHT]: () => {
-        if (navigationInfo.next) {
+        if (hasNext) {
           handleNext();
           return true;
         }
@@ -162,12 +197,12 @@ const Page = () => {
       enabled: true,
       maxTranslation: 120, // Maximum translation in pixels
       onSwipeLeft: () => {
-        if (navigationInfo.next) {
+        if (hasNext) {
           handleNext();
         }
       },
       onSwipeRight: () => {
-        if (navigationInfo.prev) {
+        if (hasPrev) {
           handlePrevious();
         }
       },
@@ -189,7 +224,7 @@ const Page = () => {
     };
   }, []);
 
-  if (isLoading || isFetching) return <Loader />;
+  if (isLoading) return <Loader />;
   if (error) return <SimpleAlert title={error.message} />;
 
   const navigationView = (
@@ -220,14 +255,23 @@ const Page = () => {
       </div>
       {/* Header Right Actions */}
       <div className="flex items-center gap-2">
+        <AskAITrigger
+          key={currentSlokamId}
+          scopeId={currentSlokamId}
+          scopeLabel="this verse"
+        />
         {/* Navigation buttons and dropdown */}
         <Button
           onClick={handlePrevious}
           type="button"
           variant="outline"
           size="icon"
-          disabled={!navigationInfo.prev}
-          title="Previous slokam (← Left arrow or swipe right)"
+          disabled={!hasPrev}
+          title={
+            crossPrev
+              ? "Last verse of the previous chapter"
+              : "Previous slokam (← Left arrow or swipe right)"
+          }
           aria-label="Previous slokam (← Left arrow or swipe right)"
         >
           <Icons.chevronLeft className="size-4 mr-1" />
@@ -256,8 +300,12 @@ const Page = () => {
           type="button"
           variant="outline"
           size="icon"
-          disabled={!navigationInfo.next}
-          title="Next slokam (→ Right arrow or swipe left)"
+          disabled={!hasNext}
+          title={
+            crossNext
+              ? "First verse of the next chapter"
+              : "Next slokam (→ Right arrow or swipe left)"
+          }
           aria-label="Next slokam (→ Right arrow or swipe left)"
         >
           <Icons.chevronRight className="size-4 ml-1" />
@@ -273,8 +321,8 @@ const Page = () => {
   } as React.CSSProperties;
 
   // Show navigation indicator arrows during swipe
-  const showLeftIndicator = swipeDistance > 30 && navigationInfo.prev;
-  const showRightIndicator = swipeDistance < -30 && navigationInfo.next;
+  const showLeftIndicator = swipeDistance > 30 && hasPrev;
+  const showRightIndicator = swipeDistance < -30 && hasNext;
 
   // Determine entrance animation class based on navigation direction
   const entranceAnimationClass =

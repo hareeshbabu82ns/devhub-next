@@ -12,7 +12,7 @@ import Loader from "@/components/utils/loader";
 import EntitySearchDlgTrigger from "./EntitySearchDlgTrigger";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { findEntities } from "../actions";
 import { mapEntityToTileModel } from "../utils";
 import { TileModel } from "@/types/entities";
@@ -72,9 +72,10 @@ const FormEntityRelations = ({
         entities,
       };
     },
+    placeholderData: keepPreviousData,
   });
 
-  if (isLoading || isFetching) return <Loader />;
+  if (isLoading) return <Loader />;
   if (error) return <SimpleAlert title={error.message} />;
 
   if (!data || !data?.entities)
@@ -160,7 +161,7 @@ const FormEntityRelations = ({
                       key={tile.id}
                       index={limit * offset + i + 1}
                       model={tile}
-                      className="col-span-4"
+                      className="col-span-full"
                       onEditClicked={onEditClicked}
                       onDeleteClicked={onDeleteClicked}
                     />

@@ -35,7 +35,7 @@ export const EntityFormSchema = z.object( {
   childIDs: z
     .array(
       z.object( {
-        type: z.enum( ENTITY_TYPES ),
+        type: z.enum( ENTITY_TYPES ).optional(),
         id: z.string(),
         imageThumbnail: z.string().optional(),
         text: z.string().optional(),

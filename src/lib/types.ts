@@ -1,3 +1,4 @@
+import { EntityTypeCode } from "./entity-types";
 import { buttonVariants } from "@/components/ui/button";
 import { VariantProps } from "class-variance-authority";
 
@@ -11,43 +12,8 @@ export type LanguageDDLB = {
   label: string;
 };
 
-export type EntityTypeEnum =
-  | "ADHYAAYAM"
-  | "AUTHOR"
-  | "DANDAKAM"
-  | "GHATTAM"
-  | "GOD"
-  | "ITIHASAM"
-  | "KAANDAM"
-  | "KAVYAM"
-  | "KEERTHANAM"
-  | "OTHERS"
-  | "PARVAM"
-  | "PURANAM"
-  | "SARGA"
-  | "SHATAKAM"
-  | "SKANDAM"
-  | "SLOKAM"
-  | "STHOTRAM"
-  | "VRATHAM";
-
-// export enum EntityTypeEnum {
-//   GOD = "GOD",
-//   AUTHOR = "AUTHOR",
-//   ITIHASAM = "ITIHASAM",
-//   PURANAM = "PURANAM",
-//   STHOTRAM = "STHOTRAM",
-//   DANDAKAM = "DANDAKAM",
-//   KAANDAM = "KAANDAM",
-//   KAVYAM = "KAVYAM",
-//   SARGA = "SARGA",
-//   PARVAM = "PARVAM",
-//   ADHYAAYAM = "ADHYAAYAM",
-//   SLOKAM = "SLOKAM",
-//   OTHERS = "OTHERS",
-//   SKANDAM = "SKANDAM",
-//   GHATTAM = "GHATTAM",
-// }
+// Derived from the registry in `./entity-types.ts`.
+export type EntityTypeEnum = EntityTypeCode;
 
 export type LanguageValueInput = {
   language: string;
@@ -85,6 +51,8 @@ export type EntityWithRelations = Entity & {
   parentsCount: number;
   children?: EntityWithRelations[];
   childrenCount: number;
+  /** Ids of direct children; only set by `readEntity`. */
+  childIds?: string[];
 };
 
 export type EntityInput = {

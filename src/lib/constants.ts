@@ -1,5 +1,11 @@
 import { Option } from "@/components/ui/multi-select";
-import { Entity, EntityTypeEnum } from "./types";
+import { EntityTypeEnum } from "./types";
+import {
+  ENTITY_TYPE_CODES,
+  ENTITY_TYPE_REGISTRY,
+  entityChildTypes,
+  entityParentTypes,
+} from "./entity-types";
 
 export const LS_AUDIO_PLAYER_VOLUME = "audioPlayerVolume";
 
@@ -20,287 +26,29 @@ export const QUERY_STALE_TIME_SHORT = 1000 * 60 * 60; // 1 hour
 export const QUERY_STALE_TIME_MEDIUM = 1000 * 60 * 60 * 12; // 12 hours
 export const QUERY_STALE_TIME_LONG = 1000 * 60 * 60 * 24; // 1 day
 
-export const ENTITY_TYPES = [
-  "ADHYAAYAM",
-  "AUTHOR",
-  "DANDAKAM",
-  "GHATTAM",
-  "GOD",
-  "ITIHASAM",
-  "KAANDAM",
-  "KAVYAM",
-  "KEERTHANAM",
-  "OTHERS",
-  "PARVAM",
-  "PURANAM",
-  "SARGA",
-  "SHATAKAM",
-  "SKANDAM",
-  "SLOKAM",
-  "STHOTRAM",
-  "VRATHAM",
-] as const;
+// Entity types are defined once in `./entity-types.ts`; everything below is
+// derived from that registry so adding a type is a single-entry change.
+export const ENTITY_TYPES = ENTITY_TYPE_CODES;
 
-export const ENTITY_TYPES_PARENTS = {
-  GOD: [],
-  AUTHOR: [],
-  VRATHAM: ["GOD", "AUTHOR"],
-  ITIHASAM: ["GOD", "AUTHOR"],
-  PURANAM: ["GOD", "AUTHOR"],
-  STHOTRAM: ["GOD", "AUTHOR", "VRATHAM"],
-  DANDAKAM: ["GOD", "AUTHOR"],
-  KAANDAM: ["ITIHASAM"],
-  KAVYAM: ["GOD", "AUTHOR"],
-  SARGA: ["KAANDAM", "KAVYAM"],
-  PARVAM: ["PURANAM"],
-  ADHYAAYAM: ["PURANAM", "VRATHAM", "KAVYAM", "OTHERS"],
-  SKANDAM: ["PURANAM"],
-  GHATTAM: ["SKANDAM"],
-  KEERTHANAM: ["GOD", "AUTHOR"],
-  SLOKAM: [
-    "ADHYAAYAM",
-    "DANDAKAM",
-    "GHATTAM",
-    "KAANDAM",
-    "KEERTHANAM",
-    "OTHERS",
-    "PARVAM",
-    "SARGA",
-    "SHATAKAM",
-    "STHOTRAM",
-  ],
-  OTHERS: [
-    "AUTHOR",
-    "DANDAKAM",
-    "GOD",
-    "ITIHASAM",
-    "PURANAM",
-    "STHOTRAM",
-    "SHATAKAM",
-    "VRATHAM",
-  ],
-} as Record<string, EntityTypeEnum[]>;
+export const ENTITY_TYPES_PARENTS = Object.fromEntries(
+  ENTITY_TYPE_REGISTRY.map((t) => [t.code, entityParentTypes(t.code)]),
+) as Record<string, EntityTypeEnum[]>;
 
-// leaf node is SLOKAM
-export const ENTITY_TYPES_CHILDREN = {
-  GOD: ["ITIHASAM", "PURANAM", "STHOTRAM", "DANDAKAM", "KEERTHANAM", "OTHERS"],
-  AUTHOR: [
-    "ITIHASAM",
-    "PURANAM",
-    "STHOTRAM",
-    "DANDAKAM",
-    "KEERTHANAM",
-    "OTHERS",
-  ],
+export const ENTITY_TYPES_CHILDREN = Object.fromEntries(
+  ENTITY_TYPE_REGISTRY.map((t) => [t.code, entityChildTypes(t.code)]),
+) as Record<string, EntityTypeEnum[]>;
 
-  ITIHASAM: ["KAANDAM"],
-  KAANDAM: ["SARGA"],
-  KAVYAM: ["SARGA", "ADHYAAYAM", "SARGA"],
-  SARGA: ["SLOKAM"],
-  SHATAKAM: ["SLOKAM", "ADHYAAYAM", "SARGA"],
-  KEERTHANAM: ["SLOKAM"],
+export const ENTITY_TYPES_DDLB = ENTITY_TYPE_REGISTRY.map((t) => ({
+  label: t.label,
+  value: t.code,
+})) as Option[];
 
-  PURANAM: ["PARVAM", "ADHYAAYAM", "SKANDAM", "GHATTAM"],
-  PARVAM: ["ADHYAAYAM"],
-  VRATHAM: ["ADHYAAYAM", "STHOTRAM"],
-  ADHYAAYAM: ["SLOKAM"],
-
-  SKANDAM: ["GHATTAM"],
-  GHATTAM: ["SLOKAM"],
-  STHOTRAM: ["SLOKAM"],
-  DANDAKAM: ["SLOKAM"],
-  OTHERS: ["ADHYAAYAM", "SLOKAM"],
-  SLOKAM: [],
-} as Record<string, EntityTypeEnum[]>;
-
-export const ENTITY_TYPES_DDLB = [
-  { label: "God", value: "GOD" },
-  { label: "Author", value: "AUTHOR" },
-  { label: "Itihasam", value: "ITIHASAM" },
-  { label: "Puranam", value: "PURANAM" },
-  { label: "Sthotram", value: "STHOTRAM" },
-  { label: "Shatakham", value: "SHATAKAM" },
-  { label: "Dandakam", value: "DANDAKAM" },
-  { label: "Kaandam", value: "KAANDAM" },
-  { label: "Kavyam", value: "KAVYAM" },
-  { label: "Keerthanam", value: "KEERTHANAM" },
-  { label: "Sarga", value: "SARGA" },
-  { label: "Parvam", value: "PARVAM" },
-  { label: "Adhyaayam", value: "ADHYAAYAM" },
-  { label: "Slokam", value: "SLOKAM" },
-  { label: "Others", value: "OTHERS" },
-  { label: "Skandam", value: "SKANDAM" },
-  { label: "Ghattam", value: "GHATTAM" },
-  { label: "Vratham", value: "VRATHAM" },
-] as Option[];
-
-export const ENTITY_TYPES_LANGUAGE_MAP: Record<
-  EntityTypeEnum,
-  Record<string, string>
-> = {
-  GOD: {
-    SAN: "भगवान्",
-    TEL: "దేవుడు",
-    HIN: "भगवान्",
-    TAM: "GOD",
-    ITRANS: "bhagavAn",
-    IAST: "bhagavān",
-    SLP1: "BagavAn",
-  },
-  AUTHOR: {
-    SAN: "कविः",
-    TEL: "కవి",
-    HIN: "कविः",
-    TAM: "AUTHOR",
-    ITRANS: "kaviH",
-    IAST: "kaviḥ",
-    SLP1: "kaviH",
-  },
-  VRATHAM: {
-    SAN: "व्रतः",
-    TEL: "వ్రతము",
-    HIN: "व्रतः",
-    TAM: "VRATHAM",
-    ITRANS: "vrataH",
-    IAST: "vrataḥ",
-    SLP1: "vrataH",
-  },
-  ITIHASAM: {
-    SAN: "इतिहासः",
-    TEL: "ఇతిహాసము",
-    HIN: "इतिहासः",
-    TAM: "ITIHASAM",
-    ITRANS: "itihAsaH",
-    IAST: "itihāsaḥ",
-    SLP1: "itihAsaH",
-  },
-  PURANAM: {
-    SAN: "पुराणः",
-    TEL: "పురణము",
-    HIN: "पुराणः",
-    TAM: "PURANAM",
-    ITRANS: "puraaNaH",
-    IAST: "purāṇaḥ",
-    SLP1: "puraaNaH",
-  },
-  STHOTRAM: {
-    SAN: "स्तॊत्रः",
-    TEL: "స్తొత్రము",
-    HIN: "स्तॊत्रः",
-    TAM: "STHOTRAM",
-    ITRANS: "stotraH",
-    IAST: "stòtraḥ",
-    SLP1: "stotraH",
-  },
-  DANDAKAM: {
-    SAN: "दण्डकः",
-    TEL: "దండకము",
-    HIN: "दण्डकः",
-    TAM: "DANDAKAM",
-    ITRANS: "daNDakaH",
-    IAST: "daṇḍakaḥ",
-    SLP1: "daRqakaH",
-  },
-  KAANDAM: {
-    SAN: "काण्डम्",
-    TEL: "కాణ్డము",
-    HIN: "काण्डम",
-    TAM: "KAANDAM",
-    ITRANS: "kANDam",
-    IAST: "kāṇḍam",
-    SLP1: "kARqam",
-  },
-  KAVYAM: {
-    SAN: "काव्यम्",
-    TEL: "కావ్యం",
-    HIN: "काव्यम्",
-    TAM: "KAVYAM",
-    ITRANS: "kAAvyam",
-    IAST: "kāvyam",
-    SLP1: "kAvyaM",
-  },
-  KEERTHANAM: {
-    SAN: "कृतिः",
-    TEL: "కీర్తన",
-    HIN: "कृतिः",
-    TAM: "KEERTHANAM",
-    ITRANS: "kRRitiH",
-    IAST: "kṛtiḥ",
-    SLP1: "kftiH",
-  },
-  SARGA: {
-    SAN: "सर्गः",
-    TEL: "సర్గము",
-    HIN: "सर्गः",
-    TAM: "SARGA",
-    ITRANS: "sargaH",
-    IAST: "sargaḥ",
-    SLP1: "sargaH",
-  },
-  SHATAKAM: {
-    SAN: "शतकम्",
-    TEL: "శతకము",
-    HIN: "शतकम्",
-    TAM: "SHATAKAM",
-    ITRANS: "shatakamaH",
-    IAST: "śatakamaḥ",
-    SLP1: "shatakamaH",
-  },
-  PARVAM: {
-    SAN: "पुराणः",
-    TEL: "పురాణము",
-    HIN: "पुराणः",
-    TAM: "PURANAM",
-    ITRANS: "purANaH",
-    IAST: "purāṇaḥ",
-    SLP1: "purARaH",
-  },
-  ADHYAAYAM: {
-    SAN: "अध्यायः",
-    TEL: "అధ్యాయము",
-    HIN: "अध्यायः",
-    TAM: "ADHYAAYAM",
-    ITRANS: "adhyAyaH",
-    IAST: "adhyāyaḥ",
-    SLP1: "aDyAyaH",
-  },
-  SLOKAM: {
-    SAN: "स्लॊकः",
-    TEL: "స్లోకము",
-    HIN: "स्लॊकः",
-    TAM: "SLOKAM",
-    ITRANS: "slokaH",
-    IAST: "slòkaḥ",
-    SLP1: "slòkaH",
-  },
-  OTHERS: {
-    SAN: "इतराणि",
-    TEL: "ఇతరాలు",
-    HIN: "इतराणि",
-    TAM: "OTHERS",
-    ITRANS: "itarANi",
-    IAST: "itarāṇi",
-    SLP1: "itarARi",
-  },
-  SKANDAM: {
-    SAN: "स्कन्दः",
-    TEL: "స్కన్దము",
-    HIN: "स्कन्दः",
-    TAM: "KAANDAM",
-    ITRANS: "skandaH",
-    IAST: "skandaḥ",
-    SLP1: "skandaH",
-  },
-  GHATTAM: {
-    SAN: "घट्टः",
-    TEL: "ఘట్టము",
-    HIN: "घट्टः",
-    TAM: "GHATTAM",
-    ITRANS: "ghaTTaH",
-    IAST: "ghaṭṭaḥ",
-    SLP1: "GawwaH",
-  },
-};
+export const ENTITY_TYPES_LANGUAGE_MAP = Object.fromEntries(
+  ENTITY_TYPE_REGISTRY.map((t): [string, Record<string, string>] => [
+    t.code,
+    t.names,
+  ]),
+) as Record<EntityTypeEnum, Record<string, string>>;
 
 export const LANGUAGE_FONT_FAMILY = {
   SAN: "font-shobhika",

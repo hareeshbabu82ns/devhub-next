@@ -2,7 +2,6 @@ import { saveAs } from "file-saver";
 import { uploadEntityWithChildren } from "./actions";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
-  ENTITY_TYPES_LANGUAGE_MAP,
   LANGUAGES,
 } from "@/lib/constants";
 import {
@@ -12,6 +11,7 @@ import {
   LanguageValueInput,
 } from "@/lib/types";
 import { TileModel } from "@/types/entities";
+import { entityTypeName } from "@/lib/entity-types";
 
 export const entityLanguageValueTransliterateHelper = (
   textData: LanguageValueInput[],
@@ -59,7 +59,7 @@ export const mapEntityToTileModel = (
     type: e.type as EntityTypeEnum,
     title: e.text,
     // subTitle: e.meaning,
-    subTitle: ENTITY_TYPES_LANGUAGE_MAP[e.type][lang] || e.type,
+    subTitle: entityTypeName(e.type, lang),
     src: e.imageThumbnail || ENTITY_DEFAULT_IMAGE_THUMBNAIL,
     audio: e.audio,
     order: e.order,
@@ -102,9 +102,10 @@ export const mapDbToEntity = (e: any, language: string, meaning?: string) => {
     notes: e.notes,
     bookmarked: e.bookmarked,
   };
-  item.text = (
-    e.text.find((w: any) => w.language === language) || e.text[0]
-  ).value;
+  // an entity without any text must not take the whole list down with it
+  item.text =
+    (e.text?.find((w: any) => w.language === language) || e.text?.[0])
+      ?.value ?? "";
   const meaningLang = meaning || language;
   item.meaning = e.meaning
     ? e.meaning.length === 0

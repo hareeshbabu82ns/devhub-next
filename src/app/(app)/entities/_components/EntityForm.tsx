@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { toast } from "@/components/ui/use-toast";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArtTile } from "@/components/blocks/image-tiles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FormInputText from "@/components/inputs/FormInputText";
@@ -25,6 +25,7 @@ import {
   Trash2 as DeleteIcon,
   ChevronLeft as BackIcon,
   RefreshCcw as RefreshIcon,
+  CopyPlus as SaveAndNewIcon,
 } from "lucide-react";
 import { EntityTypeEnum } from "@/lib/types";
 import FormInputMDXTextArea from "@/components/inputs/FormInputMDXTextArea";
@@ -46,8 +47,13 @@ interface EntityFormProps {
   entityExtras?: EntityExtraProps;
   updating?: boolean;
   onRefresh?: () => void;
-  onSubmit?: (data: Partial<z.infer<typeof EntityFormSchema>>) => void;
+  onSubmit?: (
+    data: Partial<z.infer<typeof EntityFormSchema>>,
+    options?: { addAnother?: boolean },
+  ) => void;
   onDelete?: (entityId: string) => void;
+  /** Show "Save & add another" (creating several siblings in a row). */
+  allowAddAnother?: boolean;
 }
 
 export default function EntityForm({
@@ -57,6 +63,7 @@ export default function EntityForm({
   onSubmit: onFormSubmit,
   onRefresh,
   onDelete,
+  allowAddAnother = false,
 }: EntityFormProps) {
   const router = useRouter();
   const language = useLanguageAtomValue();
@@ -65,7 +72,10 @@ export default function EntityForm({
 
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
-  const currentTab = searchParams.tab || "details";
+  // content first: text is what gets entered and corrected most often
+  const currentTab = searchParams.tab || "text";
+  const formRef = useRef<HTMLFormElement>(null);
+  const addAnotherRef = useRef(false);
 
   const form = useForm<z.infer<typeof EntityFormSchema>>({
     resolver: zodResolver(EntityFormSchema),
@@ -73,17 +83,42 @@ export default function EntityForm({
   });
 
   const {
-    getValues,
     reset,
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [imageThumbnailValue, typeValue, text, audio] = getValues([
+  const [imageThumbnailValue, typeValue, text, audio] = form.watch([
     "imageThumbnail",
     "type",
     "text",
     "audio",
   ]);
+
+  // Saving refetches the entity; show the saved state without remounting the
+  // form (which would lose the open tab and scroll position).
+  const dataKey = JSON.stringify(data);
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    reset({ ...data });
+    // compare by content: callers build `data` afresh on every render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataKey, reset]);
+
+  // Ctrl/⌘ + S saves from anywhere in the form
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   useEffect(() => {
     const keys = Object.keys(errors) as Array<keyof typeof errors>;
@@ -110,7 +145,8 @@ export default function EntityForm({
     changeData.imageThumbnail = data.imageThumbnail;
     // if (!entityId || dirtyFields.audio)
     changeData.audio = data.audio;
-    if (!entityId || dirtyFields.order) changeData.order = data.order;
+    // a new entity without an explicit order is appended after its siblings
+    if (dirtyFields.order) changeData.order = data.order;
     if (!entityId || dirtyFields.bookmarked)
       changeData.bookmarked = data.bookmarked;
     if (!entityId || dirtyFields.text) changeData.text = data.text;
@@ -122,26 +158,32 @@ export default function EntityForm({
     changeData.parentIDs = data.parentIDs;
     if (!entityId || dirtyFields.notes) changeData.notes = data.notes;
 
-    onFormSubmit?.(changeData);
+    const addAnother = addAnotherRef.current;
+    addAnotherRef.current = false;
+    onFormSubmit?.(changeData, { addAnother });
   }
+
+  // always visible, whichever tab is open
+  const typeAndOrder = (
+    <div className="grid grid-cols-[minmax(0,1fr)_7rem] sm:grid-cols-[minmax(0,20rem)_8rem] gap-3">
+      <FormSelect
+        control={form.control}
+        name="type"
+        label="Type"
+        options={ENTITY_TYPES_DDLB}
+      />
+      <FormInputText
+        control={form.control}
+        name="order"
+        label="Order"
+        type="number"
+        placeholder={entityId ? "0" : "auto"}
+      />
+    </div>
+  );
 
   const detailElements = (
     <div className="flex md:flex-2 lg:flex-3 flex-col gap-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Type */}
-        <FormSelect
-          control={form.control}
-          name="type"
-          label="Type"
-          options={ENTITY_TYPES_DDLB}
-        />
-        <FormInputText
-          control={form.control}
-          name="order"
-          label="Order"
-          type="number"
-        />
-      </div>
 
       {/* Thumbnail */}
       <div className="flex flex-row gap-2 items-end">
@@ -228,7 +270,7 @@ export default function EntityForm({
   );
 
   const actionButtons = (
-    <div className="flex justify-end gap-4">
+    <div className="sticky bottom-0 z-10 -mx-1 flex flex-wrap justify-end gap-2 border-t bg-background px-1 py-3">
       <Button type="button" disabled={updating} onClick={() => router.back()}>
         <BackIcon className="size-4 mr-2" />
         Back
@@ -253,9 +295,25 @@ export default function EntityForm({
         <ResetIcon className="size-4 mr-2" />
         Reset
       </Button>
-      <Button type="submit" disabled={!isDirty || updating}>
+      {allowAddAnother && !entityId && (
+        <Button
+          type="submit"
+          variant="outline"
+          disabled={!isDirty || updating}
+          onClick={() => (addAnotherRef.current = true)}
+        >
+          <SaveAndNewIcon className="size-4 mr-2" />
+          Save &amp; add another
+        </Button>
+      )}
+      <Button
+        type="submit"
+        disabled={!isDirty || updating}
+        title="Ctrl/⌘ + S"
+        onClick={() => (addAnotherRef.current = false)}
+      >
         <SaveIcon className="size-4 mr-2" />
-        Save
+        {updating ? "Saving…" : "Save"}
       </Button>
       {entityId && onDelete && (
         <DeleteConfirmDlgTrigger
@@ -307,18 +365,20 @@ export default function EntityForm({
   return (
     <Form {...form}>
       <form
+        ref={formRef}
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col space-y-4 flex-1"
+        className="flex flex-col space-y-4 flex-1 min-w-0"
       >
+        {typeAndOrder}
         <Tabs
           defaultValue={currentTab}
           className="flex flex-col flex-1 space-y-6"
           onValueChange={onTabValueChanged}
         >
           <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 h-20 sm:h-10 gap-2">
-            <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="text">Text</TabsTrigger>
             <TabsTrigger value="meaning">Meaning</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="parents">Parents</TabsTrigger>
             <TabsTrigger value="children">Children</TabsTrigger>
             <TabsTrigger value="extras">Extras</TabsTrigger>
@@ -337,7 +397,7 @@ export default function EntityForm({
             <FormLanguageValueList
               control={form.control}
               name="text"
-              placeholder="$transliterateFrom=TEL|SAN"
+              syncScripts
             />
             {/* <pre>{JSON.stringify(data?.text, null, 2)}</pre> */}
           </TabsContent>

@@ -6,129 +6,134 @@ import EntityForm from "../_components/EntityForm";
 import { z } from "zod";
 import { EntityFormSchema } from "@/lib/validations/entities";
 import { ENTITY_DEFAULT_IMAGE_THUMBNAIL } from "@/lib/constants";
-import { useMemo } from "react";
+import { entityChildTypes, isEntityTypeCode } from "@/lib/entity-types";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Prisma } from "@/app/generated/prisma";
 import { createEntity, findEntities } from "../actions";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import { entityLanguageValueTransliterateHelper } from "../utils";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import { useInvalidateEntities } from "@/hooks/use-entity-invalidation";
 
-const defaultValues: z.infer<typeof EntityFormSchema> = {
-  type: "SLOKAM",
-  order: 0,
-  imageThumbnail: ENTITY_DEFAULT_IMAGE_THUMBNAIL,
-  audio: undefined,
-  bookmarked: false,
-  text: entityLanguageValueTransliterateHelper( [] ) as any,
-  meaning: [],
-  attributes: [],
-  notes: "",
-  childIDs: [],
-  parentIDs: [],
-};
+type EntityFormValues = z.infer<typeof EntityFormSchema>;
 
 const EntityNewPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const invalidateEntities = useInvalidateEntities();
 
   const language = useLanguageAtomValue();
+  // bumping the key gives a fresh form for "Save & add another"
+  const [formKey, setFormKey] = useState(0);
 
-  const entityType = searchParams.get( "type" ) as EntityTypeEnum;
-  const parentId = searchParams.get( "parent" );
+  const typeParam = searchParams.get("type");
+  const parentId = searchParams.get("parent");
 
   const {
     data: parentEntity,
-    isFetching: isParentFetching,
     isLoading: isParentLoading,
     error: parentLoadingError,
-  } = useQuery( {
-    queryKey: [ "queryEntityParent", parentId ],
+  } = useQuery({
+    queryKey: ["queryEntityParent", parentId, language],
     queryFn: async () => {
-      const entities = await findEntities( {
-        where: {
-          id: parentId!,
-        },
+      const entities = await findEntities({
+        where: { id: parentId! },
         language: language!,
-      } );
-      return entities?.results?.[ 0 ];
+      });
+      return entities?.results?.[0] ?? null;
     },
     enabled: !!parentId,
-  } );
+  });
 
-  const defaultEntityCreateInput = {
-    ...defaultValues,
-    type: entityType || defaultValues.type,
+  // the type comes from the link, else from what the parent usually contains
+  const defaultType: EntityTypeEnum = isEntityTypeCode(typeParam)
+    ? typeParam
+    : ((parentEntity && entityChildTypes(parentEntity.type)[0]) ?? "SLOKAM");
+
+  const defaultValues: EntityFormValues = {
+    type: defaultType,
+    // left empty so the server appends the entity after its siblings
+    order: undefined,
+    imageThumbnail: ENTITY_DEFAULT_IMAGE_THUMBNAIL,
+    audio: "",
+    bookmarked: false,
+    text: [],
+    meaning: [],
+    attributes: [],
+    notes: "",
+    childIDs: [],
     parentIDs: parentEntity
       ? [
-        {
-          id: parentEntity.id,
-          type: parentEntity.type,
-          imageThumbnail: parentEntity.imageThumbnail,
-        },
-      ]
+          {
+            id: parentEntity.id,
+            type: parentEntity.type,
+            imageThumbnail: parentEntity.imageThumbnail,
+          },
+        ]
       : [],
   };
 
-  const {
-    mutateAsync: createEntityFn,
-    isPending: createLoading,
-    error: createEntityError,
-  } = useMutation( {
-    mutationKey: [ "createEntity" ],
-    mutationFn: async ( { data }: { data: Prisma.EntityCreateInput } ) => {
-      const res = await createEntity( { entity: data } );
-      return res;
-    },
-  } );
-
-  const onSubmit = useMemo(
-    () => async ( data: Partial<z.infer<typeof EntityFormSchema>> ) => {
-      if ( !data.type ) {
-        toast.error( "Entity type is required" );
+  const { mutate: createEntityFn, isPending: createLoading } = useMutation({
+    mutationFn: async ({
+      data,
+    }: {
+      data: Prisma.EntityCreateInput;
+      addAnother: boolean;
+    }) => createEntity({ entity: data }),
+    onSuccess: async (created, { addAnother }) => {
+      toast.success("Created");
+      await invalidateEntities();
+      if (addAnother) {
+        setFormKey((k) => k + 1);
         return;
       }
-      const { parentIDs, childIDs, ...rest } = {
-        ...defaultEntityCreateInput,
-        ...data,
-      };
-      const dataFinal = {
-        ...rest,
-        type: data.type!,
-        parentsRel: {
-          connect: data.parentIDs?.map( ( { id } ) => ( { id } ) ),
-        },
-      };
-      const res = await createEntityFn(
-        { data: dataFinal },
-        {
-          onSuccess: ( data ) => {
-            toast.success( "Entity created successfully" );
-            if ( data?.id ) router.replace( `/entities/${data.id}/edit` );
-          },
-          onError: ( error ) => {
-            toast.error( "Error creating entity" );
-          },
-        },
-      );
+      // back to where the new entity is listed; a new top-level entity opens
+      // on its own page, ready to receive content
+      if (parentId) router.replace(`/entities/${parentId}`);
+      else if (created?.id) router.replace(`/entities/${created.id}`);
     },
-    [],
-  );
+    onError: () => toast.error("Error creating entity"),
+  });
 
-  if ( isParentLoading || isParentFetching ) return <Loader />;
-  if ( parentLoadingError )
+  const onSubmit = (
+    data: Partial<EntityFormValues>,
+    options?: { addAnother?: boolean },
+  ) => {
+    if (!data.type) {
+      toast.error("Entity type is required");
+      return;
+    }
+    if (!data.text?.some((t) => t.value.trim())) {
+      toast.error("Enter the text first");
+      return;
+    }
+    const { parentIDs, childIDs, ...rest } = { ...defaultValues, ...data };
+    createEntityFn({
+      data: {
+        ...rest,
+        // undefined lets the server pick the next position
+        order: data.order as number,
+        type: data.type,
+        parentsRel: { connect: parentIDs?.map(({ id }) => ({ id })) },
+      },
+      addAnother: !!options?.addAnother,
+    });
+  };
+
+  if (isParentLoading) return <Loader />;
+  if (parentLoadingError)
     return <SimpleAlert title={parentLoadingError.message} />;
-
-  // if (!parentEntity) return <SimpleAlert title={"Error loading Parent"} />;
 
   return (
     <div className="min-h-[calc(100vh_-_theme(spacing.20))] w-full flex">
       <EntityForm
-        data={defaultEntityCreateInput}
+        key={formKey}
+        data={defaultValues}
         onSubmit={onSubmit}
         updating={createLoading}
+        allowAddAnother={!!parentId}
       />
     </div>
   );
