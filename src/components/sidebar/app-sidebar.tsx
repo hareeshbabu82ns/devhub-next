@@ -18,7 +18,7 @@ import AudioPlayer from "../audio-player/player";
 import { cn } from "@/lib/utils";
 import { useSidebarMinimized } from "@/hooks/use-config";
 import { useSession } from "next-auth/react";
-import { Sparkles } from "lucide-react";
+import { Orbit, Sparkles } from "lucide-react";
 import type { NavItemProps } from "./components/nav-main";
 
 const getNavItems = (isAdmin: boolean): NavItemProps[] => {
@@ -44,6 +44,11 @@ const getNavItems = (isAdmin: boolean): NavItemProps[] => {
       title: "Ask AI",
       path: "/ask",
       icon: <Sparkles className="size-4 stroke-2 text-inherit" />,
+    },
+    {
+      title: "Universe",
+      path: "/universe",
+      icon: <Orbit className="size-4 stroke-2 text-inherit" />,
     },
     {
       title: "Dictionary",

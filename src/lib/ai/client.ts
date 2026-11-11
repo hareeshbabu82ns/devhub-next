@@ -39,8 +39,14 @@ export async function chatComplete(
   config: AiConfig,
   messages: ChatMessage[],
   signal?: AbortSignal,
+  /** extra request fields, e.g. `{ temperature: 0.1 }` */
+  options: Record<string, unknown> = {},
 ): Promise<string> {
-  const response = await post(config, { messages, stream: false }, signal);
+  const response = await post(
+    config,
+    { messages, stream: false, ...options },
+    signal,
+  );
   const json = await response.json();
   return json?.choices?.[0]?.message?.content ?? "";
 }

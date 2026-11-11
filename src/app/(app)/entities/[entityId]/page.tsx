@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import EntitySearchTiles from "../_components/EntitySearchTiles";
 import AskAITrigger from "@/components/features/ai/AskAITrigger";
+import RagIndexTrigger from "@/components/features/ai/RagIndexTrigger";
+import { Orbit } from "lucide-react";
 import EntityQuickAdd from "../_components/EntityQuickAdd";
 import EntityQuickEdit from "../_components/EntityQuickEdit";
 import {
@@ -134,6 +136,18 @@ const Page = () => {
         </Button>
       )}
       <AskAITrigger scopeId={entityId} scopeLabel={entity.text} />
+      <Button
+        size="icon"
+        variant="outline"
+        title="Explore in the Universe view"
+        aria-label="Explore in the Universe view"
+        asChild
+      >
+        <Link href={`/universe?scope=${entityId}`}>
+          <Orbit className="size-4" />
+        </Link>
+      </Button>
+      <RagIndexTrigger scopeId={entityId} scopeLabel={entity.text} />
       <Button
         size="icon"
         type="button"

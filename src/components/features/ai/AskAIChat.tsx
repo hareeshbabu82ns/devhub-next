@@ -10,6 +10,7 @@ import {
   Loader2,
   MessageSquare,
   Mic,
+  Orbit,
   Plus,
   SendHorizontal,
   Square,
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { entityChildTypes } from "@/lib/entity-types";
 import type { AskEvent, AskSource } from "@/lib/ai/ask";
+import { CONCEPT_SOURCE_TYPE } from "@/lib/ai/rag/text";
 import type { AiChatTurn as Turn } from "@/lib/ai/chats";
 import { getAiChat } from "@/app/(app)/ask/actions";
 import AskAIHistory, { aiChatsKey } from "./AskAIHistory";
@@ -49,16 +51,44 @@ const writeActiveChat = (scopeId: string | null, id: string | null) => {
   }
 };
 
-const sourceHref = (s: AskSource) =>
-  entityChildTypes(s.type).length === 0 && s.parentId
-    ? `/entities/${s.parentId}/child/${s.id}`
-    : `/entities/${s.id}`;
+/** The Universe view of a scope, optionally lighting up some of its nodes. */
+const universeHref = (
+  scopeId: string | null,
+  params: Record<string, string>,
+) => {
+  const query = new URLSearchParams({
+    ...(scopeId ? { scope: scopeId } : {}),
+    ...params,
+  });
+  return `/universe?${query}`;
+};
+
+const sourceHref = (s: AskSource, scopeId: string | null) =>
+  s.type === CONCEPT_SOURCE_TYPE
+    ? universeHref(scopeId, { node: s.id })
+    : entityChildTypes(s.type).length === 0 && s.parentId
+      ? `/entities/${s.parentId}/child/${s.id}`
+      : `/entities/${s.id}`;
+
+const MODE_NOTE: Record<string, string> = {
+  graph: "Found by meaning and through the knowledge graph",
+  search: "Found by keyword search",
+  full: "Read in full",
+};
 
 interface AskAIChatProps {
   /** Book, chapter or verse to stay within; omit for the whole library. */
   scopeId?: string | null;
   scopeLabel?: string;
   className?: string;
+  /**
+   * Inside the Universe view: called with the passages and concepts an
+   * answer was built from, so they can be lit up on the graph. Without it,
+   * answers link to the Universe view instead.
+   */
+  onShowSources?: (sources: AskSource[], byUser: boolean) => void;
+  /** Puts a question in the box, e.g. "tell me about this node". */
+  draft?: { text: string; at: number } | null;
 }
 
 /**
@@ -69,6 +99,8 @@ export default function AskAIChat({
   scopeId = null,
   scopeLabel,
   className,
+  onShowSources,
+  draft,
 }: AskAIChatProps) {
   const queryClient = useQueryClient();
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -174,6 +206,12 @@ export default function AskAIChat({
   // stop a running answer when the panel goes away
   useEffect(() => () => abortRef.current?.abort(), []);
 
+  useEffect(() => {
+    if (!draft) return;
+    setQuestion(draft.text);
+    setView("chat");
+  }, [draft]);
+
   const updateLast = (patch: (turn: Turn) => Turn) =>
     setTurns((all) => [...all.slice(0, -1), patch(all[all.length - 1])]);
 
@@ -225,6 +263,7 @@ export default function AskAIChat({
               sources: event.sources,
               mode: event.mode,
             }));
+            onShowSources?.(event.sources, false);
           } else if (event.type === "delta") {
             answer += event.text;
             updateLast((t) => ({ ...t, answer: t.answer + event.text }));
@@ -419,7 +458,7 @@ export default function AskAIChat({
                       {sources.map((s) => (
                         <li key={s.n}>
                           <Link
-                            href={sourceHref(s)}
+                            href={sourceHref(s, scopeId)}
                             className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
                           >
                             [{s.n}] {s.reference}
@@ -428,6 +467,51 @@ export default function AskAIChat({
                       ))}
                     </ul>
                   )}
+                  {sources.length > 0 &&
+                    turn.answer &&
+                    !(busy && i === turns.length - 1) && (
+                      <div className="-ml-2 flex flex-wrap items-center gap-x-2">
+                        {onShowSources ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 gap-2 text-muted-foreground"
+                            onClick={() => onShowSources(sources, true)}
+                          >
+                            <Orbit className="size-4" />
+                            Show on the graph
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 gap-2 text-muted-foreground"
+                            asChild
+                          >
+                            <Link
+                              href={universeHref(scopeId, {
+                                // each id with its chapter, which stands in
+                                // for a verse the graph does not draw
+                                hl: sources
+                                  .map((s) =>
+                                    s.parentId ? `${s.id}~${s.parentId}` : s.id,
+                                  )
+                                  .join(","),
+                              })}
+                            >
+                              <Orbit className="size-4" />
+                              Show in Universe
+                            </Link>
+                          </Button>
+                        )}
+                        {turn.mode && MODE_NOTE[turn.mode] && (
+                          <span className="text-xs text-muted-foreground">
+                            {MODE_NOTE[turn.mode]}
+                          </span>
+                        )}
+                      </div>
+                    )}
                 </div>
               );
             })}

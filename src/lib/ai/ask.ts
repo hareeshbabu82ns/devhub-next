@@ -1,6 +1,12 @@
 import { AiConfig } from "./config";
 import { chatComplete, ChatMessage, chatStream } from "./client";
 import { Passage, resolveScope, searchPassages } from "./retrieval";
+import { ragRetrieve, RagRetrieval } from "./rag/retrieve";
+import {
+  CONCEPT_KIND_LABEL,
+  CONCEPT_SOURCE_TYPE,
+  conceptKindOf,
+} from "./rag/text";
 
 export type AskSource = {
   n: number;
@@ -87,7 +93,11 @@ async function searchKeywords(
   return naiveKeywords(question);
 }
 
-export const formatPassages = (passages: Passage[]) =>
+export const formatPassages = (
+  passages: Passage[],
+  /** why each passage was retrieved, by passage id */
+  reasons?: Map<string, string[]>,
+) =>
   passages
     .map((p, i) =>
       [
@@ -95,15 +105,47 @@ export const formatPassages = (passages: Passage[]) =>
         p.text,
         p.meaning && `Meaning: ${p.meaning}`,
         ...p.notes,
+        reasons?.get(p.id)?.length &&
+          `Why retrieved: ${reasons.get(p.id)!.join("; ")}`,
       ]
         .filter(Boolean)
         .join("\n"),
     )
     .join("\n\n");
 
+/**
+ * The knowledge-graph part of the context: the concepts the retrieved
+ * passages share, numbered on from the passages so they are cited the same
+ * way, and the relations stated between them.
+ */
+export const formatConcepts = (
+  retrieval: Pick<RagRetrieval, "concepts" | "relations">,
+  firstNumber: number,
+) => {
+  if (retrieval.concepts.length === 0) return "";
+  const label = (key: string) =>
+    retrieval.concepts.find((c) => c.key === key)?.label ?? key;
+  const lines = retrieval.concepts.map(
+    (c, i) =>
+      `[${firstNumber + i}] ${CONCEPT_KIND_LABEL[conceptKindOf(c.key)]}: ${c.label}${c.original ? ` (${c.original})` : ""}${c.description ? ` — ${c.description}` : ""}`,
+  );
+  const relations = retrieval.relations.map(
+    (r) => `- ${label(r.from)} ${r.label} ${label(r.to)}`,
+  );
+  return [
+    "Knowledge graph — who and what these passages are about:",
+    ...lines,
+    ...(relations.length > 0
+      ? ["Relations stated in the text:", ...relations]
+      : []),
+  ].join("\n");
+};
+
 const SYSTEM_PROMPT = `You answer questions about a personal library of Hindu devotional and scriptural texts.
-Use ONLY the numbered passages provided. Cite the passages you rely on with their numbers in square brackets, like [3].
+Use ONLY the numbered passages and knowledge-graph entries provided. Cite what you rely on with its number in square brackets, like [3]; never invent a verse, a number or a quotation.
+"Why retrieved" lines explain how a passage relates to the question; use them to connect ideas, but do not quote them.
 If the passages do not contain the answer, say so plainly instead of answering from general knowledge.
+Answer the question that was asked. Never tell the person what they feel; acknowledge a feeling only if they stated it. For personal questions be kind and practical, and if someone mentions self-harm, put their safety first and urge them to contact a local crisis line or emergency services.
 Quote Sanskrit sparingly and explain it. Reply in the language of the question.`;
 
 /** Answers a question from the library, yielding sources first, then text. */
@@ -117,36 +159,79 @@ export async function* askLibrary(
     const scope = await resolveScope(input.scopeId, userId);
     let passages: Passage[];
     let mode: string;
+    let graph: RagRetrieval | null = null;
     if (scope.full) {
       passages = scope.full;
       mode = "full";
     } else {
-      const keywords = await searchKeywords(config, input.question, signal);
-      passages = await searchPassages(keywords, scope.containerIds, userId);
-      mode = "search";
+      // an indexed scope is searched by meaning and through its knowledge
+      // graph; the model is only asked for keywords when there is no index
+      graph = await ragRetrieve(
+        input.question,
+        input.scopeId,
+        scope.containerIds,
+        naiveKeywords(input.question),
+        userId,
+        signal,
+      ).catch((error) => {
+        if (signal?.aborted) throw error;
+        console.warn(
+          "Knowledge-index retrieval failed, using keywords:",
+          error,
+        );
+        return null;
+      });
+      if (graph && graph.passages.length > 0) {
+        passages = graph.passages;
+        mode = "graph";
+      } else {
+        graph = null;
+        const keywords = await searchKeywords(config, input.question, signal);
+        passages = await searchPassages(keywords, scope.containerIds, userId);
+        mode = "search";
+      }
     }
 
     yield {
       type: "sources",
       scope: scope.entity?.title ?? "Entire library",
       mode,
-      sources: passages.map((p, i) => ({
-        n: i + 1,
-        id: p.id,
-        type: p.type,
-        parentId: p.parentId,
-        reference: p.reference,
-      })),
+      sources: [
+        ...passages.map((p, i) => ({
+          n: i + 1,
+          id: p.id,
+          type: p.type,
+          parentId: p.parentId,
+          reference: p.reference,
+        })),
+        ...(graph?.concepts ?? []).map((c, i) => ({
+          n: passages.length + i + 1,
+          id: c.key,
+          type: CONCEPT_SOURCE_TYPE,
+          parentId: null,
+          reference: `${c.label} (${CONCEPT_KIND_LABEL[conceptKindOf(c.key)].toLowerCase()})`,
+        })),
+      ],
     };
 
+    const scopeName = scope.entity
+      ? `"${scope.entity.title}"`
+      : "the entire library";
     const context =
       passages.length > 0
-        ? formatPassages(passages)
+        ? [
+            formatPassages(passages, graph?.reasons),
+            graph && formatConcepts(graph, passages.length + 1),
+          ]
+            .filter(Boolean)
+            .join("\n\n")
         : "(no matching passages were found)";
     const coverage =
       mode === "full"
         ? `These passages are the complete content of "${scope.entity?.title}", in reading order.`
-        : `These passages were selected by keyword search from ${scope.entity ? `"${scope.entity.title}"` : "the entire library"}; other relevant passages may exist.`;
+        : mode === "graph"
+          ? `These passages were selected from ${scopeName} by meaning and by following its knowledge graph (${graph!.via}); other relevant passages may exist.`
+          : `These passages were selected by keyword search from ${scopeName}; other relevant passages may exist.`;
 
     const messages: ChatMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },

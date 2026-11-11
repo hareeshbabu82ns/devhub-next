@@ -306,6 +306,119 @@ type TypeAiChatSource {
 
 //********** AI Chat End **********//
 
+//********** AI Knowledge Index (RAG) Begin **********//
+// What "Ask AI" and the Universe view know about one entity (a verse or a
+// container): its embedding for semantic search, and the characters, concepts,
+// places and states of mind it mentions. Built on demand for a book, a chapter
+// or the whole library — see src/lib/ai/rag/build.ts.
+model RagChunk {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  entityId  String           @unique @db.ObjectId
+  // the container the entity sits in; scopes are resolved to container ids
+  parentId  String?          @db.ObjectId
+  type      String
+  order     Int              @default(0)
+  // hash of the embedded text, to skip unchanged entities on a rebuild
+  hash      String           @default("")
+  model     String           @default("")
+  dim       Int              @default(0)
+  // unit vector, quantised to one signed byte per dimension
+  vector    Bytes?
+  // hash of the text the mentions were extracted from; null = not extracted
+  graphHash String?
+  mentions  TypeRagMention[]
+
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId, order])
+  @@index([mentions.key])
+  @@map("RagChunks")
+}
+
+type TypeRagMention {
+  // RagConcept.key
+  key String
+  // MENTIONS | DEFINES | SPOKEN_BY | ADDRESSES | DEPICTS
+  rel String
+  why String?
+}
+
+// A character, concept, place or state of mind found by the model. Shared by
+// every book that mentions it, so the same person links texts together.
+model RagConcept {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  // "<kind>:<slug>", e.g. "character:hanuman"
+  key         String   @unique
+  kind        String
+  label       String
+  // name in the original script, when the model gave one
+  original    String?  @default("")
+  description String   @default("")
+  aliases     String[] @default([])
+  // how many indexed entities mention it
+  count       Int      @default(0)
+  model       String   @default("")
+  vector      Bytes?
+
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, count(sort: Desc)])
+  @@map("RagConcepts")
+}
+
+// A stated relation between two concepts ("son of", "leads to"), grounded in
+// the entity it was read from.
+model RagRelation {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  from     String
+  to       String
+  label    String
+  why      String? @default("")
+  entityId String  @db.ObjectId
+  parentId String? @db.ObjectId
+
+  @@index([from])
+  @@index([to])
+  @@index([parentId])
+  @@index([entityId])
+  @@map("RagRelations")
+}
+
+// One run of the index builder over a scope. Progress is written here so any
+// browser can follow it; `heartbeatAt` tells a live run from an interrupted one.
+model RagBuild {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  // null = the whole library
+  scopeId    String? @db.ObjectId
+  scopeTitle String  @default("")
+  userId     String  @db.ObjectId
+  // queued | running | done | failed | cancelled
+  status     String
+  // embed | graph | concepts
+  stage      String  @default("")
+  embeddings Boolean @default(true)
+  graph      Boolean @default(false)
+  force      Boolean @default(false)
+  total      Int     @default(0)
+  done       Int     @default(0)
+  embedded   Int     @default(0)
+  extracted  Int     @default(0)
+  failed     Int     @default(0)
+  message    String? @default("")
+  error      String?
+  cancel     Boolean @default(false)
+
+  startedAt   DateTime  @default(now())
+  heartbeatAt DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([scopeId, startedAt(sort: Desc)])
+  @@index([status, heartbeatAt])
+  @@map("RagBuilds")
+}
+
+//********** AI Knowledge Index (RAG) End **********//
+
 //********** Playlist Begin **********//
 model Playlist {
   id        String         @id @default(auto()) @map("_id") @db.ObjectId

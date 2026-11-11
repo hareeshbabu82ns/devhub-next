@@ -22,7 +22,7 @@ const PER_KEYWORD_LIMIT = 80;
 const MAX_KEYWORDS = 6;
 const MAX_FIELD_CHARS = 1500;
 
-const PASSAGE_SELECT = {
+export const PASSAGE_SELECT = {
   id: true,
   type: true,
   order: true,
@@ -30,7 +30,7 @@ const PASSAGE_SELECT = {
   text: true,
   meaning: true,
 } as const;
-type Row = {
+export type PassageRow = {
   id: string;
   type: string;
   order: number;
@@ -39,13 +39,13 @@ type Row = {
   meaning: LangValue[];
 };
 
-const CONTAINER_TYPES = ENTITY_TYPE_CODES.filter(
+export const CONTAINER_TYPES = ENTITY_TYPE_CODES.filter(
   (t) => entityChildTypes(t).length > 0,
 );
 
-const ROOT_TYPES = ["GOD", "AUTHOR"];
+export const ROOT_TYPES = ["GOD", "AUTHOR"];
 
-const pick = (values: LangValue[], preferred: string[]) => {
+export const pickLanguage = (values: LangValue[], preferred: string[]) => {
   for (const language of preferred) {
     const hit = values.find((v) => v.language === language && v.value);
     if (hit) return hit.value;
@@ -58,8 +58,10 @@ const clip = (value: string) =>
     ? `${value.slice(0, MAX_FIELD_CHARS)}…`
     : value;
 
-const title = (text: LangValue[]) =>
-  pick(text, ["ENG", "IAST", "SAN", "TEL"]).replace(/\s+/g, " ").slice(0, 80);
+export const entityTitle = (text: LangValue[]) =>
+  pickLanguage(text, ["ENG", "IAST", "SAN", "TEL"])
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
 
 /**
  * Ids of the entity and of every container beneath it (books, chapters...).
@@ -79,8 +81,54 @@ export async function containerIdsUnder(entityId: string): Promise<string[]> {
   return all;
 }
 
+const leafFilter = (leavesOnly: boolean) =>
+  leavesOnly ? { type: { $nin: CONTAINER_TYPES } } : {};
+
+const inContainers = (containerIds: string[] | null) =>
+  containerIds
+    ? { parents: { $in: containerIds.map((id) => ({ $oid: id })) } }
+    : {};
+
+/**
+ * How many entities sit directly inside the given containers (null: in the
+ * whole library). Asked of the database directly: Prisma's list filters
+ * (`has`, `hasSome`) do not use the index on `parents`, which costs seconds
+ * on a large book.
+ */
+export async function countChildren(
+  containerIds: string[] | null,
+  leavesOnly = false,
+): Promise<number> {
+  if (containerIds?.length === 0) return 0;
+  const result = (await db.entity.aggregateRaw({
+    pipeline: [
+      { $match: { ...inContainers(containerIds), ...leafFilter(leavesOnly) } },
+      { $count: "n" },
+    ],
+  })) as unknown as { n: number }[];
+  return result[0]?.n ?? 0;
+}
+
+/** Ids of the entities directly inside the given containers. */
+export async function childIds(
+  containerIds: string[],
+  leavesOnly = false,
+): Promise<string[]> {
+  if (containerIds.length === 0) return [];
+  const result = (await db.entity.aggregateRaw({
+    pipeline: [
+      { $match: { ...inContainers(containerIds), ...leafFilter(leavesOnly) } },
+      { $project: { _id: 1 } },
+    ],
+  })) as unknown as { _id: { $oid: string } }[];
+  return result.map((row) => row._id.$oid);
+}
+
 /** Builds "Book › Chapter › 14" style references for a set of rows. */
-async function withReferences(rows: Row[], userId: string): Promise<Passage[]> {
+export async function withReferences(
+  rows: PassageRow[],
+  userId: string,
+): Promise<Passage[]> {
   // titles of ancestors, fetched level by level for all rows at once
   const titles = new Map<string, { title: string; parent?: string }>();
   let pending = [...new Set(rows.map((r) => r.parents[0]).filter(Boolean))];
@@ -92,7 +140,7 @@ async function withReferences(rows: Row[], userId: string): Promise<Passage[]> {
     for (const a of ancestors) {
       // the deity / author a book is filed under is not part of its reference
       if (ROOT_TYPES.includes(a.type)) continue;
-      titles.set(a.id, { title: title(a.text), parent: a.parents[0] });
+      titles.set(a.id, { title: entityTitle(a.text), parent: a.parents[0] });
     }
     pending = [
       ...new Set(
@@ -116,14 +164,14 @@ async function withReferences(rows: Row[], userId: string): Promise<Passage[]> {
       cursor = titles.get(cursor)!.parent ?? "";
     }
     const isLeaf = entityChildTypes(row.type).length === 0;
-    path.push(isLeaf ? String(row.order + 1) : title(row.text));
+    path.push(isLeaf ? String(row.order + 1) : entityTitle(row.text));
     return {
       id: row.id,
       type: row.type,
       parentId: row.parents[0] ?? null,
       reference: path.join(" › "),
-      text: clip(pick(row.text, ["SAN", "TEL", "IAST", "ENG"])),
-      meaning: clip(pick(row.meaning, ["ENG", "TEL", "SAN"])),
+      text: clip(pickLanguage(row.text, ["SAN", "TEL", "IAST", "ENG"])),
+      meaning: clip(pickLanguage(row.meaning, ["ENG", "TEL", "SAN"])),
       notes: annotations
         .filter(
           (a) =>
@@ -162,7 +210,11 @@ export async function resolveScope(
     select: PASSAGE_SELECT,
   });
   if (!entity) throw new Error("The selected content no longer exists");
-  const info = { id: entity.id, type: entity.type, title: title(entity.text) };
+  const info = {
+    id: entity.id,
+    type: entity.type,
+    title: entityTitle(entity.text),
+  };
 
   // a single verse: the verse itself is the whole context
   if (entityChildTypes(entity.type).length === 0) {
@@ -175,12 +227,14 @@ export async function resolveScope(
   }
 
   const containerIds = await containerIdsUnder(entityId);
-  const where = { parents: { hasSome: containerIds } };
-  const itemCount = await db.entity.count({ where });
+  const itemCount = await countChildren(containerIds);
   if (itemCount > FULL_CONTEXT_MAX_ITEMS) {
     return { entity: info, itemCount, full: null, containerIds };
   }
-  const rows = await db.entity.findMany({ where, select: PASSAGE_SELECT });
+  const rows = await db.entity.findMany({
+    where: { id: { in: await childIds(containerIds) } },
+    select: PASSAGE_SELECT,
+  });
   // reading order: by container (in discovery order), then position
   const rank = new Map(containerIds.map((id, i) => [id, i]));
   rows.sort(
@@ -206,6 +260,19 @@ export async function searchPassages(
   containerIds: string[] | null,
   userId: string,
 ): Promise<Passage[]> {
+  const rows = await searchPassageRows(keywords, containerIds);
+  return withReferences(
+    rows.map((r) => r.row),
+    userId,
+  );
+}
+
+/** The keyword search behind `searchPassages`, with its match counts. */
+export async function searchPassageRows(
+  keywords: string[],
+  containerIds: string[] | null,
+  limit = RETRIEVED_PASSAGES,
+): Promise<{ row: PassageRow; score: number }[]> {
   const terms = [...new Set(keywords.map((k) => k.trim()).filter(Boolean))]
     .filter((k) => k.length >= 2)
     .slice(0, MAX_KEYWORDS);
@@ -230,7 +297,7 @@ export async function searchPassages(
   );
 
   // rank by how many different keywords a passage matches
-  const scored = new Map<string, { row: Row; score: number }>();
+  const scored = new Map<string, { row: PassageRow; score: number }>();
   for (const rows of perKeyword) {
     for (const row of rows) {
       const entry = scored.get(row.id) ?? { row, score: 0 };
@@ -238,9 +305,5 @@ export async function searchPassages(
       scored.set(row.id, entry);
     }
   }
-  const best = [...scored.values()]
-    .sort((a, b) => b.score - a.score)
-    .slice(0, RETRIEVED_PASSAGES)
-    .map((s) => s.row);
-  return withReferences(best, userId);
+  return [...scored.values()].sort((a, b) => b.score - a.score).slice(0, limit);
 }
