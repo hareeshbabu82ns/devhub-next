@@ -11,6 +11,8 @@ export type AskSource = {
 };
 
 export type AskEvent =
+  /** the saved chat this turn belongs to; sent first by the API route */
+  | { type: "chat"; id: string; title: string }
   | { type: "sources"; sources: AskSource[]; scope: string; mode: string }
   | { type: "delta"; text: string }
   | { type: "error"; error: string }

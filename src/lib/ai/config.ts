@@ -13,7 +13,11 @@ export const getAiConfig = (): AiConfig | null => {
   const baseUrl = process.env.AI_BASE_URL?.trim().replace(/\/+$/, "");
   const model = process.env.AI_MODEL?.trim();
   if (!baseUrl || !model) return null;
-  return { baseUrl, model, apiKey: process.env.AI_API_KEY?.trim() || undefined };
+  return {
+    baseUrl,
+    model,
+    apiKey: process.env.AI_API_KEY?.trim() || undefined,
+  };
 };
 
 export const AI_NOT_CONFIGURED =

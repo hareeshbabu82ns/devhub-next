@@ -36,8 +36,9 @@ model User {
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 
-  Playlist     Playlist[]
-  SavedSearch  SavedSearch[]
+  Playlist    Playlist[]
+  SavedSearch SavedSearch[]
+  AiChat      AiChat[]
 }
 
 model Account {
@@ -249,15 +250,15 @@ type AttributeValueType {
 
 //********** SavedSearch Begin **********//
 model SavedSearch {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
-  name        String
-  queryText   String
-  filters     Json?    @db.Json // Flexible filter storage (origin, language, wordLength, hasAudio, etc.)
-  sortBy      String?  @default("relevance")
-  sortOrder   String?  @default("desc")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  name      String
+  queryText String
+  filters   Json?    @db.Json // Flexible filter storage (origin, language, wordLength, hasAudio, etc.)
+  sortBy    String?  @default("relevance")
+  sortOrder String?  @default("desc")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -266,6 +267,44 @@ model SavedSearch {
 }
 
 //********** SavedSearch End **********//
+
+//********** AI Chat Begin **********//
+// One "Ask AI" conversation. Turns are embedded: a chat is always read and
+// written whole, and stays far below the document size limit.
+model AiChat {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  // book, chapter or verse the chat stays within; null for the whole library
+  scopeId   String?          @db.ObjectId
+  turns     TypeAiChatTurn[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, scopeId, updatedAt(sort: Desc)])
+  @@index([userId, updatedAt(sort: Desc)])
+  @@map("AiChats")
+}
+
+type TypeAiChatTurn {
+  question  String
+  answer    String
+  sources   TypeAiChatSource[]
+  mode      String?
+  error     String?
+  createdAt DateTime           @default(now())
+}
+
+type TypeAiChatSource {
+  n         Int
+  id        String
+  type      String
+  parentId  String?
+  reference String
+}
+
+//********** AI Chat End **********//
 
 //********** Playlist Begin **********//
 model Playlist {

@@ -18,7 +18,10 @@ interface AskAITriggerProps {
 }
 
 /** Button that opens the AI question panel for a book, chapter or verse. */
-export default function AskAITrigger({ scopeId, scopeLabel }: AskAITriggerProps) {
+export default function AskAITrigger({
+  scopeId,
+  scopeLabel,
+}: AskAITriggerProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>

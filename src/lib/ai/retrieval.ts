@@ -80,10 +80,7 @@ export async function containerIdsUnder(entityId: string): Promise<string[]> {
 }
 
 /** Builds "Book › Chapter › 14" style references for a set of rows. */
-async function withReferences(
-  rows: Row[],
-  userId: string,
-): Promise<Passage[]> {
+async function withReferences(rows: Row[], userId: string): Promise<Passage[]> {
   // titles of ancestors, fetched level by level for all rows at once
   const titles = new Map<string, { title: string; parent?: string }>();
   let pending = [...new Set(rows.map((r) => r.parents[0]).filter(Boolean))];
