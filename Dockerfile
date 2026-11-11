@@ -56,14 +56,14 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Install only the necessary dependencies
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat curl su-exec
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Set the correct permission for prerender cache
-RUN mkdir -p .next
-RUN chown nextjs:nodejs .next
+RUN mkdir -p .next data
+RUN chown nextjs:nodejs .next data
 
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
@@ -72,9 +72,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/src/app/generated ./src/app/generated
 
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-USER nextjs
+# Container starts as root so the entrypoint can fix ownership of the
+# (possibly mounted) data folder, then drops to the nextjs user via su-exec.
 EXPOSE 3000
 
-# Start the web server
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["node", "server.js"]
