@@ -45,6 +45,8 @@ interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
   actionPreButtons?: React.ReactNode;
   /** Rendered under the list, e.g. a link to the next chapter. */
   footer?: React.ReactNode;
+  /** Rendered between the toolbar and the list, e.g. a download in progress. */
+  banner?: React.ReactNode;
 }
 
 const EntitySearchTiles = ({
@@ -59,6 +61,7 @@ const EntitySearchTiles = ({
   actionButtons,
   actionPreButtons,
   footer,
+  banner,
 }: EntitySearchTilesProps) => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const language = useLanguageAtomValue();
@@ -97,6 +100,7 @@ const EntitySearchTiles = ({
           {actionButtons}
         </div>
       </div>
+      {banner}
       <EntitySearchGrid
         query={mode === "browse" && searchParam === "" ? ".*" : searchParam}
         onClick={onTileClicked}

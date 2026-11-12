@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import { toast } from "sonner";
-import { handleEntityFileUpload } from "./utils";
+import { describeEntityImport, handleEntityFileUpload } from "./utils";
 
 const Page = () => {
   const searchParams = useSearchParams();
@@ -44,12 +44,13 @@ const Page = () => {
       <input
         id="upload-entity-file"
         type="file"
-        accept="application/json"
+        accept="application/zip,.zip,application/json,.json"
         style={{ display: "none" }}
         onChange={async (e) => {
           toast.promise(handleEntityFileUpload(e), {
-            success: "Entity uploaded successfully!",
-            error: "Entity upload failed.",
+            success: describeEntityImport,
+            error: (err) =>
+              err instanceof Error ? err.message : "Entity upload failed.",
             loading: "Uploading...",
           });
         }}

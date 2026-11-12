@@ -1,5 +1,3 @@
-import { saveAs } from "file-saver";
-import { uploadEntityWithChildren } from "./actions";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   LANGUAGES,
@@ -122,113 +120,70 @@ export const mapDbToEntity = (e: any, language: string, meaning?: string) => {
   return item;
 };
 
-export async function downloadEntityHierarchy(entityId: string) {
-  try {
-    // Use API route for download (better for large files)
-    const response = await fetch(
-      `/api/entities/download-zip?entityId=${encodeURIComponent(entityId)}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ error: "Download failed" }));
-      throw new Error(
-        errorData.error || `HTTP ${response.status}: ${response.statusText}`,
-      );
-    }
-
-    // Get filename from Content-Disposition header
-    const contentDisposition = response.headers.get("Content-Disposition");
-    const filenameMatch = contentDisposition?.match(/filename="([^"]+)"/);
-    const filename = filenameMatch?.[1] || "entity_hierarchy.zip";
-
-    // Get ZIP data as blob
-    const blob = await response.blob();
-
-    // Download the file
-    saveAs(blob, filename);
-  } catch (error) {
-    console.error("Failed to download entity hierarchy:", error);
-    throw error;
-  }
+export interface EntityImportResult {
+  entityId: string;
+  totalEntities: number;
+  totalAnnotations: number;
+  totalPlaygrounds: number;
+  warnings: string[];
 }
 
-async function processEntityFile(file: File, parentId: string | null = null) {
-  try {
-    if (file.type === "application/zip" || file.name.endsWith(".zip")) {
-      // Handle ZIP file upload via API route (better for large files)
-      const formData = new FormData();
-      formData.append("file", file);
-      if (parentId) {
-        formData.append("parentId", parentId);
-      }
-
-      const response = await fetch("/api/entities/upload-zip", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || "ZIP upload failed");
-      }
-
-      console.log(
-        `ZIP uploaded successfully: ${result.data?.totalEntities} entities created`,
-      );
-    } else if (
-      file.type === "application/json" ||
-      file.name.endsWith(".json")
-    ) {
-      // Handle JSON file upload (legacy)
-      const text = await file.text();
-      const data = JSON.parse(text);
-      if (!data || !data.type) {
-        throw new Error("Invalid JSON file format");
-      }
-      await uploadEntityWithChildren(data, parentId);
-      console.log("JSON entities created successfully");
-    } else {
-      throw new Error(
-        "Unsupported file format. Please upload a ZIP or JSON file.",
-      );
-    }
-  } catch (error) {
-    console.error("Failed to process entity file:", error);
-    throw error;
+/**
+ * Imports a downloaded archive (ZIP) or a JSON tree under `parentId`. The
+ * server validates the whole file first and either imports everything or
+ * nothing.
+ */
+export async function importEntityFile(
+  file: File,
+  parentId: string | null = null,
+): Promise<EntityImportResult> {
+  const name = file.name.toLowerCase();
+  if (!name.endsWith(".zip") && !name.endsWith(".json")) {
+    throw new Error("Please upload a ZIP or JSON file");
   }
+  const formData = new FormData();
+  formData.append("file", file);
+  if (parentId) formData.append("parentId", parentId);
+
+  const response = await fetch("/api/entities/upload-zip", {
+    method: "POST",
+    body: formData,
+  });
+  const result = await response
+    .json()
+    .catch(() => ({ success: false, error: `HTTP ${response.status}` }));
+  if (!result.success) throw new Error(result.error || "Upload failed");
+  return result.data as EntityImportResult;
 }
 
 export async function handleEntityFileUpload(
   e: React.ChangeEvent<HTMLInputElement>,
   parentId: string | null = null,
-) {
-  if (!e.target.files) return;
-  if (e.target.files.length === 0) return;
-  if (e.target.files.length > 1) {
-    throw new Error("Please upload only one file");
+): Promise<EntityImportResult | undefined> {
+  const input = e.target;
+  const files = input.files;
+  if (!files || files.length === 0) return;
+  if (files.length > 1) throw new Error("Please upload only one file");
+  try {
+    return await importEntityFile(files[0], parentId);
+  } finally {
+    // allow choosing the same file again (e.g. after fixing it)
+    input.value = "";
   }
+}
 
-  const file = e.target.files[0];
-  const isZip = file.type === "application/zip" || file.name.endsWith(".zip");
-  const isJson =
-    file.type === "application/json" || file.name.endsWith(".json");
-
-  if (!isZip && !isJson) {
-    throw new Error("Please upload a ZIP or JSON file");
-  }
-
-  if (file) {
-    await processEntityFile(file, parentId);
-  }
+/** Toast text for a finished import. */
+export function describeEntityImport(result?: EntityImportResult) {
+  if (!result) return "Nothing uploaded";
+  const parts = [`${result.totalEntities} entities`];
+  if (result.totalAnnotations)
+    parts.push(`${result.totalAnnotations} annotations`);
+  if (result.totalPlaygrounds)
+    parts.push(`${result.totalPlaygrounds} playgrounds`);
+  const summary = `Imported ${parts.join(", ")}`;
+  return result.warnings.length
+    ? `${summary}. Notes: ${result.warnings.join("; ")}`
+    : summary;
 }
 
 export async function callTTSApi({

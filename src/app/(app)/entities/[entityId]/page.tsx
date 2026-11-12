@@ -35,10 +35,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { TileModel } from "@/types/entities";
-import { handleEntityFileUpload, mapEntityToTileModel } from "../utils";
+import {
+  describeEntityImport,
+  handleEntityFileUpload,
+  mapEntityToTileModel,
+} from "../utils";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import { useInvalidateEntities } from "@/hooks/use-entity-invalidation";
-import { downloadEntityHierarchy } from "../utils";
+import {
+  EntityExportButton,
+  EntityExportStatus,
+} from "../_components/EntityExport";
 
 /** Where a reading neighbour opens: verses on the verse page, the rest here. */
 const readingHref = (ref: ReadingRef) =>
@@ -158,22 +165,7 @@ const Page = () => {
       >
         <Icons.edit className="size-4" />
       </Button>
-      <Button
-        size="icon"
-        type="button"
-        variant="outline"
-        title="Download Entity with Children"
-        aria-label="Download with children"
-        onClick={() => {
-          toast.promise(downloadEntityHierarchy(entityId), {
-            success: "Entity downloaded successfully!",
-            error: "Download failed.",
-            loading: "Downloading...",
-          });
-        }}
-      >
-        <Icons.download className="size-4" />
-      </Button>
+      <EntityExportButton entityId={entityId} label={entity.text} />
       <Button
         size="icon"
         type="button"
@@ -191,12 +183,14 @@ const Page = () => {
         style={{ display: "none" }}
         onChange={async (e) => {
           toast.promise(
-            handleEntityFileUpload(e, entityId).then(() =>
-              invalidateEntities(),
-            ),
+            handleEntityFileUpload(e, entityId).then((result) => {
+              invalidateEntities();
+              return result;
+            }),
             {
-              success: "Entity uploaded successfully!",
-              error: "Entity upload failed.",
+              success: describeEntityImport,
+              error: (err) =>
+                err instanceof Error ? err.message : "Entity upload failed.",
               loading: "Uploading...",
             },
           );
@@ -277,6 +271,7 @@ const Page = () => {
         actionButtons={actionButtons}
         actionPreButtons={actionPreButtons}
         footer={footer}
+        banner={<EntityExportStatus entityId={entityId} label={entity.text} />}
       />
       {canAddChildren && (
         <EntityQuickAdd
