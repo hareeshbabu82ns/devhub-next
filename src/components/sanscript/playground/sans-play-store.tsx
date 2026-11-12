@@ -18,12 +18,21 @@ import { defaultSplitterNodeData } from "./sans-play-splitter-node";
 import { defaultParserNodeData } from "./sans-play-parser-node";
 import { defaultJoinerNodeData } from "./sans-play-joiner-node";
 import { defaultWordTaggerNodeData } from "./sans-play-word-tagger-node";
+import { defaultTransliterateNodeData } from "./sans-play-transliterate-node";
+import { defaultSegmenterNodeData } from "./sans-play-segmenter-node";
+import { defaultPhoneticNodeData } from "./sans-play-phonetic-node";
+import { defaultDictionaryNodeData } from "./sans-play-dictionary-node";
 
 export type NodeType =
   | "sentenceParse"
   | "sandhiSplit"
   | "sandhiJoin"
   | "wordTagger"
+  | "transliterate"
+  | "segmenter"
+  | "phoneticSearch"
+  | "dictionary"
+  | "textInput"
   | "sansPlay";
 
 interface NodeTypeConfig {
@@ -55,7 +64,28 @@ const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
     type: "wordTagger",
     defaultData: defaultWordTaggerNodeData,
   },
+  transliterate: {
+    type: "transliterate",
+    defaultData: defaultTransliterateNodeData,
+  },
+  segmenter: {
+    type: "segmenter",
+    defaultData: defaultSegmenterNodeData,
+  },
+  phoneticSearch: {
+    type: "phoneticSearch",
+    defaultData: defaultPhoneticNodeData,
+  },
+  dictionary: {
+    type: "dictionary",
+    defaultData: defaultDictionaryNodeData,
+  },
+  textInput: {
+    type: "textInput",
+    defaultData: { text: "" },
+  },
 };
+
 
 export type RFState = {
   nodes: Node[];
@@ -68,6 +98,7 @@ export type RFState = {
   addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
   updateNodeLabel: (nodeId: string, label: string) => void;
   removeChildNodes: (nodeId: string) => void;
+  clearAll: () => void;
   addTypedNode: (nodeTypeKey: string, params: TypedNodeParams) => void;
   addSansPlayParserNode: ({ parentId, position }: TypedNodeParams) => void;
   addSandhiSplitterNode: ({ parentId, position }: TypedNodeParams) => void;
@@ -142,11 +173,14 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       return;
     }
 
+    // Without an explicit position, step each new node down and to the
+    // right so it does not land exactly on top of the previous one.
+    const step = get().nodes.length * 40;
     const newNode = {
       id: nanoid(),
       type: config.type,
       data: { ...config.defaultData, ...data },
-      position: position || { x: 0, y: 0 },
+      position: position || { x: step, y: step },
       parentId,
     };
 
@@ -179,6 +213,7 @@ const useSansPlayStore = create<RFState>((set, get) => ({
       edges: [...get().edges, ...newEdges],
     });
   },
+  clearAll: () => set({ nodes: [], edges: [] }),
   removeChildNodes: (nodeId: string) => {
     const { nodes, edges } = get();
     const updatedGraph = removeChildrenFromGraph(nodeId, { nodes, edges });

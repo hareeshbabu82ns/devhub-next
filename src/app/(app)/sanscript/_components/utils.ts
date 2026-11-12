@@ -1,5 +1,12 @@
 import { LANGUAGE_SCHEME_MAP, LANGUAGES_TYPE } from "@/lib/constants";
 import Sanscript from "@indic-transliteration/sanscript";
+import {
+  BRAHMIC_SCHEMES,
+  composeImeWord,
+  getSchemeOption,
+  needsTransliteration,
+  safeTransliterate,
+} from "@/lib/sanscript/transliteration";
 
 export const LANGUAGE_SANSCRIPT_DDLB = {
   SAN: { label: "Sanskrit", scheme: "devanagari" },
@@ -14,6 +21,27 @@ export const LANGUAGE_TO_TRANSLITERATION_DDLB = {
   SAN: { label: "Sanskrit", scheme: "devanagari" },
   TEL: { label: "Telugu", scheme: "telugu" },
 } as Record<string, { label: string; scheme: string }>;
+
+/** Every script the IME can type in ("NONE" switches the IME off) */
+export const IME_LANGUAGES_ALL = {
+  NONE: { label: "None", scheme: "none" },
+  ...Object.fromEntries(
+    BRAHMIC_SCHEMES.map((s) => [s.value, { label: s.label, scheme: s.scheme }]),
+  ),
+  SAN: { label: "Sanskrit", scheme: "devanagari" },
+} as Record<string, { label: string; scheme: string }>;
+
+/**
+ * Sanscript scheme the IME should produce for a language code, or undefined
+ * when no IME applies (NONE, roman schemes, English ...).
+ */
+export const getImeScheme = (language?: string | null): string | undefined => {
+  if (!language || language === "NONE") return undefined;
+  const option = getSchemeOption(language);
+  if (option) return option.kind === "brahmic" ? option.scheme : undefined;
+  const scheme = LANGUAGE_TO_TRANSLITERATION_DDLB[language]?.scheme;
+  return scheme && scheme !== "none" ? scheme : undefined;
+};
 
 export const TRANSLITERATION_SCHEMES_FROM = [
   "itrans_dravidian",
@@ -62,12 +90,19 @@ export const transliterateText = ({
   fromScheme?: string;
   toScheme: string;
 }): string[] => {
+  // Nothing typed in Latin: keep the word exactly as it is, so picking the
+  // first candidate (space / enter) can never alter an existing word.
+  if (!needsTransliteration(text)) return [text];
+
+  // A word that mixes script letters with freshly typed Latin ones is mapped
+  // back to the input scheme first, so the two halves join into syllables.
+  const word = composeImeWord(text, toScheme, fromScheme);
+
   const transOut = TRANSLITERATION_SCHEMES_FROM.map((scheme) =>
-    Sanscript.t(text, scheme, toScheme),
+    safeTransliterate(word, scheme, toScheme),
   );
-  const replacedTransOut = expandTransliterationText(text);
-  const expandedTransOut = replacedTransOut.map((t) =>
-    Sanscript.t(t, fromScheme, toScheme),
+  const expandedTransOut = expandTransliterationText(word).map((t) =>
+    safeTransliterate(t, fromScheme, toScheme),
   );
   const transSet = new Set([...transOut, ...expandedTransOut]);
   return Array.from(transSet);

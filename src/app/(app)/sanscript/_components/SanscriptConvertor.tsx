@@ -1,189 +1,280 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
+  ArrowLeftRightIcon,
+  CheckIcon,
+  CopyIcon,
+  Trash2Icon,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LANGUAGES_DDLB } from "@/lib/constants";
+import { Switch } from "@/components/ui/switch";
+import SanscriptHelpTrigger from "@/components/sanscript/SanscriptHelpTrigger";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
-  LANGUAGE_SANSCRIPT_DDLB,
-  LANGUAGE_TO_TRANSLITERATION_DDLB,
-} from "./utils";
-import { Textarea } from "@/components/ui/textarea";
+  changeScheme,
+  ConverterSide,
+  ConverterState,
+  editSide,
+  swapSides,
+} from "@/lib/sanscript/converter-state";
+import {
+  CONVERTER_SCHEMES,
+  getSchemeOption,
+} from "@/lib/sanscript/transliteration";
 import WebIMEIde from "./WebIMEIde";
-import { useState } from "react";
-import Sanscript from "@indic-transliteration/sanscript";
-import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
-import { cn } from "@/lib/utils";
 
-type SanscriptConvertorState = {
-  fromScheme: string;
-  toScheme: string;
-  fromText: string;
-  toText: string;
+const STORAGE_KEY = "sanscript:convertor";
+
+type ConvertorSettings = {
+  from: string;
+  to: string;
+  autoDetect: boolean;
+  convertOnSwitch: boolean;
+};
+
+const DEFAULT_SETTINGS: ConvertorSettings = {
+  from: "ITRANS",
+  to: "TEL",
+  autoDetect: true,
+  convertOnSwitch: true,
+};
+
+const SCHEME_GROUPS = [
+  {
+    label: "Scripts",
+    schemes: CONVERTER_SCHEMES.filter((s) => s.kind === "brahmic"),
+  },
+  {
+    label: "Romanisations",
+    schemes: CONVERTER_SCHEMES.filter((s) => s.kind === "roman"),
+  },
+];
+
+const loadSettings = (): ConvertorSettings => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const settings = { ...DEFAULT_SETTINGS, ...stored };
+    // ignore schemes that no longer exist, or a broken pair
+    if (
+      !getSchemeOption(settings.from) ||
+      !getSchemeOption(settings.to) ||
+      settings.from === settings.to
+    ) {
+      return { ...settings, from: DEFAULT_SETTINGS.from, to: DEFAULT_SETTINGS.to };
+    }
+    return settings;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+};
+
+interface PaneProps {
+  side: ConverterSide;
+  title: string;
+  scheme: string;
+  text: string;
+  onSchemeChange: (scheme: string) => void;
+  onTextChange: (text: string) => void;
+}
+
+const ConvertorPane = ({
+  side,
+  title,
+  scheme,
+  text,
+  onSchemeChange,
+  onTextChange,
+}: PaneProps) => {
+  const { isCopied, copyToClipboard } = useCopyToClipboard();
+  const option = getSchemeOption(scheme);
+  const isScript = option?.kind === "brahmic";
+
+  return (
+    <section className="flex min-h-0 flex-col gap-2" aria-label={title}>
+      <div className="flex items-center gap-1">
+        <Select value={scheme} onValueChange={onSchemeChange}>
+          <SelectTrigger className="min-w-0 flex-1" aria-label={`${title} scheme`}>
+            <SelectValue placeholder="Select scheme" />
+          </SelectTrigger>
+          <SelectContent>
+            {SCHEME_GROUPS.map((group) => (
+              <SelectGroup key={group.label}>
+                <SelectLabel>{group.label}</SelectLabel>
+                {group.schemes.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            ))}
+          </SelectContent>
+        </Select>
+        {/* key map for typing phonetically into a script pane */}
+        {isScript && <SanscriptHelpTrigger language={scheme} />}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="shrink-0 text-muted-foreground"
+          title={`Copy ${option?.label ?? ""} text`}
+          disabled={!text}
+          onClick={() => copyToClipboard(text)}
+        >
+          {isCopied ? (
+            <CheckIcon className="size-4" />
+          ) : (
+            <CopyIcon className="size-4" />
+          )}
+        </Button>
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <WebIMEIde
+          id={`convertor-${side}`}
+          // script panes get the phonetic IME, roman panes are typed as is
+          language={isScript ? scheme : "NONE"}
+          value={text}
+          onValueChange={onTextChange}
+          className="min-h-32"
+          placeholder={
+            isScript
+              ? `Paste ${option?.label} text, or type phonetically (rAmaH)…`
+              : `Type or paste ${option?.label ?? ""} text…`
+          }
+        />
+      </div>
+      {option?.lossy && (
+        <p className="text-xs text-muted-foreground">
+          {option.label} cannot write every Sanskrit sound, so converting back
+          from it is approximate.
+        </p>
+      )}
+    </section>
+  );
 };
 
 const SanscriptConvertor = () => {
-  const textSize = useTextSizeAtomValue();
-  const language = useLanguageAtomValue();
-
-  const [state, setState] = useState<SanscriptConvertorState>({
-    fromScheme: "ITRANS",
-    toScheme: "TEL",
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const [state, setState] = useState<ConverterState>({
+    from: DEFAULT_SETTINGS.from,
+    to: DEFAULT_SETTINGS.to,
     fromText: "",
     toText: "",
+    active: "from",
   });
 
-  const setFormState = (newState: Partial<SanscriptConvertorState>) => {
-    setState((state) => {
-      const computedState = { ...state };
-      if (newState.fromText && newState.fromText !== state.fromText) {
-        computedState.fromText = newState.fromText;
-        computedState.toText = Sanscript.t(
-          newState.fromText,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-        );
-      } else if (newState.fromText === "") {
-        computedState.fromText = "";
-        computedState.toText = "";
-      }
+  // Restore the last used schemes and options after hydration
+  useEffect(() => {
+    const stored = loadSettings();
+    setSettings(stored);
+    setState((s) => ({ ...s, from: stored.from, to: stored.to }));
+    setSettingsLoaded(true);
+  }, []);
 
-      if (newState.toText && newState.toText !== state.toText) {
-        computedState.toText = newState.toText;
-        computedState.fromText = Sanscript.t(
-          newState.toText,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-          LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-        );
-      } else if (newState.toText === "") {
-        computedState.fromText = "";
-        computedState.toText = "";
-      }
+  useEffect(() => {
+    if (!settingsLoaded) return;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ ...settings, from: state.from, to: state.to }),
+      );
+    } catch {
+      // storage unavailable: nothing to remember
+    }
+  }, [settings, state.from, state.to, settingsLoaded]);
 
-      if (newState.fromScheme && newState.fromScheme !== state.fromScheme) {
-        computedState.fromScheme = newState.fromScheme;
-        if (LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme]) {
-          computedState.fromText = Sanscript.t(
-            state.toText,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-          );
-        }
+  const pane = (side: ConverterSide, title: string) => (
+    <ConvertorPane
+      side={side}
+      title={title}
+      scheme={state[side]}
+      text={side === "from" ? state.fromText : state.toText}
+      onSchemeChange={(scheme) =>
+        setState((s) =>
+          changeScheme(s, side, scheme, {
+            convertOnSwitch: settings.convertOnSwitch,
+          }),
+        )
       }
-
-      if (newState.toScheme && newState.toScheme !== state.toScheme) {
-        computedState.toScheme = newState.toScheme;
-        if (LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme]) {
-          computedState.toText = Sanscript.t(
-            state.fromText,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.fromScheme].scheme,
-            LANGUAGE_SANSCRIPT_DDLB[computedState.toScheme].scheme,
-          );
-        }
+      onTextChange={(text) =>
+        setState((s) =>
+          editSide(s, side, text, { autoDetect: settings.autoDetect }),
+        )
       }
-
-      return computedState;
-    });
-  };
+    />
+  );
 
   return (
-    <div className="flex flex-col gap-4 flex-grow p-1">
-      <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={50} minSize={5} className="pr-2">
-          <div className="flex h-full flex-col gap-4">
-            <Select
-              value={state.fromScheme}
-              onValueChange={(v) => setFormState({ fromScheme: v })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Input Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES_DDLB.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div
-              className={`flex flex-1 overflow-y-auto subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
-            >
-              {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
-                state.fromScheme,
-              ) < 0 ? (
-                <Textarea
-                  key={`textarea-${state.fromScheme}`}
-                  className={cn(
-                    ["TEL", "SAN", "IAST", "SLP1", "ITRANS"].includes(
-                      language,
-                    ) && "font-shobhika",
-                  )}
-                  value={state.fromText}
-                  onChange={(e) => setFormState({ fromText: e.target.value })}
-                />
-              ) : (
-                <WebIMEIde
-                  key={`web-ime-${state.fromScheme}`}
-                  language={state.fromScheme}
-                  value={state.fromText}
-                  onChange={(e) => setFormState({ fromText: e.target.value })}
-                  showHelpIcon
-                />
-              )}
-            </div>
-          </div>
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel minSize={5} className="pl-2">
-          <div className="flex h-full flex-col gap-4">
-            <Select
-              value={state.toScheme}
-              onValueChange={(v) => setFormState({ toScheme: v })}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Input Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {LANGUAGES_DDLB.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div
-              className={`flex flex-1 overflow-y-auto subpixel-antialiased text-${textSize} leading-loose tracking-widest`}
-            >
-              {Object.keys(LANGUAGE_TO_TRANSLITERATION_DDLB).indexOf(
-                state.toScheme,
-              ) < 0 ? (
-                <Textarea
-                  key={`textarea-${state.toScheme}`}
-                  value={state.toText}
-                  onChange={(e) => setFormState({ toText: e.target.value })}
-                />
-              ) : (
-                <WebIMEIde
-                  key={`web-ime-${state.toScheme}`}
-                  language={state.toScheme}
-                  value={state.toText}
-                  onChange={(e) => setFormState({ toText: e.target.value })}
-                  showHelpIcon
-                />
-              )}
-            </div>
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setState(swapSides)}
+          title="Swap the two sides"
+        >
+          <ArrowLeftRightIcon className="size-4" />
+          Swap
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={!state.fromText && !state.toText}
+          onClick={() =>
+            setState((s) => ({ ...s, fromText: "", toText: "" }))
+          }
+        >
+          <Trash2Icon className="size-4" />
+          Clear
+        </Button>
+        <div
+          className="flex items-center gap-2"
+          title="Switch a side to the script of the text pasted into it"
+        >
+          <Switch
+            id="convertor-auto-detect"
+            checked={settings.autoDetect}
+            onCheckedChange={(autoDetect) =>
+              setSettings((s) => ({ ...s, autoDetect }))
+            }
+          />
+          <Label htmlFor="convertor-auto-detect">Detect script</Label>
+        </div>
+        <div
+          className="flex items-center gap-2"
+          title="On: picking another scheme rewrites that side in it. Off: the text stays and is re-read as the new scheme."
+        >
+          <Switch
+            id="convertor-convert-on-switch"
+            checked={settings.convertOnSwitch}
+            onCheckedChange={(convertOnSwitch) =>
+              setSettings((s) => ({ ...s, convertOnSwitch }))
+            }
+          />
+          <Label htmlFor="convertor-convert-on-switch">
+            Rewrite on scheme change
+          </Label>
+        </div>
+      </div>
+      {/* stacked on phones, side by side from tablet width */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-2 gap-3 md:grid-cols-2 md:grid-rows-1">
+        {pane("from", "First side")}
+        {pane("to", "Second side")}
+      </div>
     </div>
   );
 };

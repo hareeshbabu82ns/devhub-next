@@ -1,210 +1,126 @@
 "use client";
 
-import React, { useCallback } from "react";
-import {
-  Handle,
-  Position,
-  useReactFlow,
-  type Node,
-  type NodeProps,
-} from "@xyflow/react";
-import { TransliterationScheme } from "@/types/sanscript";
-import { Input } from "@/components/ui/input";
-import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
-import { transformSentenceParseToGraphData } from "./utils";
-import useSansPlayStore, { RFState } from "./sans-play-store";
-import { useShallow } from "zustand/shallow";
-import { cn } from "@/lib/utils";
-import {
-  NodeHeader,
-  NodeHeaderActions,
-  NodeHeaderClearAction,
-  NodeHeaderDeleteAction,
-  NodeHeaderExecuteAction,
-  NodeHeaderIcon,
-  NodeHeaderTitle,
-} from "@/components/graph/NodeHeader";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import TextInputHandle from "@/components/graph/TextInputHandle";
-import { BaseNode } from "@/components/graph/BaseNode";
-import { BrainCircuitIcon } from "lucide-react";
-import { NodeStatusIndicator } from "@/components/graph/NodeStatusIndicator";
+import React, { useState } from "react";
+import { type Node, type NodeProps } from "@xyflow/react";
+import { BrainCircuitIcon, ExternalLinkIcon } from "lucide-react";
 
-export type SansPlayParserData = {
-  text: string;
-  schemeFrom: TransliterationScheme;
-  schemeTo: TransliterationScheme;
+import { useSentenceParse } from "@/hooks/use-sanskrit-utils";
+import { TransliterationScheme } from "@/types/sanscript";
+import {
+  LimitSlider,
+  NodeCheckbox,
+  SansPlayToolData,
+  SansPlayToolNode,
+  SchemePair,
+  useToolNodeResults,
+} from "./sans-play-tool-node";
+import { transformSentenceParseToGraphData } from "./utils";
+
+export type SansPlayParserData = SansPlayToolData & {
   preSegmented: boolean;
   limit: number;
+  strictIO: boolean;
 };
 
 export const defaultParserNodeData: SansPlayParserData = {
   text: "",
-  // text: "vāgvidāṃ varam",
   schemeFrom: TransliterationScheme.IAST,
   schemeTo: TransliterationScheme.IAST,
   preSegmented: false,
   limit: 2,
+  strictIO: false,
 };
 
-const selector = (state: RFState) => ({
-  addChildNodes: state.addChildNodes,
-  removeChildNodes: state.removeChildNodes,
-});
+type Diagram = { label: string; url: string };
 
 function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
-  const { updateNodeData, fitView } = useReactFlow();
   const { parse, isLoading, error } = useSentenceParse();
-  const { addChildNodes, removeChildNodes } = useSansPlayStore(
-    useShallow(selector),
-  );
+  const { clearResults, showResults } = useToolNodeResults(id);
+  const [empty, setEmpty] = useState(false);
+  const [diagrams, setDiagrams] = useState<Diagram[]>([]);
 
-  const onParse = useCallback(() => {
-    async function parseAction() {
-      removeChildNodes(id);
-      parse(data, {
-        onSuccess: (data) => {
-          // console.log( data );
-          const { nodes: newNodes, edges: newEdges } =
-            transformSentenceParseToGraphData(id, data);
-          addChildNodes(id, newNodes, newEdges);
-          fitView();
-        },
-        onError: (error) => {
-          console.error(error);
-        },
-      });
-    }
-    return parseAction();
-  }, [id, data, parse, addChildNodes, removeChildNodes]);
+  const onClear = () => {
+    clearResults();
+    setDiagrams([]);
+    setEmpty(false);
+  };
 
-  const onClear = useCallback(() => {
-    removeChildNodes(id);
-  }, [id, removeChildNodes]);
+  const onRun = () => {
+    onClear();
+    parse(data, {
+      onSuccess: (results) => {
+        const graph = transformSentenceParseToGraphData(id, results);
+        setEmpty(graph.nodes.length === 0);
+        showResults(graph);
 
-  const onTargetChange = useCallback(
-    (value: string) => {
-      if (value && value !== data.text) {
-        updateNodeData(id, { text: value });
-      }
-    },
-    [id, updateNodeData, data.text],
-  );
+        // Graphviz renderings the service prepared for this parse
+        const links: Diagram[] = [];
+        results.forEach((result, resultIndex) => {
+          const prefix = results.length > 1 ? `${resultIndex + 1}: ` : "";
+          if (result.splitDotURL) {
+            links.push({ label: `${prefix}Splits`, url: result.splitDotURL });
+          }
+          result.parseDotURLs?.forEach((url, parseIndex) =>
+            links.push({ label: `${prefix}Parse ${parseIndex + 1}`, url }),
+          );
+        });
+        setDiagrams(links);
+      },
+    });
+  };
 
   return (
-    <NodeStatusIndicator
-      status={isLoading ? "loading" : error ? "error" : "initial"}
+    <SansPlayToolNode
+      id={id}
+      title="Sentence Parser"
+      icon={<BrainCircuitIcon />}
+      text={data.text}
+      placeholder="sentence to parse..."
+      isLoading={isLoading}
+      error={error}
+      emptyMessage={empty ? "No parse found for this sentence" : null}
+      onRun={onRun}
+      onClear={onClear}
     >
-      <BaseNode className="p-0 min-w-[300px]">
-        <NodeHeader className="border-b rounded-t-md bg-muted text-sidebar-foreground">
-          <NodeHeaderIcon>
-            <BrainCircuitIcon />
-          </NodeHeaderIcon>
-          <NodeHeaderTitle>Parser</NodeHeaderTitle>
-          <NodeHeaderActions>
-            <NodeHeaderDeleteAction deleteChildren />
-            <NodeHeaderClearAction onClick={onClear} />
-            <NodeHeaderExecuteAction
-              onClick={onParse}
-              className={cn(error && "text-red-500")}
-            />
-          </NodeHeaderActions>
-        </NodeHeader>
-        <div className="flex flex-col gap-2 px-2 py-3">
-          <div className="flex flex-col items-stretch gap-1">
-            <Input
-              onChange={(evt) => updateNodeData(id, { text: evt.target.value })}
-              value={data.text}
-              placeholder="sentence to parse..."
-              type="search"
-              autoFocus
-              autoComplete="off"
-              autoCorrect="off"
-              autoCapitalize="off"
-              spellCheck="false"
-              maxLength={100}
-              className="nodrag"
-            />
-            <div className="flex justify-between items-center gap-2">
-              <Select
-                value={data.schemeFrom}
-                onValueChange={(val) =>
-                  updateNodeData(id, {
-                    schemeFrom: val as TransliterationScheme,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select scheme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TransliterationScheme).map((scheme) => (
-                    <SelectItem key={scheme} value={scheme}>
-                      {scheme}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={data.schemeTo}
-                onValueChange={(val) =>
-                  updateNodeData(id, { schemeTo: val as TransliterationScheme })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select scheme" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(TransliterationScheme).map((scheme) => (
-                    <SelectItem key={scheme} value={scheme}>
-                      {scheme}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-between items-center gap-2">
-              <div className="flex justify-center items-center gap-2">
-                {data.limit}
-                <Input
-                  id="limit"
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={data.limit}
-                  className="nodrag"
-                  onChange={(e) =>
-                    updateNodeData(id, { limit: Number(e.target.value) })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="preSegmented"
-                  checked={data.preSegmented}
-                  onCheckedChange={(checked) =>
-                    updateNodeData(id, { preSegmented: !!checked })
-                  }
-                />
-                <Label htmlFor="preSegmented">Segmented</Label>
-              </div>
-            </div>
-          </div>
+      <SchemePair id={id} data={data} />
+      <LimitSlider id={id} limit={data.limit} />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <NodeCheckbox
+          id={id}
+          field="preSegmented"
+          checked={!!data.preSegmented}
+          label="Segmented"
+          title="The words are already split and separated by spaces"
+        />
+        <NodeCheckbox
+          id={id}
+          field="strictIO"
+          checked={!!data.strictIO}
+          label="Strict"
+          title="Strict input / output handling: rejects text the parser cannot read exactly"
+        />
+      </div>
+      {diagrams.length > 0 && (
+        <div
+          className="flex flex-wrap gap-x-3 gap-y-1 text-xs"
+          title="Opens the diagram on image-charts.com (the sentence is part of the link)"
+        >
+          <span className="text-muted-foreground">Diagrams:</span>
+          {diagrams.map((diagram) => (
+            <a
+              key={diagram.label}
+              href={diagram.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nodrag inline-flex items-center gap-1 underline underline-offset-2"
+            >
+              {diagram.label}
+              <ExternalLinkIcon className="size-3" />
+            </a>
+          ))}
         </div>
-        <TextInputHandle id="text" onChange={onTargetChange} />
-        <Handle type="source" position={Position.Right} />
-      </BaseNode>
-    </NodeStatusIndicator>
+      )}
+    </SansPlayToolNode>
   );
 }
 

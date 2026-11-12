@@ -16,12 +16,23 @@ import { getAnalyticsManager } from "@/lib/sanscript/language-analytics";
  *
  * @param propLanguage - Language provided via component prop (optional)
  * @param storageKey - localStorage key for persistence (default: "webimeLanguage")
+ * @param options.enabled - false turns persistence off: the prop language always wins
+ *   (needed for fields that are tied to one language, e.g. an entity text in Telugu)
+ * @param options.validLanguages - language codes accepted from storage
+ *   (default: LANGUAGE_TO_TRANSLITERATION_DDLB)
  * @returns { language, setLanguage, isLanguagePersisted }
  */
 export function useWebIMELanguagePersistence(
   propLanguage?: string,
   storageKey: string = "webimeLanguage",
+  options: {
+    enabled?: boolean;
+    validLanguages?: Record<string, unknown>;
+  } = {},
 ) {
+  const enabled = options.enabled ?? true;
+  const validLanguages =
+    options.validLanguages ?? LANGUAGE_TO_TRANSLITERATION_DDLB;
   // Start with null to avoid hydration mismatch
   const [language, setLanguageState] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -31,6 +42,12 @@ export function useWebIMELanguagePersistence(
   // Load from localStorage after hydration with migration support
   useEffect(() => {
     setIsHydrated(true);
+
+    if (!enabled) {
+      setLanguageState(propLanguage || "NONE");
+      setIsLanguagePersisted(false);
+      return;
+    }
 
     try {
       let storedLanguage = localStorage.getItem(storageKey);
@@ -44,7 +61,7 @@ export function useWebIMELanguagePersistence(
         const oldKey = "webimeLanguage";
         const oldLanguage = localStorage.getItem(oldKey);
 
-        if (oldLanguage && LANGUAGE_TO_TRANSLITERATION_DDLB[oldLanguage]) {
+        if (oldLanguage && validLanguages[oldLanguage]) {
           console.log(
             `Migrating language preference from "${oldKey}" to "${storageKey}"`,
           );
@@ -59,7 +76,7 @@ export function useWebIMELanguagePersistence(
 
       if (storedLanguage) {
         // Validate stored language exists in available options
-        if (LANGUAGE_TO_TRANSLITERATION_DDLB[storedLanguage]) {
+        if (validLanguages[storedLanguage]) {
           setLanguageState(storedLanguage);
           setIsLanguagePersisted(true);
           return;
@@ -82,7 +99,9 @@ export function useWebIMELanguagePersistence(
       setLanguageState(propLanguage || "NONE");
       setIsLanguagePersisted(false);
     }
-  }, [storageKey, propLanguage]);
+    // validLanguages is a static lookup table, not reactive state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, propLanguage, enabled]);
 
   // Sync with prop changes (only if user hasn't manually selected)
   useEffect(() => {
@@ -102,6 +121,7 @@ export function useWebIMELanguagePersistence(
     (newLanguage: string) => {
       setLanguageState(newLanguage);
       setUserHasSelectedLanguage(true);
+      if (!enabled) return;
       setIsLanguagePersisted(true);
 
       // Record analytics (extract context from storage key)
@@ -126,13 +146,13 @@ export function useWebIMELanguagePersistence(
       // Store timeout ID for potential cleanup
       return () => clearTimeout(timeoutId);
     },
-    [storageKey],
+    [storageKey, enabled],
   );
 
   // Clear persisted language (reset to default)
   const resetLanguage = useCallback(() => {
     try {
-      localStorage.removeItem(storageKey);
+      if (enabled) localStorage.removeItem(storageKey);
       const defaultLanguage = propLanguage || "NONE";
       setLanguageState(defaultLanguage);
       setIsLanguagePersisted(false);
@@ -140,7 +160,7 @@ export function useWebIMELanguagePersistence(
     } catch (error) {
       console.error(`Error removing localStorage key "${storageKey}":`, error);
     }
-  }, [storageKey, propLanguage]);
+  }, [storageKey, propLanguage, enabled]);
 
   return {
     language: language || propLanguage || "NONE", // Return fallback until hydrated

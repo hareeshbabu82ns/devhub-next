@@ -9,14 +9,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LANGUAGE_TO_TRANSLITERATION_DDLB, transliterateText } from "./utils";
+import {
+  getImeScheme,
+  LANGUAGE_TO_TRANSLITERATION_DDLB,
+  transliterateText,
+} from "./utils";
+import { safeTransliterate } from "@/lib/sanscript/transliteration";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { SearchIcon, RotateCcw } from "lucide-react";
-import Sanscript from "@indic-transliteration/sanscript";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
 import SanscriptHelpTrigger from "@/components/sanscript/SanscriptHelpTrigger";
-import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
+import { LANGUAGE_FONT_FAMILY, LANGUAGE_SCHEME_MAP } from "@/lib/constants";
 import { useWebIMELanguagePersistence } from "@/hooks/use-webime-language-persistence";
 import { Button } from "@/components/ui/button";
 import {
@@ -106,6 +110,16 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
       }
     }, [suggestionProvider]);
 
+    // `valueAs` may be a Sanscript scheme ("itrans_dravidian") or an app
+    // language code ("TEL"). Codes without a script (ENG) and unknown schemes
+    // leave the text as typed instead of throwing.
+    const toOutputScheme = (value: string) =>
+      safeTransliterate(
+        value,
+        getImeScheme(lang) ?? "",
+        LANGUAGE_SCHEME_MAP[valueAs] ?? valueAs,
+      );
+
     const onChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!onTextChange) return;
 
@@ -162,15 +176,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
         // Use the stored value to prevent race conditions
         const currentValue = currentValueRef.current;
 
-        const transOut =
-          lang === valueAs
-            ? currentValue
-            : Sanscript.t(
-                currentValue,
-                LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
-                valueAs,
-              );
-        onTextChange(transOut, lang);
+        onTextChange(toOutputScheme(currentValue), lang);
 
         timeoutRef.current = null; // Clear the ref after execution
       }, 150); // Increased delay to 150ms to allow WebIME processing
@@ -278,15 +284,7 @@ const WebIMEIdeInput = React.forwardRef<HTMLInputElement, WebIMEIdeProps>(
           const selectedValue = e.detail.item.original.value;
 
           // For transliteration languages, apply transliteration if needed
-          const transOut =
-            lang === valueAs
-              ? selectedValue
-              : Sanscript.t(
-                  selectedValue,
-                  LANGUAGE_TO_TRANSLITERATION_DDLB[lang].scheme,
-                  valueAs,
-                );
-          onTextChange(transOut, lang);
+          onTextChange(toOutputScheme(selectedValue), lang);
         }
       };
 

@@ -3,9 +3,15 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   languageTags,
+  phoneticWordSearch,
+  preSegmentedSplits,
   sandhiJoins,
   sandhiSplits,
+  sanscriptDictionaryBrowse,
+  sanscriptDictionarySearch,
+  sanscriptUtilsVersion,
   sentenceParse,
+  transliterateText,
 } from "@/app/actions/sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import { QUERY_STALE_TIME_SHORT } from "@/lib/constants";
@@ -76,6 +82,103 @@ export function useSentenceParse() {
     error: mutation.error,
     reset: mutation.reset,
   };
+}
+
+/**
+ * Custom hook for segmenting a sentence whose words are already separated
+ */
+export function usePreSegmentedSplits() {
+  const mutation = useMutation({
+    mutationFn: preSegmentedSplits,
+  });
+
+  return {
+    segment: mutation.mutate,
+    segments: mutation.data || [],
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for transliterating through the Sanskrit utils service
+ */
+export function useServiceTransliterate() {
+  const mutation = useMutation({
+    mutationFn: transliterateText,
+  });
+
+  return {
+    transliterate: mutation.mutate,
+    result: mutation.data,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for finding words by sound
+ */
+export function usePhoneticWordSearch() {
+  const mutation = useMutation({
+    mutationFn: phoneticWordSearch,
+  });
+
+  return {
+    search: mutation.mutate,
+    data: mutation.data,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for searching the service dictionaries
+ */
+export function useSanscriptDictionarySearch() {
+  const mutation = useMutation({
+    mutationFn: sanscriptDictionarySearch,
+  });
+
+  return {
+    search: mutation.mutate,
+    data: mutation.data,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for paging through one service dictionary
+ */
+export function useSanscriptDictionaryBrowse() {
+  const mutation = useMutation({
+    mutationFn: sanscriptDictionaryBrowse,
+  });
+
+  return {
+    browse: mutation.mutate,
+    data: mutation.data,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Version of the Sanskrit utils service; also tells whether it is reachable
+ */
+export function useSanscriptUtilsVersion() {
+  return useQuery({
+    queryKey: ["sanscriptUtilsVersion"],
+    queryFn: () => sanscriptUtilsVersion(),
+    staleTime: QUERY_STALE_TIME_SHORT,
+    retry: false,
+  });
 }
 
 /**

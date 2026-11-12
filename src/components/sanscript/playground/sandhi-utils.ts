@@ -242,7 +242,7 @@ function processJoinResult(
     id: `${joinId}-${joinIndex}`,
     data: {
       label: joinResult,
-      subtitle: `Join ${joinIndex + 1}`,
+      subTitle: `Join ${joinIndex + 1}`,
     },
   });
   graphData.nodes.push(joinNode);

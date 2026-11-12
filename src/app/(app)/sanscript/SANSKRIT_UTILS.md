@@ -9,7 +9,11 @@ The Sanskrit utilities provide several important tools for working with Sanskrit
 1. **Sandhi Splits** - Break down Sanskrit compounds into their constituent parts
 2. **Sandhi Joins** - Combine Sanskrit words following sandhi rules
 3. **Language Tags** - Get grammatical analysis of Sanskrit words
-4. **Sentence Parse** - Parse a Sanskrit sentence into its constituent parts with detailed analysis
+4. **Sentence Parse** - Parse a Sanskrit sentence into its constituent parts with detailed analysis, plus Graphviz diagrams of the splits and of each parse
+5. **Segment** - Standalone form of each word of an already separated sentence
+6. **Transliterate** - Transliteration by the service
+7. **Phonetic Search** - Find words by how they sound
+8. **Dictionary** - Search or page through the dictionaries held by the service
 
 ## Server Actions
 
@@ -23,17 +27,18 @@ The GraphQL endpoint is set via the environment variable `SANSCRIPT_UTILS_URL`.
 
 #### TransliterationScheme Enum
 
+Mirrors the service's `SanscriptScheme` GraphQL enum. The service also lists
+`ENGLISH`, but rejects it for transliteration, so it is not offered.
+
 ```typescript
 export enum TransliterationScheme {
   DEVANAGARI = "DEVANAGARI",
   IAST = "IAST",
-  TELUGU = "TELUGU",
-  KANNADA = "KANNADA",
-  MALAYALAM = "MALAYALAM",
-  SLP1 = "SLP1",
   ITRANS = "ITRANS",
-  HK = "HK",
+  SLP1 = "SLP1",
+  TELUGU = "TELUGU",
   TAMIL = "TAMIL",
+  KANNADA = "KANNADA",
 }
 ```
 
@@ -189,6 +194,31 @@ const parseResults = await sentenceParse({
 // Result: Complex nested structure with grammatical analysis
 ```
 
+#### Other functions
+
+| Function | Service query | Returns |
+| --- | --- | --- |
+| `sanscriptUtilsVersion()` | `version` | service version; doubles as a connectivity check |
+| `preSegmentedSplits({ text, schemeFrom, schemeTo, limit?, strictIO? })` | `presegmented` | `string[]` |
+| `transliterateText({ text, schemeFrom, schemeTo })` | `transliterate` | `string` |
+| `phoneticWordSearch({ search, searchScheme?, outputScheme?, startsWith?, endsWith?, caseInsensitive?, limit?, offset? })` | `phoneticWordSearch` | `{ total, results: { key, word }[] }` |
+| `sanscriptDictionarySearch({ search, searchScheme?, outputScheme?, origin?, searchOnlyKeys?, startsWith?, endsWith?, fuzzySearch?, caseInsensitive?, limit?, offset? })` | `dictionarySearch` | `{ total, results }` |
+| `sanscriptDictionaryBrowse({ origin, outputScheme?, limit?, offset? })` | `dictionaryBrowse` | `{ total, results }` |
+| `sanscriptDictionaryItem({ id, outputScheme? })` | `dictionarySearchById` | one dictionary entry |
+
+`sandhiSplits`, `sandhiJoins`, `languageTags`, `sentenceParse` and
+`preSegmentedSplits` also accept `strictIO`. Leave it unset (or `false`) unless
+you need it: in strict mode the service rejects inputs it cannot read exactly,
+and fails with an error rather than an empty result.
+
+`sentenceParse` results carry `splitDot` / `parseDots` (Graphviz source) and
+`splitDotURL` / `parseDotURLs`. The URLs point at image-charts.com and contain
+the sentence, so the UI shows them as links to open rather than loading them
+automatically.
+
+The service's dictionary mutations (create / update / delete) are deliberately
+not exposed.
+
 ## React Hooks
 
 The package includes React hooks in `src/hooks/use-sanskrit-utils.ts` for easy integration with React components.
@@ -201,6 +231,12 @@ These hooks wrap the server actions with TanStack Query's mutation functionality
 - `useSandhiJoins()`
 - `useLanguageTags()`
 - `useSentenceParse()`
+- `usePreSegmentedSplits()`
+- `useServiceTransliterate()`
+- `usePhoneticWordSearch()`
+- `useSanscriptDictionarySearch()`
+- `useSanscriptDictionaryBrowse()`
+- `useSanscriptUtilsVersion()` (query)
 
 **Example:**
 
