@@ -14,7 +14,7 @@ import {
   SchemePair,
   useToolNodeResults,
 } from "./sans-play-tool-node";
-import { transformSentenceParseToGraphData } from "./utils";
+import { buildParseResults } from "./results";
 
 export type SansPlayParserData = SansPlayToolData & {
   preSegmented: boolean;
@@ -49,7 +49,7 @@ function SansPlayParserNode({ id, data }: NodeProps<Node<SansPlayParserData>>) {
     onClear();
     parse(data, {
       onSuccess: (results) => {
-        const graph = transformSentenceParseToGraphData(id, results);
+        const graph = buildParseResults(id, results, data.schemeTo);
         setEmpty(graph.nodes.length === 0);
         showResults(graph);
 

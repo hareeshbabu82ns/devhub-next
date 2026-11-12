@@ -72,9 +72,9 @@ function TextInputHandle({
     if (connectedNodesData && connectedNodesData.length > 0) {
       const combinedText = connectedNodesData
         .map((nodeData) =>
-          nodeData.type === "sansPlay"
-            ? nodeData.data.label
-            : (nodeData?.data?.text as string) || "",
+          // a result node feeds its `text` when it has one (a whole split),
+          // its label otherwise
+          ((nodeData?.data?.text ?? nodeData?.data?.label) as string) || "",
         )
         .filter(Boolean)
         .join(delimiter);

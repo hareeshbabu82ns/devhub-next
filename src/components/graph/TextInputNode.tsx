@@ -9,12 +9,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { BaseNode } from "./BaseNode";
 
-function TextInputNode({ id, data }: NodeProps<Node<{ text: string }>>) {
+function TextInputNode({
+  id,
+  data,
+  selected,
+}: NodeProps<Node<{ text: string }>>) {
   const { updateNodeData } = useReactFlow();
 
   return (
-    // <div className="p-2 shadow-md rounded-md border-1 border-stone-400 bg-card text-card-foreground">
-    <BaseNode>
+    <BaseNode selected={selected} className="w-[200px]">
       <Input
         onChange={(evt) => updateNodeData(id, { text: evt.target.value })}
         value={data.text}
@@ -24,7 +27,7 @@ function TextInputNode({ id, data }: NodeProps<Node<{ text: string }>>) {
         autoCorrect="off"
         autoCapitalize="off"
         spellCheck="false"
-        maxLength={100}
+        maxLength={500}
         className="nodrag"
       />
       <Handle type="source" position={Position.Right} />

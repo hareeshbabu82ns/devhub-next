@@ -2,8 +2,6 @@
 
 import React, { useCallback, type ReactNode } from "react";
 import { Handle, Position, useReactFlow } from "@xyflow/react";
-import { nanoid } from "nanoid/non-secure";
-
 import { BaseNode } from "@/components/graph/BaseNode";
 import {
   NodeHeader,
@@ -33,7 +31,7 @@ import {
   TransliterationScheme,
 } from "@/types/sanscript";
 import useSansPlayStore from "./sans-play-store";
-import { connectToParent, createNode, type GraphData } from "./utils";
+import type { GraphData } from "./results";
 
 /** Fields every tool node keeps in its data */
 export type SansPlayToolData = {
@@ -149,44 +147,19 @@ export function NodeCheckbox({
   );
 }
 
-/** Turn a flat list of results into child nodes hanging off `parentId` */
-export function transformItemsToGraphData(
-  parentId: string,
-  items: {
-    label: string;
-    subTitle?: string;
-    tags?: string[];
-    description?: string;
-  }[],
-): GraphData {
-  const graphData: GraphData = { nodes: [], edges: [] };
-  const groupId = nanoid();
-  items.forEach((item, index) => {
-    if (!item.label) return;
-    const node = createNode({ id: `${groupId}-${index}`, data: item });
-    graphData.nodes.push(node);
-    connectToParent({ graphData, parentId, targetId: node.id });
-  });
-  return graphData;
-}
-
-/** Shared add / clear handlers for a tool node's result nodes */
+/** Shared show / clear handlers for a tool node's result nodes */
 export function useToolNodeResults(id: string) {
-  const addChildNodes = useSansPlayStore((state) => state.addChildNodes);
+  const setResults = useSansPlayStore((state) => state.setResults);
   const removeChildNodes = useSansPlayStore((state) => state.removeChildNodes);
-  const { fitView } = useReactFlow();
 
   const clearResults = useCallback(
     () => removeChildNodes(id),
     [id, removeChildNodes],
   );
+  // the canvas aligns and frames the new nodes once they are measured
   const showResults = useCallback(
-    (graph: GraphData) => {
-      addChildNodes(id, graph.nodes, graph.edges);
-      // wait for the new nodes to be measured before framing them
-      setTimeout(() => fitView({ duration: 300 }), 50);
-    },
-    [id, addChildNodes, fitView],
+    (graph: GraphData) => setResults(id, graph),
+    [id, setResults],
   );
   return { clearResults, showResults };
 }
@@ -248,7 +221,7 @@ export function SansPlayToolNode({
           <NodeHeaderIcon>{icon}</NodeHeaderIcon>
           <NodeHeaderTitle>{title}</NodeHeaderTitle>
           <NodeHeaderActions>
-            <NodeHeaderDeleteAction deleteChildren />
+            <NodeHeaderDeleteAction />
             <NodeHeaderClearAction onClick={onClear} />
             <NodeHeaderExecuteAction
               onClick={onRun}

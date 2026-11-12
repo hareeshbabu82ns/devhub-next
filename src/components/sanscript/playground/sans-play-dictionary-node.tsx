@@ -23,9 +23,9 @@ import {
   SansPlayToolData,
   SansPlayToolNode,
   SchemePair,
-  transformItemsToGraphData,
   useToolNodeResults,
 } from "./sans-play-tool-node";
+import { buildItemResults } from "./results";
 
 const ALL_DICTIONARIES = "ALL";
 
@@ -83,13 +83,15 @@ function SansPlayDictionaryNode({
               : `Showing ${results.length} of ${total} entries`,
           );
           showResults(
-            transformItemsToGraphData(
+            buildItemResults(
               id,
               results.map((item) => ({
                 label: item.key,
+                kind: "entry",
                 subTitle: item.origin,
                 description: item.description ?? undefined,
               })),
+              data.schemeTo,
             ),
           );
         },

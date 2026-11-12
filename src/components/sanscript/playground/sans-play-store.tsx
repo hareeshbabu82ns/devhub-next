@@ -1,6 +1,7 @@
 import {
   applyNodeChanges,
   applyEdgeChanges,
+  type Connection,
   type Edge,
   type EdgeChange,
   type Node,
@@ -8,12 +9,20 @@ import {
   type OnNodesChange,
   type OnEdgesChange,
   type XYPosition,
-  reconnectEdge,
-  Connection,
 } from "@xyflow/react";
-import { create } from "zustand";
+import { createContext, useContext } from "react";
+import { createStore, useStore } from "zustand";
 import { nanoid } from "nanoid/non-secure";
-import { getLayoutedElements, removeChildrenFromGraph } from "./utils";
+import {
+  LAYOUT,
+  findClearOffset,
+  layoutAll,
+  layoutResults,
+  rectOf,
+  sizeOf,
+  type Point,
+} from "./layout";
+import type { GraphData, SansPlayData } from "./results";
 import { defaultSplitterNodeData } from "./sans-play-splitter-node";
 import { defaultParserNodeData } from "./sans-play-parser-node";
 import { defaultJoinerNodeData } from "./sans-play-joiner-node";
@@ -37,281 +46,340 @@ export type NodeType =
 
 interface NodeTypeConfig {
   type: NodeType;
-  defaultData: any;
+  defaultData: Record<string, unknown>;
 }
 
 export interface TypedNodeParams {
-  parentId?: string;
-  position?: XYPosition;
-  data?: Record<string, any>;
+  /** Where the middle of the new node should be, in flow coordinates */
+  center?: XYPosition;
+  data?: Record<string, unknown>;
 }
 
 // Node type configurations map
 const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
-  parser: {
-    type: "sentenceParse",
-    defaultData: defaultParserNodeData,
-  },
-  splitter: {
-    type: "sandhiSplit",
-    defaultData: defaultSplitterNodeData,
-  },
-  joiner: {
-    type: "sandhiJoin",
-    defaultData: defaultJoinerNodeData,
-  },
-  wordTagger: {
-    type: "wordTagger",
-    defaultData: defaultWordTaggerNodeData,
-  },
+  parser: { type: "sentenceParse", defaultData: defaultParserNodeData },
+  splitter: { type: "sandhiSplit", defaultData: defaultSplitterNodeData },
+  joiner: { type: "sandhiJoin", defaultData: defaultJoinerNodeData },
+  wordTagger: { type: "wordTagger", defaultData: defaultWordTaggerNodeData },
   transliterate: {
     type: "transliterate",
     defaultData: defaultTransliterateNodeData,
   },
-  segmenter: {
-    type: "segmenter",
-    defaultData: defaultSegmenterNodeData,
-  },
+  segmenter: { type: "segmenter", defaultData: defaultSegmenterNodeData },
   phoneticSearch: {
     type: "phoneticSearch",
     defaultData: defaultPhoneticNodeData,
   },
-  dictionary: {
-    type: "dictionary",
-    defaultData: defaultDictionaryNodeData,
-  },
-  textInput: {
-    type: "textInput",
-    defaultData: { text: "" },
-  },
+  dictionary: { type: "dictionary", defaultData: defaultDictionaryNodeData },
+  textInput: { type: "textInput", defaultData: { text: "" } },
 };
 
+const ownerOf = (node: Node) =>
+  (node.data as Partial<SansPlayData>).ownerId as string | undefined;
+
+const moveTo = (nodes: Node[], positions: Map<string, Point>) =>
+  nodes.map((node) =>
+    positions.has(node.id)
+      ? { ...node, position: positions.get(node.id)! }
+      : node,
+  );
+
+/** Drops the result nodes of the given tools, and every edge left dangling */
+function withoutResultsOf(
+  owners: Set<string>,
+  nodes: Node[],
+  edges: Edge[],
+): GraphData {
+  const kept = nodes.filter((node) => !owners.has(ownerOf(node) ?? ""));
+  const ids = new Set(kept.map((node) => node.id));
+  return {
+    nodes: kept,
+    edges: edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
+  };
+}
+
+/** Results of `ownerId` laid out beside it, the rest of the canvas untouched */
+function placeResults(ownerId: string, nodes: Node[], edges: Edge[]): Node[] {
+  const owner = nodes.find((node) => node.id === ownerId);
+  if (!owner) return nodes;
+  const members = nodes.filter((node) => ownerOf(node) === ownerId);
+  const others = nodes.filter(
+    (node) => node.id !== ownerId && ownerOf(node) !== ownerId,
+  );
+  return moveTo(nodes, layoutResults(owner, members, edges, others));
+}
 
 export type RFState = {
   nodes: Node[];
   edges: Edge[];
+  /** Tools whose fresh results still wait to be measured and aligned */
+  pendingLayout: string[];
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
-  onConnect: (params: any) => void;
-  onReconnect: (oldEdge: Edge, newConnection: Connection) => void;
-  addChildNode: (parentNode: Node, position: XYPosition) => void;
-  addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => void;
-  updateNodeLabel: (nodeId: string, label: string) => void;
-  removeChildNodes: (nodeId: string) => void;
+  onConnect: (connection: Connection) => void;
+  /** Adds a tool; returns the id of the new node */
+  addTypedNode: (
+    nodeTypeKey: string,
+    params: TypedNodeParams,
+  ) => string | undefined;
+  /** Replaces the results shown for a tool */
+  setResults: (ownerId: string, graph: GraphData) => void;
+  /** Removes the results shown for a tool */
+  removeChildNodes: (ownerId: string) => void;
+  /** Aligns freshly measured results; returns the nodes worth framing */
+  layoutPending: () => string[];
+  /** Re-arranges the whole canvas */
+  tidy: () => void;
+  /**
+   * Adds a tool fed by the given node; returns the id of the new node.
+   * `defaults` fill in what the source does not say (e.g. its script).
+   */
+  sendToTool: (
+    sourceId: string,
+    nodeTypeKey: string,
+    defaults?: Record<string, unknown>,
+  ) => string | undefined;
+  /** The canvas as plain data, fit to be stored */
+  snapshot: () => GraphData;
+  /** Replaces the canvas with a stored one */
+  loadGraph: (graph: GraphData) => void;
+  selectNode: (nodeId: string | null) => void;
   clearAll: () => void;
-  addTypedNode: (nodeTypeKey: string, params: TypedNodeParams) => void;
-  addSansPlayParserNode: ({ parentId, position }: TypedNodeParams) => void;
-  addSandhiSplitterNode: ({ parentId, position }: TypedNodeParams) => void;
-  addSandhiJoinerNode: ({ parentId, position }: TypedNodeParams) => void;
-  addWordTaggerNode: ({ parentId, position }: TypedNodeParams) => void;
 };
 
-const useSansPlayStore = create<RFState>((set, get) => ({
-  nodes: [
-    // {
-    //   id: nanoid(),
-    //   type: "sentenceParse",
-    //   data: defaultParserNodeData,
-    //   position: { x: 0, y: -500 },
-    // },
-    // {
-    //   id: nanoid(),
-    //   type: "sandhiSplit",
-    //   data: defaultSplitterNodeData,
-    //   position: { x: 0, y: -300 },
-    // },
-    // {
-    //   id: nanoid(),
-    //   type: "sandhiJoin",
-    //   data: defaultJoinerNodeData,
-    //   position: { x: 0, y: -100 },
-    // },
-    // {
-    //   id: nanoid(),
-    //   type: "wordTagger",
-    //   data: defaultWordTaggerNodeData,
-    //   position: { x: 0, y: 100 },
-    // },
-  ],
+/** True once every result waiting for alignment has a measured size */
+export const selectLayoutReady = (state: RFState) =>
+  state.pendingLayout.length > 0 &&
+  state.nodes.every(
+    (node) =>
+      !state.pendingLayout.includes(ownerOf(node) ?? "") ||
+      Boolean(node.measured?.width && node.measured?.height),
+  );
+
+export const createSansPlayStore = () =>
+  createStore<RFState>()((set, get) => ({
+  nodes: [],
   edges: [],
-  onConnect: (params: any) => {
-    // console.log("onConnect", params);
-    const newEdge = {
+  pendingLayout: [],
+  onConnect: (connection) => {
+    const newEdge: Edge = {
       id: nanoid(),
-      ...params,
-      type: params.targetHandle === "text" ? "sansPlayDeletable" : "smoothstep",
+      ...connection,
+      type: connection.targetHandle === "text" ? "sansPlayDeletable" : "sansPlay",
     };
-    set({
-      edges: [...get().edges, newEdge],
-    });
+    set({ edges: [...get().edges, newEdge] });
   },
   onNodesChange: (changes: NodeChange[]) => {
+    const nodes = applyNodeChanges(changes, get().nodes);
+    const removed = new Set(
+      changes.filter((c) => c.type === "remove").map((c) => c.id),
+    );
+    if (removed.size === 0) {
+      set({ nodes });
+      return;
+    }
+    // a tool takes its results with it
     set({
-      nodes: applyNodeChanges(changes, get().nodes),
+      ...withoutResultsOf(removed, nodes, get().edges),
+      pendingLayout: get().pendingLayout.filter((id) => !removed.has(id)),
     });
   },
   onEdgesChange: (changes: EdgeChange[]) => {
-    set({
-      edges: applyEdgeChanges(changes, get().edges),
-    });
+    set({ edges: applyEdgeChanges(changes, get().edges) });
   },
-  onReconnect: (oldEdge: Edge, newConnection: Connection) => {
-    set({
-      edges: reconnectEdge(oldEdge, newConnection, get().edges),
-    });
-  },
-  // Generic method for adding typed nodes
-  addTypedNode: (
-    nodeTypeKey: string,
-    { parentId, position, data }: TypedNodeParams,
-  ) => {
+  addTypedNode: (nodeTypeKey, { center, data }) => {
     const config = nodeTypeConfigs[nodeTypeKey];
     if (!config) {
-      console.error(
-        `Node type configuration not found for key: ${nodeTypeKey}`,
-      );
-      return;
+      console.error(`Node type configuration not found for key: ${nodeTypeKey}`);
+      return undefined;
     }
 
-    // Without an explicit position, step each new node down and to the
-    // right so it does not land exactly on top of the previous one.
-    const step = get().nodes.length * 40;
-    const newNode = {
+    const newNode: Node = {
       id: nanoid(),
       type: config.type,
       data: { ...config.defaultData, ...data },
-      position: position || { x: step, y: step },
-      parentId,
+      position: { x: 0, y: 0 },
     };
-
-    // Only create edge if parentId is provided
-    const newEdges = parentId
-      ? [
-          {
-            id: nanoid(),
-            source: parentId,
-            target: newNode.id,
-            type: "smoothstep",
-          },
-        ]
-      : [];
-
-    // // Layout elements
-    // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-    //   [...get().nodes, newNode],
-    //   [...get().edges, ...newEdges],
-    // );
-
-    // // Update state once with all changes
-    // set({
-    //   nodes: layoutedNodes,
-    //   edges: layoutedEdges,
-    // });
-
-    set({
-      nodes: [...get().nodes, newNode],
-      edges: [...get().edges, ...newEdges],
-    });
-  },
-  clearAll: () => set({ nodes: [], edges: [] }),
-  removeChildNodes: (nodeId: string) => {
-    const { nodes, edges } = get();
-    const updatedGraph = removeChildrenFromGraph(nodeId, { nodes, edges });
-    set({
-      nodes: updatedGraph.nodes,
-      edges: updatedGraph.edges,
-    });
-  },
-  addWordTaggerNode: (params: TypedNodeParams) => {
-    get().addTypedNode("wordTagger", params);
-  },
-  addSandhiJoinerNode: (params: TypedNodeParams) => {
-    get().addTypedNode("joiner", params);
-  },
-  addSandhiSplitterNode: (params: TypedNodeParams) => {
-    get().addTypedNode("splitter", params);
-  },
-  addSansPlayParserNode: (params: TypedNodeParams) => {
-    get().addTypedNode("parser", params);
-  },
-  addChildNode: (parentNode: Node, position: XYPosition) => {
-    const newNode = {
-      id: nanoid(),
-      type: "sansPlay",
-      data: { label: "New Node" },
-      position,
-      parentId: parentNode.id,
+    // centre it where asked, then slide down past anything already there
+    const size = sizeOf(newNode);
+    const position = {
+      x: (center?.x ?? 0) - size.width / 2,
+      y: (center?.y ?? 0) - size.height / 2,
     };
+    position.y += findClearOffset(
+      { ...position, ...size },
+      get().nodes.map(rectOf),
+      "down",
+    );
+    newNode.position = position;
 
-    const newEdge = {
-      id: nanoid(),
-      source: parentNode.id,
-      target: newNode.id,
-      type: "smoothstep",
-    };
-
-    // const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-    //   [...get().nodes, newNode],
-    //   [...get().edges, newEdge],
-    // );
-
-    // set({
-    //   nodes: layoutedNodes,
-    //   edges: layoutedEdges,
-    // });
+    set({ nodes: [...get().nodes, newNode] });
+    return newNode.id;
+  },
+  clearAll: () => set({ nodes: [], edges: [], pendingLayout: [] }),
+  removeChildNodes: (ownerId) => {
     set({
-      nodes: [...get().nodes, newNode],
-      edges: [...get().edges, newEdge],
+      ...withoutResultsOf(new Set([ownerId]), get().nodes, get().edges),
+      pendingLayout: get().pendingLayout.filter((id) => id !== ownerId),
     });
   },
-  updateNodeLabel: (nodeId: string, label: string) => {
-    set({
-      nodes: get().nodes.map((node) => {
-        if (node.id === nodeId) {
-          // Create a completely new node object to ensure React Flow detects the change
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              label,
-            },
-          };
-        }
-
-        return node;
-      }),
-    });
-  },
-  addChildNodes: (parentNodeId: string, nodes: Node[], edges: Edge[]) => {
-    // find the parent node
-    const parentNode = get().nodes.find((node) => node.id === parentNodeId);
-    if (!parentNode) {
-      console.error(`Parent node with id ${parentNodeId} not found`);
+  setResults: (ownerId, graph) => {
+    const cleared = withoutResultsOf(
+      new Set([ownerId]),
+      get().nodes,
+      get().edges,
+    );
+    const pendingLayout = get().pendingLayout.filter((id) => id !== ownerId);
+    if (
+      graph.nodes.length === 0 ||
+      !cleared.nodes.some((node) => node.id === ownerId)
+    ) {
+      set({ ...cleared, pendingLayout });
       return;
     }
-    // find root nodes without parents from edges
-    const rootNodes = get().nodes.filter((node) => {
-      return !get().edges.some((edge) => edge.target === node.id);
+
+    // Placed from estimated sizes now; `layoutPending` aligns them properly
+    // once the browser has measured the new nodes.
+    const edges = [...cleared.edges, ...graph.edges];
+    set({
+      nodes: placeResults(ownerId, [...cleared.nodes, ...graph.nodes], edges),
+      edges,
+      pendingLayout: [...pendingLayout, ownerId],
     });
+  },
+  layoutPending: () => {
+    const { pendingLayout, edges } = get();
+    if (pendingLayout.length === 0) return [];
+    let nodes = get().nodes;
+    for (const ownerId of pendingLayout) {
+      nodes = placeResults(ownerId, nodes, edges);
+    }
+    set({ nodes, pendingLayout: [] });
+    return nodes
+      .filter(
+        (node) =>
+          pendingLayout.includes(node.id) ||
+          pendingLayout.includes(ownerOf(node) ?? ""),
+      )
+      .map((node) => node.id);
+  },
+  tidy: () => {
+    const { nodes, edges } = get();
+    set({ nodes: moveTo(nodes, layoutAll(nodes, edges)), pendingLayout: [] });
+  },
+  sendToTool: (sourceId, nodeTypeKey, defaults) => {
+    const { nodes, edges } = get();
+    const source = nodes.find((node) => node.id === sourceId);
+    const config = nodeTypeConfigs[nodeTypeKey];
+    if (!source || !config) return undefined;
 
-    // Create new nodes and edges
-    const newNodes = [...get().nodes, ...nodes];
-    const newEdges = [...get().edges, ...edges];
+    const sourceData = source.data as Partial<SansPlayData>;
+    const scheme = sourceData.scheme;
+    const text = sourceData.text ?? sourceData.label ?? "";
+    const newNode: Node = {
+      id: nanoid(),
+      type: config.type,
+      data: {
+        ...config.defaultData,
+        ...defaults,
+        ...(scheme ? { schemeFrom: scheme } : {}),
+        // tools that keep the script of their input keep it here as well
+        ...(scheme && nodeTypeKey !== "transliterate" ? { schemeTo: scheme } : {}),
+        text,
+      },
+      position: { x: 0, y: 0 },
+    };
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
-      newNodes,
-      newEdges,
+    // to the right of everything the source's tool produced, level with it
+    const block = nodes.filter(
+      (node) =>
+        node.id === sourceId ||
+        (sourceData.ownerId && ownerOf(node) === sourceData.ownerId),
     );
+    const right = Math.max(
+      ...block.map((node) => node.position.x + sizeOf(node).width),
+    );
+    const position = { x: right + LAYOUT.columnGap, y: source.position.y };
+    position.y += findClearOffset(
+      { ...position, ...sizeOf(newNode) },
+      nodes.map(rectOf),
+      "down",
+    );
+    newNode.position = position;
 
     set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
+      nodes: [
+        ...nodes.map((node) =>
+          node.selected ? { ...node, selected: false } : node,
+        ),
+        newNode,
+      ],
+      edges: [
+        ...edges,
+        {
+          id: nanoid(),
+          source: sourceId,
+          target: newNode.id,
+          targetHandle: "text",
+          type: "sansPlayDeletable",
+        },
+      ],
     });
-    // set({
-    //   nodes: [...newNodes],
-    //   edges: [...newEdges],
-    // });
+    return newNode.id;
+  },
+  selectNode: (nodeId) => {
+    set({
+      nodes: get().nodes.map((node) =>
+        Boolean(node.selected) === (node.id === nodeId)
+          ? node
+          : { ...node, selected: node.id === nodeId },
+      ),
+    });
+  },
+  snapshot: () => ({
+    // only what describes the canvas: no measurements, no selection
+    nodes: get().nodes.map(({ id, type, position, data }) => ({
+      id,
+      type,
+      position,
+      data,
+    })),
+    edges: get().edges.map(
+      ({ id, source, target, sourceHandle, targetHandle, type, data, markerEnd, selectable }) => ({
+        id,
+        source,
+        target,
+        sourceHandle,
+        targetHandle,
+        type,
+        data,
+        markerEnd,
+        selectable,
+      }),
+    ),
+  }),
+  loadGraph: (graph) => {
+    const ids = new Set(graph.nodes.map((node) => node.id));
+    set({
+      nodes: graph.nodes,
+      edges: graph.edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
+      pendingLayout: [],
+    });
   },
 }));
 
-export default useSansPlayStore;
+export type SansPlayStore = ReturnType<typeof createSansPlayStore>;
+
+/**
+ * The Sanskrit utils page keeps one canvas for the whole session; a playground
+ * opened elsewhere (e.g. for a verse) provides its own store instead.
+ */
+const sharedStore = createSansPlayStore();
+
+export const SansPlayStoreContext = createContext<SansPlayStore>(sharedStore);
+
+export const useSansPlayStoreApi = () => useContext(SansPlayStoreContext);
+
+export default function useSansPlayStore<T>(selector: (state: RFState) => T): T {
+  return useStore(useContext(SansPlayStoreContext), selector);
+}

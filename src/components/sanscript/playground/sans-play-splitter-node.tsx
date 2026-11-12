@@ -6,7 +6,7 @@ import { SplitIcon } from "lucide-react";
 
 import { useSandhiSplits } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
-import { transformSandhiSplitsToGraphData } from "./sandhi-utils";
+import { buildSplitResults } from "./results";
 import {
   LimitSlider,
   NodeCheckbox,
@@ -43,7 +43,7 @@ function SansPlaySplitterNode({
     split(data, {
       onSuccess: (splits) => {
         setEmpty(splits.length === 0);
-        showResults(transformSandhiSplitsToGraphData(id, splits));
+        showResults(buildSplitResults(id, splits, data.schemeTo));
       },
     });
   };

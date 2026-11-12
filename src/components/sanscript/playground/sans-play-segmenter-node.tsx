@@ -11,9 +11,9 @@ import {
   SansPlayToolData,
   SansPlayToolNode,
   SchemePair,
-  transformItemsToGraphData,
   useToolNodeResults,
 } from "./sans-play-tool-node";
+import { buildItemResults } from "./results";
 
 export type SansPlaySegmenterData = SansPlayToolData & {
   strictIO: boolean;
@@ -45,12 +45,10 @@ function SansPlaySegmenterNode({
       onSuccess: (words) => {
         setEmpty(words.length === 0);
         showResults(
-          transformItemsToGraphData(
+          buildItemResults(
             id,
-            words.map((word, index) => ({
-              label: word,
-              subTitle: `${index + 1}`,
-            })),
+            words.map((word, index) => ({ label: word, index: index + 1 })),
+            data.schemeTo,
           ),
         );
       },

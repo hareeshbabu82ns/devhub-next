@@ -1,52 +1,44 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import {
   Background,
   ConnectionLineType,
   Controls,
   MiniMap,
-  NodeOrigin,
   Panel,
   ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
 } from "@xyflow/react";
-
 import "@xyflow/react/dist/style.css";
-import SansPlayNode from "./sans-play-node";
-import SansPlayEdge from "./sans-play-edge";
-import useStore, { RFState } from "./sans-play-store";
 import { useShallow } from "zustand/shallow";
-import { useMemo } from "react";
-import SansPlayParserNode from "./sans-play-parser-node";
+import { LayoutDashboardIcon, Trash2Icon } from "lucide-react";
+
 import TextInputNode from "@/components/graph/TextInputNode";
-import SansPlayDeletableEdge from "./sans-play-deletable-edge";
-import SansPlaySplitterNode from "./sans-play-splitter-node";
-import SansPlayJoinerNode from "./sans-play-joiner-node";
-import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
-import SansPlayTransliterateNode from "./sans-play-transliterate-node";
-import SansPlaySegmenterNode from "./sans-play-segmenter-node";
-import SansPlayPhoneticNode from "./sans-play-phonetic-node";
-import SansPlayDictionaryNode from "./sans-play-dictionary-node";
-import {
-  AudioLinesIcon,
-  BookOpenIcon,
-  BrainCircuitIcon,
-  LanguagesIcon,
-  MergeIcon,
-  ScissorsIcon,
-  SplitIcon,
-  TagIcon,
-  Trash2Icon,
-  TypeIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 import { useSanscriptUtilsVersion } from "@/hooks/use-sanskrit-utils";
+import { cn } from "@/lib/utils";
 import {
   LANGUAGE_TRANS_SCHEME_MAP,
   TransliterationScheme,
 } from "@/types/sanscript";
-import DevTools from "@/components/graph/DevTools";
+import SansPlayDeletableEdge from "./sans-play-deletable-edge";
+import SansPlayDetails from "./sans-play-details";
+import SansPlayDictionaryNode from "./sans-play-dictionary-node";
+import SansPlayEdge from "./sans-play-edge";
+import SansPlayJoinerNode from "./sans-play-joiner-node";
+import SansPlayNode from "./sans-play-node";
+import SansPlayParserNode from "./sans-play-parser-node";
+import SansPlayPhoneticNode from "./sans-play-phonetic-node";
+import SansPlaySegmenterNode from "./sans-play-segmenter-node";
+import SansPlaySplitterNode from "./sans-play-splitter-node";
+import useStore, { RFState, selectLayoutReady } from "./sans-play-store";
+import { PlayTool, TOOLS, toolbarSchemes } from "./sans-play-tools";
+import SansPlayTransliterateNode from "./sans-play-transliterate-node";
+import SansPlayWordTaggerNode from "./sans-play-word-tagger-node";
 
 const selector = (state: RFState) => ({
   nodes: state.nodes,
@@ -55,38 +47,42 @@ const selector = (state: RFState) => ({
   onEdgesChange: state.onEdgesChange,
   onConnect: state.onConnect,
   addTypedNode: state.addTypedNode,
+  sendToTool: state.sendToTool,
+  layoutPending: state.layoutPending,
+  tidy: state.tidy,
   clearAll: state.clearAll,
 });
 
-const nodeOrigin: NodeOrigin = [0.5, 0.5];
 const connectionLineStyle = {
   stroke: "var(--muted-foreground)",
-  strokeWidth: 2,
+  strokeWidth: 1.5,
 };
 const defaultEdgeOptions = { style: connectionLineStyle, type: "sansPlay" };
 
-/**
- * One button per capability of the sanscript-utils service.
- * `schemes` says whether the node takes the app language as its scheme.
- */
-const TOOLS: {
-  key: string;
-  title: string;
-  icon: LucideIcon;
-  schemes: "both" | "output" | "none";
-}[] = [
-  { key: "textInput", title: "Text", icon: TypeIcon, schemes: "none" },
-  { key: "parser", title: "Sentence Parser", icon: BrainCircuitIcon, schemes: "both" },
-  { key: "splitter", title: "Sandhi Splitter", icon: SplitIcon, schemes: "both" },
-  { key: "joiner", title: "Sandhi Joiner", icon: MergeIcon, schemes: "both" },
-  { key: "wordTagger", title: "Word Tagger", icon: TagIcon, schemes: "both" },
-  { key: "segmenter", title: "Word Segmenter", icon: ScissorsIcon, schemes: "both" },
-  { key: "transliterate", title: "Transliterate", icon: LanguagesIcon, schemes: "output" },
-  { key: "phoneticSearch", title: "Phonetic Search", icon: AudioLinesIcon, schemes: "output" },
-  { key: "dictionary", title: "Dictionary", icon: BookOpenIcon, schemes: "both" },
-];
+const nodeTypes = {
+  sansPlay: SansPlayNode,
+  sentenceParse: SansPlayParserNode,
+  sandhiSplit: SansPlaySplitterNode,
+  sandhiJoin: SansPlayJoinerNode,
+  wordTagger: SansPlayWordTaggerNode,
+  transliterate: SansPlayTransliterateNode,
+  segmenter: SansPlaySegmenterNode,
+  phoneticSearch: SansPlayPhoneticNode,
+  dictionary: SansPlayDictionaryNode,
+  textInput: TextInputNode,
+};
 
-export default function SanscriptPlayGraph() {
+const edgeTypes = {
+  sansPlay: SansPlayEdge,
+  sansPlayDeletable: SansPlayDeletableEdge,
+};
+
+/** Nodes whose text a tool added from the toolbar can be fed with */
+const FEEDING_TYPES = ["sansPlay", "textInput"];
+
+const FIT = { duration: 300, padding: 0.15, maxZoom: 1 };
+
+function PlayGraph({ className }: { className?: string }) {
   const {
     nodes,
     edges,
@@ -94,8 +90,22 @@ export default function SanscriptPlayGraph() {
     onEdgesChange,
     onConnect,
     addTypedNode,
+    sendToTool,
+    layoutPending,
+    tidy,
     clearAll,
   } = useStore(useShallow(selector));
+  const layoutReady = useStore(selectLayoutReady);
+
+  const { fitView, screenToFlowPosition } = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
+  // The theme is only known in the browser; start light like the server does
+  const { resolvedTheme } = useTheme();
+  const [colorMode, setColorMode] = useState<"light" | "dark">("light");
+  useEffect(
+    () => setColorMode(resolvedTheme === "dark" ? "dark" : "light"),
+    [resolvedTheme],
+  );
 
   const language = useLanguageAtomValue();
   const schemeLanguage =
@@ -103,40 +113,57 @@ export default function SanscriptPlayGraph() {
 
   const service = useSanscriptUtilsVersion();
 
-  // Memoize node types to prevent unnecessary re-renders
-  const nodeTypes = useMemo(
-    () => ({
-      sansPlay: SansPlayNode,
-      sentenceParse: SansPlayParserNode,
-      sandhiSplit: SansPlaySplitterNode,
-      sandhiJoin: SansPlayJoinerNode,
-      wordTagger: SansPlayWordTaggerNode,
-      transliterate: SansPlayTransliterateNode,
-      segmenter: SansPlaySegmenterNode,
-      phoneticSearch: SansPlayPhoneticNode,
-      dictionary: SansPlayDictionaryNode,
-      textInput: TextInputNode,
-    }),
-    [],
+  /** Brings the given nodes into view once the flow has taken them in */
+  const frame = useCallback(
+    (ids?: string[]) => {
+      setTimeout(
+        () => fitView({ ...FIT, nodes: ids?.map((id) => ({ id })) }),
+        50,
+      );
+    },
+    [fitView],
   );
 
-  // Memoize edge types to prevent unnecessary re-renders
-  const edgeTypes = useMemo(
-    () => ({
-      sansPlay: SansPlayEdge,
-      sansPlayDeletable: SansPlayDeletableEdge,
-    }),
-    [],
-  );
+  // New results are placed from estimated sizes; as soon as the browser has
+  // measured them, align them for real and bring them into view.
+  useEffect(() => {
+    if (!layoutReady) return;
+    const ids = layoutPending();
+    if (ids.length > 0) frame(ids);
+  }, [layoutReady, layoutPending, frame]);
 
-  const addTool = (tool: (typeof TOOLS)[number]) => {
-    const data =
-      tool.schemes === "both"
-        ? { schemeFrom: schemeLanguage, schemeTo: schemeLanguage }
-        : tool.schemes === "output"
-          ? { schemeTo: schemeLanguage }
-          : {};
-    addTypedNode(tool.key, { data });
+  const sendTo = (sourceId: string, tool: PlayTool) => {
+    const newId = sendToTool(
+      sourceId,
+      tool.key,
+      toolbarSchemes(tool, schemeLanguage),
+    );
+    if (newId) frame([sourceId, newId]);
+  };
+
+  const addTool = (tool: PlayTool) => {
+    // with a result or a text selected, the new tool starts out fed by it
+    const selected = nodes.filter((node) => node.selected);
+    if (
+      tool.key !== "textInput" &&
+      selected.length === 1 &&
+      FEEDING_TYPES.includes(selected[0].type ?? "")
+    ) {
+      sendTo(selected[0].id, tool);
+      return;
+    }
+
+    const box = containerRef.current?.getBoundingClientRect();
+    const center = box
+      ? screenToFlowPosition({
+          x: box.left + box.width / 2,
+          y: box.top + box.height / 2,
+        })
+      : undefined;
+    addTypedNode(tool.key, {
+      center,
+      data: toolbarSchemes(tool, schemeLanguage),
+    });
   };
 
   const flowPanel = (
@@ -156,6 +183,20 @@ export default function SanscriptPlayGraph() {
           <tool.icon />
         </Button>
       ))}
+      <span className="h-6 w-px bg-border" aria-hidden />
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => {
+          tidy();
+          frame();
+        }}
+        disabled={nodes.length < 2}
+        title="Tidy up the layout"
+        aria-label="Tidy up the layout"
+      >
+        <LayoutDashboardIcon />
+      </Button>
       <Button
         variant="outline"
         size="icon"
@@ -186,19 +227,17 @@ export default function SanscriptPlayGraph() {
   const emptyHint = nodes.length === 0 && (
     <Panel
       position="top-center"
-      className="mt-24 max-w-sm text-center text-sm text-muted-foreground"
+      className="mt-28 max-w-sm text-center text-sm text-muted-foreground"
     >
-      Add a tool from the top left, type some text and press play. Drag from
-      a result to another tool&apos;s left handle to feed it in.
+      Add a tool from the top left, type some text and press play. Tap a
+      result to see its details and send it on to another tool.
     </Panel>
   );
 
   return (
     <div
-      style={{
-        width: "100%",
-        height: "calc(100vh - 200px)",
-      }}
+      ref={containerRef}
+      className={cn("relative w-full", className)}
     >
       <ReactFlow
         nodes={nodes}
@@ -208,28 +247,45 @@ export default function SanscriptPlayGraph() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onConnect={onConnect}
-        nodeOrigin={nodeOrigin}
         connectionLineStyle={connectionLineStyle}
         defaultEdgeOptions={defaultEdgeOptions}
-        connectionLineType={ConnectionLineType.SmoothStep}
+        connectionLineType={ConnectionLineType.Bezier}
+        colorMode={colorMode}
+        style={{ backgroundColor: "transparent" }}
+        minZoom={0.2}
         maxZoom={4}
         fitView
+        fitViewOptions={{ padding: 0.15, maxZoom: 1 }}
       >
         {flowPanel}
         {statusPanel}
         {emptyHint}
-        <DevTools
-          showChangeLogger={false}
-          showNodeInspector={false}
-          showViewportLogger={false}
-        />
-        <Controls
-          style={{ backgroundColor: "white", color: "black" }}
-          showInteractive={false}
-        />
-        <MiniMap zoomable pannable className="hidden sm:block" />
+        <Controls showInteractive={false} />
+        <MiniMap zoomable pannable className="hidden lg:block" />
         <Background />
       </ReactFlow>
+      <SansPlayDetails
+        onSendTo={(sourceId, toolKey) => {
+          const tool = TOOLS.find((t) => t.key === toolKey);
+          if (tool) sendTo(sourceId, tool);
+        }}
+      />
     </div>
+  );
+}
+
+/**
+ * The playground canvas. It works on the store found in
+ * `SansPlayStoreContext`: the page-wide one unless a parent provides another.
+ */
+export default function SanscriptPlayGraph({
+  className = "h-[calc(100dvh-200px)] min-h-[420px]",
+}: {
+  className?: string;
+}) {
+  return (
+    <ReactFlowProvider>
+      <PlayGraph className={className} />
+    </ReactFlowProvider>
   );
 }

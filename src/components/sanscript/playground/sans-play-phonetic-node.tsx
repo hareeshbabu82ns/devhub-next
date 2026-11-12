@@ -12,9 +12,9 @@ import {
   SansPlayToolData,
   SansPlayToolNode,
   SchemePair,
-  transformItemsToGraphData,
   useToolNodeResults,
 } from "./sans-play-tool-node";
+import { buildItemResults } from "./results";
 
 export type SansPlayPhoneticData = SansPlayToolData & {
   limit: number;
@@ -63,9 +63,10 @@ function SansPlayPhoneticNode({
               : `Showing ${results.length} of ${total} words`,
           );
           showResults(
-            transformItemsToGraphData(
+            buildItemResults(
               id,
               results.map((item) => ({ label: item.word, subTitle: item.key })),
+              data.schemeTo,
             ),
           );
         },

@@ -6,7 +6,7 @@ import { MergeIcon } from "lucide-react";
 
 import { useSandhiJoins } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
-import { transformSandhiJoinsToGraphData } from "./sandhi-utils";
+import { buildItemResults } from "./results";
 import {
   NodeCheckbox,
   SansPlayToolData,
@@ -48,7 +48,17 @@ function SansPlayJoinerNode({ id, data }: NodeProps<Node<SansPlayJoinerData>>) {
       {
         onSuccess: (joins) => {
           setEmpty(joins.length === 0);
-          showResults(transformSandhiJoinsToGraphData(id, joins));
+          showResults(
+            buildItemResults(
+              id,
+              joins.map((label, index) => ({
+                label,
+                kind: "text",
+                index: joins.length > 1 ? index + 1 : undefined,
+              })),
+              data.schemeTo,
+            ),
+          );
         },
       },
     );

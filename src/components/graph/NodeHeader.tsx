@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { VariantProps } from "class-variance-authority";
 import { ButtonProps } from "@/lib/types";
-import useSansPlayStore from "../sanscript/playground/sans-play-store";
 
 /* NODE HEADER -------------------------------------------------------------- */
 
@@ -98,7 +97,7 @@ export const NodeHeaderActions = forwardRef<
       ref={ref}
       {...props}
       className={cn(
-        "ml-auto flex items-center gap-1 justify-self-end",
+        "ml-auto flex items-center justify-self-end",
         className,
       )}
     />
@@ -132,7 +131,7 @@ export const NodeHeaderAction = forwardRef<
       size={size ?? "icon"}
       aria-label={label}
       title={title ?? label}
-      className={cn("icon", className, "nodrag size-4 p-2 mx-1")}
+      className={cn("icon nodrag size-8 [&_svg]:size-4", className)}
       {...props}
     />
   );
@@ -181,26 +180,17 @@ NodeHeaderMenuAction.displayName = "NodeHeaderMenuAction";
 
 export const NodeHeaderDeleteAction = ({
   onClick,
-  deleteChildren = false,
 }: {
   onClick?: () => void;
-  deleteChildren?: boolean;
 }) => {
   const id = useNodeId();
-  const { setNodes, deleteElements } = useReactFlow();
-  const { removeChildNodes } = useSansPlayStore();
-  const handleClick = useCallback(
-    onClick ||
-      (() => {
-        if (id && deleteChildren) {
-          deleteElements({ nodes: [{ id }] });
-          removeChildNodes(id);
-        } else {
-          setNodes((prevNodes) => prevNodes.filter((node) => node.id !== id));
-        }
-      }),
-    [id, setNodes],
-  );
+  const { deleteElements } = useReactFlow();
+  // goes through the flow's change handlers, so the owner of the nodes can
+  // clean up whatever belongs to the deleted one
+  const handleClick = useCallback(() => {
+    if (onClick) onClick();
+    else if (id) deleteElements({ nodes: [{ id }] });
+  }, [id, onClick, deleteElements]);
 
   return (
     <NodeHeaderAction

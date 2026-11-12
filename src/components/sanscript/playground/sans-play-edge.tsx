@@ -4,95 +4,51 @@ import {
   type EdgeProps,
   type Edge,
   EdgeLabelRenderer,
-  getSmoothStepPath,
+  getBezierPath,
 } from "@xyflow/react";
 
-function EdgeLabel({
-  transform,
+/**
+ * Edge between a tool and its results, and between related words. The label,
+ * when there is one, names the relation and sits on the curve.
+ */
+function SansPlayEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
   label,
-}: {
-  transform: string;
-  label: React.ReactNode;
-}) {
-  return (
-    <div
-      style={{
-        position: "absolute",
-        transform,
-      }}
-      className="px-1 py-2 bg-card/50 text-card-foreground text-sm font-semibold nodrag nopan"
-    >
-      {label}
-    </div>
-  );
-}
-
-function SansPlayEdge(
-  props: EdgeProps<
-    Edge<{
-      label?: string;
-      startLabel?: string;
-      endLabel?: string;
-      [key: string]: any;
-    }>
-  >,
-) {
-  const {
-    id,
+  style,
+  markerEnd,
+}: EdgeProps<Edge<{ label?: string }>>) {
+  const [edgePath, labelX, labelY] = getBezierPath({
     sourceX,
     sourceY,
-    targetX,
-    targetY,
-    data,
-    label,
     sourcePosition,
-    targetPosition,
-    sourceHandleId,
-    targetHandleId,
-    pathOptions,
-    selectable,
-    deletable,
-    ...restProps
-  } = props;
-
-  const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
     targetX,
     targetY,
+    targetPosition,
   });
   const edgeLabel = label || data?.label;
 
-  // if (!data) return <BaseEdge path={edgePath} {...props} />;
   return (
     <>
-      <BaseEdge
-        id={id}
-        path={edgePath}
-        {...restProps}
-        // selectable={`${Boolean(selectable)}`}
-        // deletable={`${Boolean(deletable)}`}
-      />
-      <EdgeLabelRenderer>
-        {edgeLabel && (
-          <EdgeLabel
-            transform={`translate(-50%, -50%) translate(${(sourceX + targetX) / 2}px,${(sourceY + targetY) / 2}px)`}
-            label={edgeLabel}
-          />
-        )}
-        {data?.startLabel && (
-          <EdgeLabel
-            transform={`translate(-50%, 0%) translate(${sourceX}px,${sourceY}px)`}
-            label={data.startLabel}
-          />
-        )}
-        {data?.endLabel && (
-          <EdgeLabel
-            transform={`translate(-50%, -100%) translate(${targetX}px,${targetY}px)`}
-            label={data.endLabel}
-          />
-        )}
-      </EdgeLabelRenderer>
+      <BaseEdge id={id} path={edgePath} style={style} markerEnd={markerEnd} />
+      {edgeLabel && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+            }}
+            className="nodrag nopan absolute max-w-[130px] truncate rounded-full border bg-background px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+          >
+            {edgeLabel}
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 }

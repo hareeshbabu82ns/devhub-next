@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { Button } from "../ui/button";
 import EntityAnnotations from "./EntityAnnotations";
+import EntityPlaygroundTrigger from "./EntityPlaygroundTrigger";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
@@ -88,7 +89,10 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
       {/* Slokam & Meaning */}
       <div className="grid grid-cols-1 @5xl/slokamDetails:grid-cols-2 gap-4">
         <div className="flex flex-1 flex-col p-4 rounded-md border">
-          <p className="text-secondary pb-2">Slokam:</p>
+          <div className="flex items-center justify-between gap-2 pb-2">
+            <p className="text-secondary">Slokam:</p>
+            <EntityPlaygroundTrigger entityId={slokamId} text={slokam.text} />
+          </div>
           <ArtSlokamTile
             model={slokamTile}
             onBookmarkClicked={(model) =>

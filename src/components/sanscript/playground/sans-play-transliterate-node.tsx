@@ -10,9 +10,9 @@ import {
   SansPlayToolData,
   SansPlayToolNode,
   SchemePair,
-  transformItemsToGraphData,
   useToolNodeResults,
 } from "./sans-play-tool-node";
+import { buildItemResults } from "./results";
 
 export type SansPlayTransliterateData = SansPlayToolData;
 
@@ -34,9 +34,11 @@ function SansPlayTransliterateNode({
     transliterate(data, {
       onSuccess: (result) =>
         showResults(
-          transformItemsToGraphData(id, [
-            { label: result, subTitle: data.schemeTo },
-          ]),
+          buildItemResults(
+            id,
+            [{ label: result, kind: "text", subTitle: data.schemeTo }],
+            data.schemeTo,
+          ),
         ),
     });
   };

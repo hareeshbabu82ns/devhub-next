@@ -6,7 +6,7 @@ import { TagIcon } from "lucide-react";
 
 import { useLanguageTags } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
-import { transformWordTaggerToGraphData } from "./sandhi-utils";
+import { buildItemResults } from "./results";
 import {
   NodeCheckbox,
   SansPlayToolData,
@@ -41,7 +41,15 @@ function SansPlayWordTaggerNode({
       onSuccess: (tags) => {
         setEmpty(tags.length === 0);
         showResults(
-          transformWordTaggerToGraphData(id, tags, { tagsAsNodes: false }),
+          buildItemResults(
+            id,
+            tags.map((tag, index) => ({
+              label: tag.word,
+              tags: tag.tags,
+              index: tags.length > 1 ? index + 1 : undefined,
+            })),
+            data.schemeTo,
+          ),
         );
       },
     });

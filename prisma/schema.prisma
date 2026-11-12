@@ -133,6 +133,7 @@ model Entity {
   // allChildren  Entity[] @relation("RootEntityRels")
 
   annotations EntityAnnotation[]
+  playgrounds EntityPlayground[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -177,6 +178,27 @@ model EntityAnnotation {
   @@index([entityId, kind, order])
   @@index([userId, kind, updatedAt(sort: Desc)])
   @@map("EntityAnnotations")
+}
+
+// A saved Sanskrit playground canvas for an entity (normally a verse): the
+// tools that were run on its text and what they returned. A verse can keep
+// any number of these, one per line of analysis being explored.
+model EntityPlayground {
+  id       String  @id @default(auto()) @map("_id") @db.ObjectId
+  entityId String  @db.ObjectId
+  entity   Entity  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  title    String
+  // React Flow nodes and edges, as the playground store snapshots them
+  nodes    Json
+  edges    Json
+  // who saved it
+  userId   String? @db.ObjectId
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([entityId, updatedAt(sort: Desc)])
+  @@map("EntityPlaygrounds")
 }
 
 type TypeEntityType {

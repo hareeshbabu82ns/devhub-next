@@ -13,7 +13,7 @@ import ChangeLogger from "./ChangeLogger";
 import ViewportLogger from "./ViewportLogger";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
-import { getLayoutedElements } from "../sanscript/playground/utils";
+import { layoutAll } from "../sanscript/playground/layout";
 import { LogsIcon, MaximizeIcon, PlusIcon, WorkflowIcon } from "lucide-react";
 
 export default function DevTools({
@@ -25,7 +25,7 @@ export default function DevTools({
   showNodeInspector?: boolean;
   showViewportLogger?: boolean;
 }) {
-  const { fitView, getEdges, getNodes, setNodes, setEdges } = useReactFlow();
+  const { fitView, getEdges, getNodes, setNodes } = useReactFlow();
 
   const [nodeInspectorActive, setNodeInspectorActive] =
     useState(showNodeInspector);
@@ -35,17 +35,17 @@ export default function DevTools({
     useState(showViewportLogger);
 
   const onLayout = useCallback(
-    (direction: "TB" | "LR") => {
-      // console.log(nodes);
-
-      const layouted = getLayoutedElements(getNodes(), getEdges(), direction);
-
-      setNodes([...layouted.nodes]);
-      setEdges([...layouted.edges]);
-
+    () => {
+      const positions = layoutAll(getNodes(), getEdges());
+      setNodes((nodes) =>
+        nodes.map((node) => ({
+          ...node,
+          position: positions.get(node.id) ?? node.position,
+        })),
+      );
       fitView();
     },
-    [getNodes, getEdges, setNodes, setEdges, fitView],
+    [getNodes, getEdges, setNodes, fitView],
   );
 
   return (
@@ -74,7 +74,7 @@ export default function DevTools({
         </DevToolButton>
         <DevToolButton
           setActive={() => {
-            onLayout("TB");
+            onLayout();
           }}
           active={false}
           title="ReLayout"
