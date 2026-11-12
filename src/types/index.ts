@@ -85,29 +85,3 @@ declare module "@tanstack/react-table" {
     subObjectLabelField?: string;
   }
 }
-
-export type UploadFileType =
-  | "application/pdf"
-  | "application/json"
-  | "text/csv"
-  | "text/plain"
-  | "image/png"
-  | "image/jpeg"
-  | "image/jpg"
-  | "audio/mpeg"
-  | "audio/mp3"
-  | "audio/wav"
-  | "video"
-  | "audio"
-  | "all";
-
-export interface FileUploadProps {
-  allowedTypes?: UploadFileType[];
-  disabled?: boolean;
-  showPreviews?: boolean;
-  label?: string;
-  loading?: boolean;
-  basePath?: string;
-  onChangeFiles?: ( files: File[] ) => void;
-  onUploadSuccess?: ( urls: string[] ) => Promise<void>;
-}

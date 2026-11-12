@@ -1,23 +1,27 @@
 "use client";
 
-import Image, { ImageProps } from "next/image";
+import Image, { ImageLoaderProps, ImageProps } from "next/image";
+import { cleanAssetUrl, isAssetUrl } from "@/lib/assets/shared";
 
 interface OptimizedImageProps extends Omit<ImageProps, "src"> {
   src: string;
 }
 
 /**
- * A wrapper around Next.js Image component that handles both regular images
- * and API-served images. For API routes (/api/assets/*), it removes the
- * download query parameter and uses unoptimized mode to avoid optimization errors.
+ * Asks the assets route for a copy no wider than the slot needs. (Next's own
+ * optimizer cannot be used: it fetches without the session cookie.)
+ */
+const assetLoader = ({ src, width }: ImageLoaderProps) => `${src}?w=${width}`;
+
+/**
+ * next/image for both regular images and uploaded assets (/api/assets/*).
+ * Assets are resized by the assets route itself, so grids of tiles download
+ * thumbnails instead of full-size originals.
  */
 export default function OptimizedImage({ src, ...props }: OptimizedImageProps) {
-  // Check if this is an API-served image
-  const isApiImage = src.startsWith("/api/assets");
-
-  // Remove download query parameter for display
-  const cleanSrc = isApiImage ? src.replace(/\?download=true/g, "") : src;
-
-  // Use unoptimized mode for API images to avoid Next.js optimization issues
-  return <Image {...props} src={cleanSrc} unoptimized={isApiImage} />;
+  if (isAssetUrl(src)) {
+    // stored URLs may carry a legacy `?download=true`
+    return <Image {...props} src={cleanAssetUrl(src)} loader={assetLoader} />;
+  }
+  return <Image {...props} src={src} />;
 }

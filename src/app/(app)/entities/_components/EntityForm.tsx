@@ -34,7 +34,7 @@ import { EntityFormSchema } from "@/lib/validations/entities";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useRouter } from "next/navigation";
 import FormEntityAttributes from "@/components/inputs/FormEntityAttributes";
-import AssetSelectDlgTrigger from "../../assets/_components/AssetUploadDlgTrigger";
+import FormAssetField from "@/components/inputs/FormAssetField";
 import { useLanguageAtomValue } from "@/hooks/use-config";
 
 export interface EntityExtraProps {
@@ -67,8 +67,6 @@ export default function EntityForm({
 }: EntityFormProps) {
   const router = useRouter();
   const language = useLanguageAtomValue();
-  const [imgSlectDlgOpen, setImgSelectDlgOpen] = useState(false);
-  const [audioSlectDlgOpen, setAudioSelectDlgOpen] = useState(false);
 
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();
@@ -87,11 +85,10 @@ export default function EntityForm({
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [imageThumbnailValue, typeValue, text, audio] = form.watch([
+  const [imageThumbnailValue, typeValue, text] = form.watch([
     "imageThumbnail",
     "type",
     "text",
-    "audio",
   ]);
 
   // Saving refetches the entity; show the saved state without remounting the
@@ -186,61 +183,23 @@ export default function EntityForm({
     <div className="flex md:flex-2 lg:flex-3 flex-col gap-6">
 
       {/* Thumbnail */}
-      <div className="flex flex-row gap-2 items-end">
-        <FormInputText
-          control={form.control}
-          name="imageThumbnail"
-          label="Thumbnail"
-          className="flex-1"
-          type="search"
-        />
-        {/* Asset Select Dlg */}
-        <AssetSelectDlgTrigger
-          currentPath={
-            imageThumbnailValue === ENTITY_DEFAULT_IMAGE_THUMBNAIL
-              ? ""
-              : imageThumbnailValue
-          }
-          onSelected={(urls) => {
-            form.setValue(
-              "imageThumbnail",
-              urls[0] || ENTITY_DEFAULT_IMAGE_THUMBNAIL,
-            );
-            setImgSelectDlgOpen(false);
-          }}
-          open={imgSlectDlgOpen}
-          onOpenChange={setImgSelectDlgOpen}
-        />
-        {/* Upload Image */}
-        {/* <ImageUploadDlgTrigger
-          currentPath={imageThumbnailValue}
-          multiple={false}
-          onUploaded={(urls) => {
-            form.setValue("imageThumbnail", urls[0] || "");
-          }}
-        /> */}
-      </div>
+      <FormAssetField
+        control={form.control}
+        name="imageThumbnail"
+        label="Thumbnail"
+        kind="image"
+        uploadFolder="entities/images"
+        emptyValue={ENTITY_DEFAULT_IMAGE_THUMBNAIL}
+      />
 
       {/* Audio */}
-      <div className="flex flex-row gap-2 items-end">
-        <FormInputText
-          control={form.control}
-          name="audio"
-          label="Audio"
-          className="flex-1"
-          type="search"
-        />
-        <AssetSelectDlgTrigger
-          currentPath={audio || ""}
-          accept={["audio/mp3", "audio/mpeg", "audio/wav"]}
-          onSelected={(urls) => {
-            form.setValue("audio", urls[0] || "");
-            setAudioSelectDlgOpen(false);
-          }}
-          open={audioSlectDlgOpen}
-          onOpenChange={setAudioSelectDlgOpen}
-        />
-      </div>
+      <FormAssetField
+        control={form.control}
+        name="audio"
+        label="Audio"
+        kind="audio"
+        uploadFolder="entities/audio"
+      />
       {/* Bookmarked */}
       <FormCheckbox
         control={form.control}

@@ -1,5 +1,6 @@
 "use server";
 
+import { assetUrl } from "@/lib/assets/shared";
 import config from "@/config";
 import { db } from "@/lib/db";
 import {
@@ -126,7 +127,9 @@ export const updateAudioUrlsRamayanam = async (entityId: string) => {
         const paddedSloka = String(sloka.order + 2).padStart(3, "0");
         const csvKey = `${kanda.order + 1}_${ramayanamStructure[kanda.order].kandam}_kanda_sarga_${paddedSarga}_${paddedSloka}.mp3`;
         const fileName = `${kanda.order + 1}-${ramayanamStructure[kanda.order].kandam}-kanda-sarga-${paddedSarga}-${paddedSloka}.mp3`;
-        const fileWithPath = `/api/assets/uploads/valmiki_ramayanam/audio/${fileName}`;
+        const fileWithPath = assetUrl(
+          `valmiki_ramayanam/audio/${fileName}`,
+        );
         // console.log( `\t\tChecking sloka: `, paddedSloka, csvKey );
 
         // console.log( `Checking csvkey:\n`, csvKey, fileName, sloka.audio );

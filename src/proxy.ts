@@ -53,5 +53,13 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
+  // /api/upload is left out on purpose: the proxy buffers request bodies and
+  // caps them at 10 MB, which would truncate large uploads. That route checks
+  // the session itself.
+  matcher: [
+    "/((?!api/upload$|.*\\..*|_next).*)",
+    "/",
+    "/api/((?!upload$).*)",
+    "/trpc(.*)",
+  ],
 };

@@ -27,7 +27,8 @@ import {
   LANGUAGE_SELECT_DEFAULT,
 } from "@/lib/constants";
 import path from "path";
-import config from "@/config";
+import { resolveAssetPath } from "@/lib/assets/server";
+import { assetUrl } from "@/lib/assets/shared";
 import { mkdir, writeFile } from "fs/promises";
 
 export const fetchAudioLinksIncludingChildren = async ({
@@ -753,11 +754,11 @@ export async function generateAudioForEntity(
 
   // save to base64 audio to data folder
   const audioBuffer = Buffer.from(audioBase64, "base64");
-  const audioFolder = path.resolve(`${config.dataFolder}/uploads/audios`);
-  await mkdir(audioFolder, { recursive: true });
-  const audioPath = path.join(audioFolder, `${entityId}.wav`);
+  const audioAssetPath = `audios/${entityId}.wav`;
+  const audioPath = resolveAssetPath(audioAssetPath);
+  await mkdir(path.dirname(audioPath), { recursive: true });
   await writeFile(audioPath, audioBuffer);
-  const audioUrl = `/api/assets/uploads/audios/${entityId}.wav`;
+  const audioUrl = assetUrl(audioAssetPath);
 
   // Update entity with audio URL
   await db.entity.update({
