@@ -112,18 +112,39 @@ export const LANGUAGE_TO_TRANSLITERATION_DDLB = {
   TEL: { label: "Telugu", scheme: "telugu" },
 } as Record<string, { label: string; scheme: string }>;
 
+export interface PanchangamPlace {
+  id: string;
+  label: string;
+  region: string;
+  geonameId: number;
+  timezone: string;
+}
+export const PANCHANGAM_PLACES: PanchangamPlace[] = [
+  {
+    id: "calgary",
+    label: "Calgary",
+    region: "Alberta, Canada",
+    geonameId: 5913490,
+    timezone: "America/Edmonton", // MST/MDT (UTC-7/-6)
+  },
+  {
+    id: "tirupati",
+    label: "Tirupati",
+    region: "Andhra Pradesh, India",
+    geonameId: 1254360,
+    timezone: "Asia/Kolkata", // IST (UTC+5:30)
+  },
+];
 export const PANCHANGAM_PLACE_IDS = ["calgary", "tirupati"] as const;
 export const PANCHANGAM_PLACE_SELECT_KEY = "panchangamPlace";
 export const PANCHANGAM_PLACE_SELECT_DEFAULT = "calgary";
-export const PANCHANGAM_PLACE_IDS_MAP = {
-  tirupati: 1254360,
-  calgary: 5913490,
-} as Record<string, number>;
+export const PANCHANGAM_PLACE_IDS_MAP = Object.fromEntries(
+  PANCHANGAM_PLACES.map((p) => [p.id, p.geonameId]),
+) as Record<string, number>;
 
-export const PANCHANGAM_PLACE_TIMEZONES = {
-  tirupati: "Asia/Kolkata", // IST (UTC+5:30)
-  calgary: "America/Edmonton", // MST/MDT (UTC-7/-6)
-} as Record<string, string>;
+export const PANCHANGAM_PLACE_TIMEZONES = Object.fromEntries(
+  PANCHANGAM_PLACES.map((p) => [p.id, p.timezone]),
+) as Record<string, string>;
 
 export const PANCHANGAM_TIMELINE_VIEW_MODES = ["advanced", "legacy"] as const;
 export type PanchangamTimelineViewMode =

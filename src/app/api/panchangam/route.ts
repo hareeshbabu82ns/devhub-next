@@ -66,14 +66,17 @@ const getCurrentMuhurthams = (
   date: Date,
   respnoseFormat: "json" | "md",
 ) => {
-  // fetch hour:min from date and get the nearest muhurthams
-  const timeStr = format(date, "HH:mm");
-  const timePlus1HrStr = format(addHours(date, 1), "HH:mm");
-  const nearestMuhurthams = info.schedules.filter(
-    (item: any) =>
-      (item.startTime < timeStr || item.startTime < timePlus1HrStr) &&
-      item.endTime > timeStr,
-  );
+  // muhurthams active now or starting within the next hour
+  const nowMin = date.getHours() * 60 + date.getMinutes();
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return h * 60 + m;
+  };
+  const nearestMuhurthams = info.schedules.filter((item: any) => {
+    const start = item.startMin ?? toMin(item.startTime);
+    const end = item.endMin ?? toMin(item.endTime);
+    return start < nowMin + 60 && end > nowMin;
+  });
 
   if (respnoseFormat === "json") {
     return nearestMuhurthams;
@@ -110,15 +113,19 @@ const getOverviewMD = (info: any, date: Date) => {
   content.push(
     `| Tithi:\t ${panchang.tithiToday.name} | ${panchang.tithiToday.start} | ${panchang.tithiToday.end} |`,
   );
-  content.push(
-    `| Tithi (next):\t ${panchang.tithiNext.name} | ${panchang.tithiNext.start} | ${panchang.tithiNext.end} |`,
-  );
+  if (panchang.tithiNext) {
+    content.push(
+      `| Tithi (next):\t ${panchang.tithiNext.name} | ${panchang.tithiNext.start} | ${panchang.tithiNext.end} |`,
+    );
+  }
   content.push(
     `| Nakshatra:\t ${panchang.nakshatraToday.name} | ${panchang.nakshatraToday.start} | ${panchang.nakshatraToday.end} |`,
   );
-  content.push(
-    `| Nakshatra (next):\t ${panchang.nakshatraNext.name} | ${panchang.nakshatraNext.start} | ${panchang.nakshatraNext.end} |`,
-  );
+  if (panchang.nakshatraNext) {
+    content.push(
+      `| Nakshatra (next):\t ${panchang.nakshatraNext.name} | ${panchang.nakshatraNext.start} | ${panchang.nakshatraNext.end} |`,
+    );
+  }
 
   content.push(`\n  \n# Muhurthams\n  `);
 

@@ -13,3 +13,8 @@ export type { PanchangamDetailsProps } from "./PanchangamDetails";
 
 export { default as DayOverview } from "./DayOverview";
 export type { DayOverviewProps, ScheduleItem } from "./DayOverview";
+
+export { DayTimeline, NowStatus } from "./DayTimeline";
+export type { DayTimelineProps } from "./DayTimeline";
+
+export { PlaceSwitcher } from "./PlaceSwitcher";

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { useAtom } from "jotai";
 import { panchangamPlaceAtom } from "@/hooks/use-config";
-import { PANCHANGAM_PLACE_IDS } from "@/lib/constants";
+import { PANCHANGAM_PLACES } from "@/lib/constants";
 
 export default function PanchangamPlaceSelector() {
   const [selection, setSelection] = useAtom(panchangamPlaceAtom);
@@ -22,9 +22,9 @@ export default function PanchangamPlaceSelector() {
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          {PANCHANGAM_PLACE_IDS.map((l) => (
-            <SelectItem key={l} value={l}>
-              {l}
+          {PANCHANGAM_PLACES.map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.label}
             </SelectItem>
           ))}
         </SelectGroup>

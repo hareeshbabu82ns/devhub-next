@@ -177,10 +177,20 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
 
   // Scroll to current time on load
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({
+    // Scroll only the timeline's own viewport; scrollIntoView would also
+    // scroll the page, which is jarring on phones and tablets.
+    const marker = scrollRef.current;
+    const viewport = marker?.closest<HTMLElement>(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (marker && viewport) {
+      const markerTop =
+        marker.getBoundingClientRect().top -
+        viewport.getBoundingClientRect().top +
+        viewport.scrollTop;
+      viewport.scrollTo({
+        top: Math.max(0, markerTop - viewport.clientHeight / 2),
         behavior: "smooth",
-        block: "center",
       });
     }
   }, []);
@@ -214,7 +224,7 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
           time ({placeTimezone})
         </span>
       </div>
-      <ScrollArea className="h-[500px] sm:h-[600px] md:h-[700px] w-full relative">
+      <ScrollArea className="h-[min(65svh,700px)] min-h-72 w-full relative">
         <div
           className="relative"
           style={{
@@ -264,7 +274,7 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
             }}
           >
             <div className="w-16 flex items-center justify-end pr-2">
-              <div className="flex items-center gap-1 bg-warning/90 text-warning-foreground px-1.5 py-0.5 rounded-md text-xs font-semibold">
+              <div className="flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 rounded-md text-xs font-semibold">
                 <Clock className="h-3 w-3" />
                 {currentTime.toLocaleTimeString([], {
                   hour: "2-digit",
@@ -273,7 +283,7 @@ const DayOverviewAdvanced: React.FC<DayOverviewProps> = ({
                 })}
               </div>
             </div>
-            <div className="flex-1 h-0.5 bg-warning shadow-lg" />
+            <div className="flex-1 h-0.5 bg-amber-500 shadow-lg" />
           </div>
 
           {/* Schedule cards organized in columns */}

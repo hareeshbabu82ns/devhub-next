@@ -2,9 +2,9 @@
  * Custom hook for managing Panchangam data fetching and state
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { addDays, subDays } from "date-fns";
+import { addDays, isSameDay, subDays } from "date-fns";
 import { getDayPanchangam } from "@/lib/panchangam/actions";
 import {
   usePanchangamPlaceAtomValue,
@@ -61,7 +61,15 @@ export function usePanchangam(options: UsePanchangamOptions = {}) {
   }, [cityId, placeTimezone]);
 
   // Fetch panchangam data
-  const { data, isFetching, isPending, isError, error, refetch } = useQuery({
+  const {
+    data,
+    isFetching,
+    isPending,
+    isPlaceholderData,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["panchangam", cityId, date],
     queryFn: async () => {
       // Format date in place's timezone as DD/MM/YYYY
@@ -77,7 +85,13 @@ export function usePanchangam(options: UsePanchangamOptions = {}) {
       return response;
     },
     staleTime: QUERY_STALE_TIME_LONG,
+    // keep showing the previous day while the next one loads
+    placeholderData: keepPreviousData,
   });
+
+  const isToday = date
+    ? isSameDay(date, getTodayInTimezone(placeTimezone))
+    : false;
 
   // Date navigation handlers
   const handlePreviousDay = () => {
@@ -103,7 +117,12 @@ export function usePanchangam(options: UsePanchangamOptions = {}) {
   return {
     // Data
     data,
-    isLoading: isFetching || isPending,
+    /** true only when there is nothing to show yet */
+    isLoading: isPending,
+    /** true while any request (incl. background) is in flight */
+    isFetching,
+    /** true while showing the previous day/place during a fetch */
+    isStale: isPlaceholderData,
     isError,
     error,
 
@@ -114,6 +133,7 @@ export function usePanchangam(options: UsePanchangamOptions = {}) {
 
     // Date state
     date,
+    isToday,
     setDate: handleDateSelect,
 
     // Navigation
@@ -124,4 +144,17 @@ export function usePanchangam(options: UsePanchangamOptions = {}) {
     // Actions
     refetch,
   };
+}
+
+/**
+ * Re-renders every `intervalMs` and returns the current Date.
+ * Used for live "now" markers.
+ */
+export function useNow(intervalMs = 30_000) {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
 }

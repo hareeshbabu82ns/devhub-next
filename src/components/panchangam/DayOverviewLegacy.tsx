@@ -118,10 +118,20 @@ const DayOverviewLegacy: React.FC<DayOverviewProps> = ({
 
   // Scroll to the current time position on load
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({
+    // Scroll only the timeline's own viewport; scrollIntoView would also
+    // scroll the page, which is jarring on phones and tablets.
+    const marker = scrollRef.current;
+    const viewport = marker?.closest<HTMLElement>(
+      "[data-radix-scroll-area-viewport]",
+    );
+    if (marker && viewport) {
+      const markerTop =
+        marker.getBoundingClientRect().top -
+        viewport.getBoundingClientRect().top +
+        viewport.scrollTop;
+      viewport.scrollTo({
+        top: Math.max(0, markerTop - viewport.clientHeight / 2),
         behavior: "smooth",
-        block: "center",
       });
     }
   }, []);
