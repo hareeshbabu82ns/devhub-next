@@ -5,55 +5,63 @@ import AudioControlButton from "./AudioControlButton";
 import {
   MdOutlineRepeat,
   MdOutlineRepeatOn,
+  MdOutlineRepeatOneOn,
   MdOutlinePlaylistRemove as ClearIcon,
 } from "react-icons/md";
-// import { PlaylistTrigger } from "./PlaylistTrigger";
 
 interface PlaylistControlsProps {
   className?: string;
-  hideTrigger?: boolean;
 }
 
-/**
- * Reusable component for playlist-related controls (repeat, clear playlist, etc.)
- */
-const PlaylistControls: React.FC<PlaylistControlsProps> = ( {
-  className,
-  hideTrigger = false
-} ) => {
-  const {
-    repeat,
-    handleToggleRepeat,
-    handleClearPlaylist,
-    hasSongs
-  } = useAudioControls();
+const REPEAT = {
+  off: {
+    icon: <MdOutlineRepeat className="size-5" />,
+    title: "Repeat is off",
+    next: "Repeat the whole queue",
+  },
+  all: {
+    icon: <MdOutlineRepeatOn className="size-5" />,
+    title: "Repeating the whole queue",
+    next: "Repeat this track only",
+  },
+  one: {
+    icon: <MdOutlineRepeatOneOn className="size-5" />,
+    title: "Repeating this track",
+    next: "Turn repeat off",
+  },
+};
+
+/** Queue-level controls: repeat mode (off → queue → one track) and clear. */
+const PlaylistControls: React.FC<PlaylistControlsProps> = ({ className }) => {
+  const { repeat, handleCycleRepeat, handleClearPlaylist, hasSongs } =
+    useAudioControls();
+  const mode = REPEAT[repeat];
 
   return (
     <div
-      className={cn( "flex items-center justify-around gap-1", className )}
+      className={cn("flex items-center justify-around gap-1", className)}
       role="group"
-      aria-label="Playlist controls"
+      aria-label="Queue controls"
     >
       <AudioControlButton
-        icon={repeat ? <MdOutlineRepeatOn className="size-5" /> : <MdOutlineRepeat className="size-5" />}
-        label={repeat ? "Turn repeat off" : "Turn repeat on"}
-        title={repeat ? "Repeat off" : "Repeat on"}
-        onClick={handleToggleRepeat}
+        icon={mode.icon}
+        label={`${mode.title}. ${mode.next}`}
+        title={`${mode.title} — tap to: ${mode.next.toLowerCase()}`}
+        onClick={handleCycleRepeat}
         disabled={!hasSongs}
-        ariaPressed={repeat}
+        isActive={repeat !== "off"}
+        className="size-9"
       />
       <AudioControlButton
         icon={<ClearIcon className="size-5" />}
-        label="Clear playlist"
-        title="Clear playlist"
+        label="Clear the queue"
+        title="Clear the queue"
         onClick={handleClearPlaylist}
         disabled={!hasSongs}
+        className="size-9"
       />
-
-      {/* Use the new simpler PlaylistTrigger component */}
-      {/* {!hideTrigger && <PlaylistTrigger />} */}
     </div>
   );
 };
 
-export default React.memo( PlaylistControls );
+export default React.memo(PlaylistControls);

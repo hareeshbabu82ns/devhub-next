@@ -7,6 +7,7 @@ import { FaRunning } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Slider } from "../ui/slider";
+import { useCurrentTrack } from "@/hooks/use-audio-queue";
 
 interface AudioPlayExtrasBarProps {
   className?: string;
@@ -19,7 +20,8 @@ interface AudioPlayExtrasBarProps {
  * time display, volume, and playback speed
  */
 const AudioPlayExtrasBar = React.memo( ( { className, isSidebar, hideSongName }: AudioPlayExtrasBarProps ) => {
-  const { setRate, rate, src } = useAudioPlayerContext();
+  const { setRate, rate } = useAudioPlayerContext();
+  const track = useCurrentTrack();
 
   // Optimize rate change handler
   const handleRateChange = useCallback( ( range: number ) => {
@@ -29,10 +31,8 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar, hideSongName }:
   //   setRate( Number( e.target.value ) );
   // }, [ setRate ] );
 
-  // Extract filename from path for cleaner display
-  const displayName = src
-    ? src.split( '/' ).pop()?.split( '?' )[ 0 ] || "Unknown track"
-    : "No track selected";
+  const displayName = track?.title ?? "Nothing playing";
+  const src = track?.subtitle;
 
   // For sidebar mode, show a compact version with icon-only controls
   if ( isSidebar ) {
@@ -104,7 +104,7 @@ const AudioPlayExtrasBar = React.memo( ( { className, isSidebar, hideSongName }:
       </div>
 
       {/* Controls grid - adapt to different screen sizes */}
-      <div className="flex-1 flex flex-row items-center justify-around">
+      <div className="flex-1 flex flex-row flex-wrap items-center justify-around gap-x-4 gap-y-2">
 
         {/* Playback speed control */}
         <div className="flex flex-row gap-3 items-center">

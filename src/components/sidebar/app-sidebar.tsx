@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/sidebar";
 import { BaseHeader } from "./components/base-header";
 import { Icons } from "../utils/icons";
-import AudioPlayer from "../audio-player/player";
 import { cn } from "@/lib/utils";
 import { useSidebarMinimized } from "@/hooks/use-config";
 import { useSession } from "next-auth/react";
@@ -140,7 +139,6 @@ const getNavItems = (isAdmin: boolean): NavItemProps[] => {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { open: isSidebarOpened, isMobile } = useSidebar();
   const session = useSession();
   const isAdmin = session?.data?.user?.role === "ADMIN";
 
@@ -155,13 +153,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border/50 mt-auto py-2">
-        <AudioPlayer
-          className={cn(
-            "hidden",
-            !isMobile && (!isSidebarOpened ? "xl:hidden" : "xl:flex"),
-          )}
-          isSidebar
-        />
         <NavUser />
       </SidebarFooter>
       <SidebarRail />

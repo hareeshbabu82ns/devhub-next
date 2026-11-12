@@ -10,6 +10,7 @@ const ENTITY_QUERY_KEYS = [
   "entities",
   "entity",
   "entityHierarchy",
+  "entityAudio",
   "slokamDetails",
   "slokamSiblings",
   "queryEntitiesByIDs",

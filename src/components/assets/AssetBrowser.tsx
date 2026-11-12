@@ -45,7 +45,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useDebounce } from "@/hooks/use-debounce";
-import { usePlaylistAtom } from "@/hooks/use-songs";
+import { useAudioQueueDispatch } from "@/hooks/use-audio-queue";
 import {
   AssetItem,
   AssetKind,
@@ -126,7 +126,7 @@ export default function AssetBrowser({
   const path = normalizeAssetPath(rawPath);
   const picking = mode === "pick";
   const queryClient = useQueryClient();
-  const [, dispatchPlaylist] = usePlaylistAtom();
+  const dispatchPlaylist = useAudioQueueDispatch();
 
   const [view, setView] = useLocalStorage<ViewMode>("assets.view", "grid", {
     initializeWithValue: false,
@@ -329,17 +329,17 @@ export default function AssetBrowser({
     },
     onAddToPlaylist: (item) => {
       dispatchPlaylist({
-        type: "ADD_SONG",
-        payload: {
-          id: item.path,
-          title: item.name,
-          album: "",
-          artist: "",
-          src: item.url,
-          position: 0,
-        },
+        type: "enqueue",
+        tracks: [
+          {
+            id: item.path,
+            title: item.name,
+            subtitle: parentAssetPath(item.path) || undefined,
+            src: item.url,
+          },
+        ],
       });
-      toast.success("Added to playlist");
+      toast.success("Added to the queue");
     },
     onRename: (item) => setNameDialog({ type: "rename", item }),
     onReplace: (item) => {

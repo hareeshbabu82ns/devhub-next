@@ -17,6 +17,10 @@ import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useParams, useRouter } from "next/navigation";
 import AudioGenPlayPauseButton from "./AudioGenPlayPauseButton";
+import { useEffect, useRef } from "react";
+import { useAudioPlayerContext } from "react-use-audio-player";
+import { useCurrentTrack } from "@/hooks/use-audio-queue";
+import { Track, trackTitle } from "@/lib/audio/queue";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
   index?: number;
@@ -44,13 +48,40 @@ export const ArtSlokamTile = ({
   const [, copyToClipboard] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
+  const number = (model.order ? model.order + 1 : index)
+    .toString()
+    .padStart(3, "0");
+  const track: Track = {
+    id: model.id,
+    src: model.audio || "",
+    title: trackTitle(model.title, `Verse ${number}`),
+    subtitle: [model.parentTitle, number].filter(Boolean).join(" · "),
+    href: entityId ? `/entities/${entityId}/child/${model.id}` : undefined,
+  };
+
+  // the verse being recited is marked and, while playing, kept in view
+  const nowPlaying = useCurrentTrack();
+  const { isPlaying } = useAudioPlayerContext();
+  const isCurrent = !!model.audio && nowPlaying?.src === model.audio;
+  const tileRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (isCurrent && isPlaying) {
+      tileRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    // only when the playing verse changes, not on every pause / resume
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCurrent]);
+
   return (
     <div
+      ref={tileRef}
+      aria-current={isCurrent ? "true" : undefined}
       className={cn(
         LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
         "group rounded-xl p-4 border dark:highlight-white/5 hover:bg-secondary/10 space-y-2 flex flex-row space-x-4",
         onTileClicked ? "cursor-pointer" : "",
         model.bookmarked ? "border-success/50" : "",
+        isCurrent && "border-primary bg-primary/5 scroll-my-20",
         className,
       )}
       onClick={(e) => {
@@ -113,21 +144,20 @@ export const ArtSlokamTile = ({
           <div
             className={cn(
               "hidden group-hover:flex flex-row",
-              isTouchDevice && "flex",
+              (isTouchDevice || isCurrent) && "flex",
             )}
           >
-            {model.audio && (
-              <AudioPlayPauseButton
-                url={model.audio}
-                id={model.id}
-                title={`${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
-              />
-            )}
-            {!model.audio && (
-              <AudioGenPlayPauseButton
-                id={model.id}
-                title={`Generate Audio: ${String(index).padStart(3, "0")}-${model.parentTitle || ""}-${model.subTitle}`}
-              />
+            {model.audio ? (
+              <AudioPlayPauseButton track={track} contextId={entityId} />
+            ) : (
+              <span onClick={(e) => e.stopPropagation()}>
+                <AudioGenPlayPauseButton
+                  id={model.id}
+                  title={track.title}
+                  subtitle={track.subtitle}
+                  href={track.href}
+                />
+              </span>
             )}
             <Button
               size="icon"

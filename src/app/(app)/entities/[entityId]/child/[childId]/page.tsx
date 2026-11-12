@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import AskAITrigger from "@/components/features/ai/AskAITrigger";
 import SlokamDetails from "@/components/blocks/SlokamDetails";
+import EntityAudioButton from "@/components/blocks/EntityAudioButton";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
 import {
@@ -260,6 +261,7 @@ const Page = () => {
           scopeId={currentSlokamId}
           scopeLabel="this verse"
         />
+        <EntityAudioButton entityId={currentSlokamId} parentId={entityId} />
         {/* Navigation buttons and dropdown */}
         <Button
           onClick={handlePrevious}

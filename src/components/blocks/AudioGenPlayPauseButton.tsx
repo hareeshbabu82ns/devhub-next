@@ -1,8 +1,8 @@
-import { PlayCircle as PlayIcon, PauseCircle as PauseIcon } from "lucide-react";
-import { useAudioPlayerContext } from "react-use-audio-player";
-import { usePlaylistAtom } from "@/hooks/use-songs";
+import { AudioLines as GenerateIcon } from "lucide-react";
+import { useAudioQueueDispatch } from "@/hooks/use-audio-queue";
+import { useInvalidateEntities } from "@/hooks/use-entity-invalidation";
 import { toast } from "sonner";
-import { forwardRef, useCallback, useState } from "react";
+import { forwardRef, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import AudioControlButton from "../audio-player/AudioControlButton";
 import { generateAudioForEntity } from "@/app/(app)/entities/actions";
@@ -10,27 +10,23 @@ import { generateAudioForEntity } from "@/app/(app)/entities/actions";
 interface AudioGenPlayPauseButtonProps {
   id: string;
   title: string;
+  /** Where the track sits, shown under its title in the queue. */
+  subtitle?: string;
+  /** Page showing the verse. */
+  href?: string;
   className?: string;
 }
 
 /**
- * A button component for generating audio and playing/pausing individual audio tracks
- * Can be placed anywhere in the app to play a specific audio file
+ * For a verse without a recording: generates one (text to speech), saves it
+ * on the verse and plays it. The tile then shows the normal play button.
  */
 const AudioGenPlayPauseButton = forwardRef<
   HTMLButtonElement,
   AudioGenPlayPauseButtonProps
->(({ title, id, className }, ref) => {
-  const [playlist, dispatch] = usePlaylistAtom();
-  const {
-    isPlaying,
-    play: playerPlay,
-    pause: playerPause,
-    getPosition,
-  } = useAudioPlayerContext();
-
-  // Check if this is the currently playing track
-  const isCurrentlyPlaying = isPlaying && playlist.currentSongIndex !== -1;
+>(({ title, subtitle, href, id, className }, ref) => {
+  const dispatch = useAudioQueueDispatch();
+  const invalidateEntities = useInvalidateEntities();
 
   // Audio generation mutation
   const generateAudioMutation = useMutation({
@@ -44,18 +40,12 @@ const AudioGenPlayPauseButton = forwardRef<
     onSuccess: (audioPath) => {
       toast.success("Audio generated successfully");
 
-      // Automatically add to playlist and start playing
       dispatch({
-        type: "ADD_SONG",
-        payload: {
-          id,
-          title: title || audioPath.split("/").pop() || "Unknown",
-          album: "",
-          artist: "",
-          src: audioPath,
-          position: 0,
-        },
+        type: "playNow",
+        track: { id, src: audioPath, title, subtitle, href },
       });
+      // the verse now has audio: lists must pick that up
+      invalidateEntities();
     },
     onError: (error) => {
       console.error("Audio generation failed:", error);
@@ -79,20 +69,7 @@ const AudioGenPlayPauseButton = forwardRef<
       // Error is already handled in the mutation's onError
       return;
     }
-  }, [
-    generateAudioMutation,
-    playlist.songs,
-    playlist.currentSongIndex,
-    id,
-    title,
-    dispatch,
-  ]);
-
-  // Pause playback
-  const pause = useCallback(() => {
-    playerPause();
-    dispatch({ type: "PAUSE", payload: getPosition() });
-  }, [playerPause, dispatch, getPosition]);
+  }, [generateAudioMutation]);
 
   return (
     <AudioControlButton
@@ -100,26 +77,18 @@ const AudioGenPlayPauseButton = forwardRef<
       icon={
         generateAudioMutation.isPending ? (
           <div className="size-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-900" />
-        ) : isCurrentlyPlaying ? (
-          <PauseIcon className="size-5" />
         ) : (
-          <PlayIcon className="size-5" />
+          <GenerateIcon className="size-5 opacity-60" />
         )
       }
       label={
         generateAudioMutation.isPending
           ? "Generating audio..."
-          : isCurrentlyPlaying
-            ? "Pause"
-            : "Play"
+          : "Generate audio and play"
       }
-      title={title}
-      onClick={isCurrentlyPlaying ? pause : play}
+      title={`Generate audio: ${title}`}
+      onClick={play}
       className={className}
-      // isActive={Boolean(
-      //   currentAudioUrl &&
-      //     playlist.songs[playlist.currentSongIndex]?.src === currentAudioUrl,
-      // )}
       disabled={generateAudioMutation.isPending}
     />
   );

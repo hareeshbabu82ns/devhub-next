@@ -6,6 +6,7 @@ import {
   MoreHorizontalIcon,
   BookmarkIcon,
   ShareIcon,
+  PlayIcon,
 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import OptimizedImage from "../utils/optimized-image";
@@ -26,6 +27,8 @@ interface ArtTileProps extends React.HTMLAttributes<HTMLDivElement> {
   onEditClicked?: (model: TileModel) => void;
   onBookmarkClicked?: (model: TileModel) => void;
   onShareClicked?: (model: TileModel) => void;
+  /** Play everything under this tile (a chapter, a book). */
+  onPlayClicked?: (model: TileModel) => void;
 }
 
 export const ArtTile = ({
@@ -36,12 +39,23 @@ export const ArtTile = ({
   onTileClicked,
   onBookmarkClicked,
   onShareClicked,
+  onPlayClicked,
 }: ArtTileProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
 
   // Create an array of available actions to determine visibility and ordering
   const actions = [
+    onPlayClicked && {
+      id: "play",
+      icon: <PlayIcon className="size-4" />,
+      label: "Play",
+      handler: (e: React.MouseEvent) => {
+        onPlayClicked(model);
+        e.stopPropagation();
+      },
+      ariaLabel: `Play ${model.title}`,
+    },
     onEditClicked && {
       id: "edit",
       icon: <EditIcon className="size-4" />,

@@ -8,6 +8,8 @@ import {
 } from "./entity-types";
 
 export const LS_AUDIO_PLAYER_VOLUME = "audioPlayerVolume";
+export const LS_AUDIO_QUEUE = "audioQueue";
+export const LS_AUDIO_QUEUE_POSITION = "audioQueuePosition";
 
 export const QUERY_RESULT_LIMIT_KEY = "resultLimits";
 export const QUERY_RESULT_LIMIT_DEFAULT = "12";

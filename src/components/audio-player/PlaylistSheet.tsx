@@ -1,172 +1,233 @@
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import Link from "next/link";
+import { memo, useCallback, useEffect, useRef } from "react";
+import { useAudioPlayerContext } from "react-use-audio-player";
 import { MdOutlineFeaturedPlayList as PlaylistIcon } from "react-icons/md";
-import { usePlaylistAtom } from "@/hooks/use-songs";
-import { Icons } from "../utils/icons";
+import {
+  BookOpenText,
+  PauseCircle as PauseIcon,
+  PlayCircle as PlayIcon,
+  X as RemoveIcon,
+} from "lucide-react";
+import { useAudioQueue } from "@/hooks/use-audio-queue";
+import { usePlaylistSheet } from "@/hooks/use-playlist-sheet";
+import { currentTrack, Track } from "@/lib/audio/queue";
+import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
-import { ScrollArea } from "../ui/scroll-area";
 import { Button } from "../ui/button";
-import { useCallback } from "react";
-import { useAudioPlayerContext } from "react-use-audio-player";
-import { PlayCircle as PlayIcon, PauseCircle as PauseIcon } from "lucide-react";
-import { usePlaylistSheet } from "@/hooks/use-playlist-sheet";
 import PlaylistControls from "./PlaylistControls";
 import AudioControls from "./AudioControls";
 import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
 
 /**
- * A standalone sheet component for displaying the playlist
- * This component doesn't import any other audio player components to avoid circular dependencies
+ * The queue: full transport controls on top, the list of tracks below.
+ * Opened from the top bar on every page.
  */
 export function PlaylistSheet() {
   const { isOpen, setIsOpen } = usePlaylistSheet();
-  const [ playlist, dispatch ] = usePlaylistAtom();
+  const [queue, dispatch] = useAudioQueue();
+  const { isPlaying, play, pause } = useAudioPlayerContext();
+  const current = currentTrack(queue);
+  const songCount = queue.tracks.length;
+  const listRef = useRef<HTMLDivElement>(null);
 
-  // Count active songs for badge
-  const songCount = playlist.songs.length;
+  // keep the playing track in view, also right after opening
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => {
+      listRef.current
+        ?.querySelector('[data-current="true"]')
+        ?.scrollIntoView({ block: "nearest" });
+    }, 50);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, queue.index]);
+
+  const playerRef = useRef({ isPlaying, play, pause });
+  playerRef.current = { isPlaying, play, pause };
+
+  const onRowPlay = useCallback(
+    (index: number, isActive: boolean) => {
+      if (!isActive) return dispatch({ type: "jump", index });
+      const p = playerRef.current;
+      if (p.isPlaying) p.pause();
+      else p.play();
+    },
+    [dispatch],
+  );
+  const onRowRemove = useCallback(
+    (index: number) =>
+      dispatch({
+        type: "remove",
+        index,
+        keepPlaying: playerRef.current.isPlaying,
+      }),
+    [dispatch],
+  );
+  const close = useCallback(() => setIsOpen(false), [setIsOpen]);
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetContent
-        className="w-full max-w-md sm:max-w-lg p-0 flex flex-col h-dvh"
+        className="w-full max-w-md sm:max-w-lg p-0 flex flex-col h-dvh gap-0"
         side="right"
-        onCloseAutoFocus={( e ) => {
-          // Prevent focus events that might cause re-renders
-          e.preventDefault();
-        }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <SheetHeader className="p-4 pb-0 shrink-0">
-          <div className="flex justify-between items-center">
-            <SheetTitle className="text-xl flex items-center gap-2">
-              <PlaylistIcon className="size-5" />
-              Playlist
-              {songCount > 0 && (
-                <Badge variant="outline">{songCount} tracks</Badge>
-              )}
-            </SheetTitle>
-          </div>
+        <SheetHeader className="p-4 pb-2 shrink-0 text-left">
+          <SheetTitle className="text-xl flex items-center gap-2 pr-8">
+            <PlaylistIcon className="size-5 shrink-0" />
+            Queue
+            {songCount > 0 && (
+              <Badge variant="outline">
+                {songCount} {songCount === 1 ? "track" : "tracks"}
+              </Badge>
+            )}
+          </SheetTitle>
+          <SheetDescription className="truncate">
+            {queue.source?.label
+              ? `From ${queue.source.label}`
+              : "What is playing and what comes next"}
+          </SheetDescription>
         </SheetHeader>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* Playlist controls */}
-          <div className="flex items-center justify-center p-2 border rounded-md mx-4">
-            <AudioControls />
-            <Separator orientation="vertical" className="mx-2 h-6" />
-            <PlaylistControls hideTrigger />
-          </div>
-          <div className="flex items-center px-4">
-            <AudioPlayExtrasBar hideSongName />
-          </div>
-
-          {/* Simple playlist view without controls to avoid circular dependencies */}
-          <Separator className="shrink-0 mt-4" />
-
-          {/* Playlist content */}
-          <ScrollArea className="flex-1 h-full w-full overflow-auto">
-            <div className="p-4">
-              {playlist.songs.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {playlist.songs.map( ( song, index ) => (
-                    <PlaylistSongTile key={song.id || index} song={song} index={index} />
-                  ) )}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
-                  <PlaylistIcon className="size-12" />
-                  <p className="mt-2">Your playlist is empty</p>
-                  <p className="text-sm mt-1">Add songs to get started</p>
-                </div>
+        {songCount > 0 && (
+          <div className="shrink-0 px-4 pb-3 flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1" aria-live="polite">
+                <p className="text-sm font-medium line-clamp-2">
+                  {current?.title}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {songCount > 1 ? `${queue.index + 1} / ${songCount}` : ""}
+                  {songCount > 1 && current?.subtitle ? " · " : ""}
+                  {current?.subtitle}
+                </p>
+              </div>
+              {current?.href && (
+                <Button variant="outline" size="sm" asChild onClick={close}>
+                  <Link href={current.href}>
+                    <BookOpenText className="size-4" />
+                    Text
+                  </Link>
+                </Button>
               )}
             </div>
-          </ScrollArea>
-
-          <div className="p-4 mt-auto text-xs text-center text-muted-foreground">
-            Your audio playlist
+            <div className="flex flex-wrap items-center justify-center gap-x-2 rounded-md border p-1">
+              <AudioControls />
+              <Separator
+                orientation="vertical"
+                className="h-6 hidden min-[380px]:block"
+              />
+              <PlaylistControls />
+            </div>
+            <AudioPlayExtrasBar hideSongName />
           </div>
+        )}
+
+        <Separator className="shrink-0" />
+
+        <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto p-2 sm:p-4">
+          {songCount > 0 ? (
+            <ol className="flex flex-col gap-1">
+              {queue.tracks.map((track, index) => (
+                <QueueRow
+                  key={track.src}
+                  track={track}
+                  index={index}
+                  isActive={index === queue.index}
+                  isPlaying={isPlaying && index === queue.index}
+                  onPlay={onRowPlay}
+                  onRemove={onRowRemove}
+                />
+              ))}
+            </ol>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground">
+              <PlaylistIcon className="size-12" />
+              <p className="mt-2">Nothing in the queue</p>
+              <p className="text-sm mt-1 max-w-xs">
+                Use the play button on a verse, a chapter or a book to start
+                listening.
+              </p>
+            </div>
+          )}
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-/**
- * Individual song tile for the playlist sheet
- */
-function PlaylistSongTile( { song, index }: { song: Song; index: number } ) {
-  const [ playlist, dispatch ] = usePlaylistAtom();
-  const { isPlaying, play, pause, getPosition } = useAudioPlayerContext();
-
-  const isActive = playlist.currentSongIndex === index;
-  const isSongPlaying = isPlaying && isActive;
-
-  // Extract filename from path for cleaner display
-  const displayTitle =
-    song.title || ( song.src ? song.src.split( "/" ).pop() : "Unknown" );
-
-  // Handle play/pause for this specific song
-  const handlePlayPause = useCallback( () => {
-    if ( isActive ) {
-      // If this is the current song, just toggle play/pause
-      if ( isSongPlaying ) {
-        pause();
-        dispatch( { type: "PAUSE", payload: getPosition() } );
-      } else {
-        play();
-      }
-    } else {
-      // If this is not the current song, set it as current
-      dispatch( { type: "SET_CURRENT_INDEX", payload: index } );
-    }
-  }, [ dispatch, index, isActive, isSongPlaying, play, pause, getPosition ] );
-
-  const handleRemove = useCallback( () => {
-    dispatch( { type: "REMOVE_SONG", payload: index } );
-  }, [ dispatch, index ] );
-
+const QueueRow = memo(function QueueRow({
+  track,
+  index,
+  isActive,
+  isPlaying,
+  onPlay,
+  onRemove,
+}: {
+  track: Track;
+  index: number;
+  isActive: boolean;
+  isPlaying: boolean;
+  onPlay: (index: number, isActive: boolean) => void;
+  onRemove: (index: number) => void;
+}) {
   return (
-    <div
-      className={`flex items-center gap-3 px-3 py-1 rounded-md transition-colors
-        ${isActive
-          ? "bg-secondary/20 border border-secondary"
-          : "hover:bg-muted/60"}`}
+    <li
+      data-current={isActive}
+      className={cn(
+        "flex items-center gap-1 rounded-md border border-transparent pr-1 transition-colors",
+        isActive ? "bg-secondary/20 border-secondary" : "hover:bg-muted/60",
+      )}
     >
+      <button
+        type="button"
+        onClick={() => onPlay(index, isActive)}
+        aria-label={`${isPlaying ? "Pause" : "Play"} ${track.title}`}
+        aria-current={isActive ? "true" : undefined}
+        className="flex min-h-11 min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <span
+          className={cn(
+            "flex w-7 shrink-0 justify-center text-xs tabular-nums text-muted-foreground",
+            isActive && "text-primary",
+          )}
+        >
+          {isPlaying ? (
+            <PauseIcon className="size-5" />
+          ) : isActive ? (
+            <PlayIcon className="size-5" />
+          ) : (
+            index + 1
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">
+            {track.title}
+          </span>
+          {track.subtitle && (
+            <span className="block truncate text-xs text-muted-foreground">
+              {track.subtitle}
+            </span>
+          )}
+        </span>
+      </button>
       <Button
         variant="ghost"
         size="icon"
-        onClick={handlePlayPause}
-        aria-label={isSongPlaying ? "Pause" : "Play"}
-        className="shrink-0"
+        onClick={() => onRemove(index)}
+        aria-label={`Remove ${track.title} from the queue`}
+        title="Remove from the queue"
+        className="size-9 shrink-0 opacity-70 hover:opacity-100"
       >
-        {isSongPlaying ? (
-          <PauseIcon className="size-5" />
-        ) : (
-          <PlayIcon className="size-5" />
-        )}
+        <RemoveIcon className="size-4" />
       </Button>
-
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium line-clamp-1 overflow-ellipsis">{displayTitle}</p>
-        {song.artist && (
-          <p className="text-xs text-muted-foreground line-clamp-1 overflow-ellipsis">
-            {song.artist}
-          </p>
-        )}
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleRemove}
-        aria-label="Remove from playlist"
-        className="shrink-0 opacity-70 hover:opacity-100"
-      >
-        <Icons.close className="size-4" />
-      </Button>
-    </div>
+    </li>
   );
-}
+});

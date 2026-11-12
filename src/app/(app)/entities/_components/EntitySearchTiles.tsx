@@ -15,10 +15,9 @@ import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
 import {
   keepPreviousData,
-  useMutation,
   useQuery,
 } from "@tanstack/react-query";
-import { fetchAudioLinksIncludingChildren, fetchEntities } from "../actions";
+import { fetchEntities } from "../actions";
 import { ColumnFiltersState } from "@tanstack/react-table";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import EntityNavigationView from "./EntityBreadcrumbView";
@@ -30,7 +29,8 @@ import {
 } from "@/hooks/use-config";
 import { Icons } from "@/components/utils/icons";
 import { toast } from "sonner";
-import { usePlaylistDispatchAtom } from "@/hooks/use-songs";
+import { usePlayEntity } from "@/hooks/use-audio-queue";
+import EntityPlayButton from "@/components/blocks/EntityPlayButton";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 
 interface EntitySearchTilesProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -131,57 +131,12 @@ function EntitySearchGrid({
   onBookmarkClicked?: (model: Entity) => void;
 }) {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  const dispatch = usePlaylistDispatchAtom();
+  const playEntity = usePlayEntity();
 
   const limit = parseInt(useQueryLimitAtomValue());
   const page = parseInt(searchParams.get("offset") || "0", 10);
 
   const language = useLanguageAtomValue();
-
-  const { mutate: addAudioToPlaylist } = useMutation({
-    mutationKey: ["entityAudio", language, forEntity],
-    mutationFn: async () => {
-      if (forEntity?.audio) {
-        dispatch({
-          type: "ADD_SONG",
-          payload: {
-            id: forEntity.id,
-            title: forEntity.title,
-            album: "",
-            artist: "",
-            src: forEntity.audio,
-            position: 0,
-          } as Song,
-        });
-      }
-      const entities = await fetchAudioLinksIncludingChildren({
-        id: forEntity?.id || "",
-        language,
-      });
-      return entities.map(
-        (e) =>
-          ({
-            id: e.id,
-            title: e.text,
-            album: "",
-            artist: "",
-            src: e.audio,
-            position: 0,
-          }) as Song,
-      );
-    },
-    onSuccess: (res) => {
-      if (res) {
-        // console.log(res);
-        res.forEach((song) => {
-          dispatch({
-            type: "ADD_SONG",
-            payload: song,
-          });
-        });
-      }
-    },
-  });
 
   const { data, isFetching, isLoading, error, refetch } = useQuery({
     queryKey: [
@@ -273,22 +228,12 @@ function EntitySearchGrid({
           )}
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() =>
-              addAudioToPlaylist(undefined, {
-                onSuccess: (res) => {
-                  if (res.length > 0 || forEntity?.audio)
-                    toast.success("Audio added to playlist");
-                  else toast.error("No audio found");
-                },
-              })
-            }
-            type="button"
-            variant="outline"
-            size="icon"
-          >
-            <Icons.play className="size-5" />
-          </Button>
+          {forEntity && (
+            <EntityPlayButton
+              entityId={forEntity.id}
+              label={(forEntity.subTitle || "all").toLowerCase()}
+            />
+          )}
           <PaginationDDLB
             totalCount={entitiesCount}
             limit={limit}
@@ -326,6 +271,7 @@ function EntitySearchGrid({
                   onTileClicked={onTileClicked}
                   onEditClicked={onEditClickedAction}
                   onDeleteClicked={onDeleteClickedAction}
+                  onPlayClicked={(tile) => playEntity(tile.id)}
                 />
               );
           })}

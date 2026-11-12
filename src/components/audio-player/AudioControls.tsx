@@ -10,18 +10,25 @@ import {
   MdOutlinePlayCircle,
   MdOutlinePauseCircle,
 } from "react-icons/md";
+import { Spinner } from "../ui/spinner";
 
 interface AudioControlsProps {
   className?: string;
+  /** Only previous / play / next, for the narrowest places. */
+  compact?: boolean;
 }
 
 /**
  * Reusable transport controls component for audio playback
  * (play/pause, skip, seek forward/backward)
  */
-const AudioControls: React.FC<AudioControlsProps> = ({ className }) => {
+const AudioControls: React.FC<AudioControlsProps> = ({
+  className,
+  compact,
+}) => {
   const {
     isPlaying,
+    isLoading,
     handlePlayPause,
     handleNext,
     handlePrevious,
@@ -38,45 +45,56 @@ const AudioControls: React.FC<AudioControlsProps> = ({ className }) => {
       aria-label="Playback controls"
     >
       <AudioControlButton
-        icon={<MdSkipPrevious className="size-4 sm:size-5" />}
+        icon={<MdSkipPrevious className="size-5" />}
         label="Previous track"
+        title="Previous (restarts the track first)"
         onClick={handlePrevious}
         disabled={!canGoPrevious}
-        className="min-h-8 min-w-8 sm:min-h-9 sm:min-w-9"
+        className="size-9"
       />
-      <AudioControlButton
-        icon={<MdOutlineFastRewind className="size-4 sm:size-5" />}
-        label="Rewind"
-        onClick={() => handleSeekRelative(-10)}
-        disabled={!isPlaying}
-        className="min-h-8 min-w-8 sm:min-h-9 sm:min-w-9"
-      />
+      {!compact && (
+        <AudioControlButton
+          icon={<MdOutlineFastRewind className="size-5" />}
+          label="Back 10 seconds"
+          title="Back 10 seconds"
+          onClick={() => handleSeekRelative(-10)}
+          disabled={!hasSongs}
+          className="size-9"
+        />
+      )}
       <AudioControlButton
         icon={
-          isPlaying ? (
-            <MdOutlinePauseCircle className="size-5 sm:size-6" />
+          isLoading ? (
+            <Spinner className="size-5" />
+          ) : isPlaying ? (
+            <MdOutlinePauseCircle className="size-6" />
           ) : (
-            <MdOutlinePlayCircle className="size-5 sm:size-6" />
+            <MdOutlinePlayCircle className="size-6" />
           )
         }
         label={isPlaying ? "Pause" : "Play"}
+        title={isPlaying ? "Pause" : "Play"}
         onClick={handlePlayPause}
         disabled={!hasSongs}
-        className="min-h-9 min-w-9 sm:min-h-10 sm:min-w-10"
+        className="size-10"
       />
+      {!compact && (
+        <AudioControlButton
+          icon={<MdOutlineFastForward className="size-5" />}
+          label="Forward 10 seconds"
+          title="Forward 10 seconds"
+          onClick={() => handleSeekRelative(10)}
+          disabled={!hasSongs}
+          className="size-9"
+        />
+      )}
       <AudioControlButton
-        icon={<MdOutlineFastForward className="size-4 sm:size-5" />}
-        label="Fast forward"
-        onClick={() => handleSeekRelative(10)}
-        disabled={!isPlaying}
-        className="min-h-8 min-w-8 sm:min-h-9 sm:min-w-9"
-      />
-      <AudioControlButton
-        icon={<MdSkipNext className="size-4 sm:size-5" />}
+        icon={<MdSkipNext className="size-5" />}
         label="Next track"
+        title="Next"
         onClick={handleNext}
         disabled={!canGoNext}
-        className="min-h-8 min-w-8 sm:min-h-9 sm:min-w-9"
+        className="size-9"
       />
     </div>
   );

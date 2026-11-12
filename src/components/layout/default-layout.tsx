@@ -12,6 +12,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import AudioPlayer from "../audio-player/player";
+import AudioEngine from "../audio-player/AudioEngine";
 // Import the new playlist components
 import { PlaylistSheet } from "../audio-player/PlaylistSheet";
 import { PlaylistSheetProvider } from "@/hooks/use-playlist-sheet";
@@ -72,6 +73,9 @@ const WithDefaultLayout = ({
           </SidebarInset>
         </SidebarProvider>
 
+        {/* The single place audio is actually played from */}
+        <AudioEngine />
+
         {/* Render the playlist sheet at the root level */}
         <PlaylistSheet />
 
@@ -83,7 +87,6 @@ const WithDefaultLayout = ({
 };
 
 const TopNavBar = () => {
-  const { open: isSidebarOpened, isMobile } = useSidebar();
   return (
     <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/40 bg-background/80 backdrop-blur-md transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-14">
       <div className="flex flex-1 items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4 justify-between">
@@ -93,14 +96,7 @@ const TopNavBar = () => {
             orientation="vertical"
             className="mr-1 sm:mr-2 h-4 shrink-0"
           />
-          <AudioPlayer
-            className={cn(
-              "hidden min-w-0",
-              isMobile ? "hidden" : "md:flex",
-              isSidebarOpened && "xl:hidden",
-            )}
-            isMini
-          />
+          <AudioPlayer />
         </div>
         <div className="flex flex-row gap-1 sm:gap-2 shrink-0">
           {/* Use the simplified PlaylistTrigger component */}

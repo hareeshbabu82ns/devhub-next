@@ -1,118 +1,74 @@
 import { useCallback } from "react";
 import { useAudioPlayerContext } from "react-use-audio-player";
-import { usePlaylistAtom } from "./use-songs";
+import { currentTrack, hasNext, hasPrev } from "@/lib/audio/queue";
+import { useAudioQueue } from "./use-audio-queue";
+
+/** "Previous" restarts the track once it is further in than this (seconds). */
+const RESTART_AFTER = 3;
 
 /**
- * Custom hook providing unified audio controls that can be shared across components
- * This centralizes audio logic to prevent duplicate implementations
+ * Transport and queue controls shared by every player surface (top bar,
+ * sidebar, phone bar, queue sheet), so they all behave the same.
  */
 export function useAudioControls() {
-  const { play, pause, getPosition, seek, duration, isPlaying } =
+  const { play, pause, getPosition, seek, duration, isPlaying, isLoading } =
     useAudioPlayerContext();
+  const [queue, dispatch] = useAudioQueue();
 
-  const [playlist, dispatch] = usePlaylistAtom();
+  const current = currentTrack(queue);
+  const hasSongs = queue.tracks.length > 0;
 
-  // Derived states for player logic
-  const canGoNext =
-    playlist.songs.length > 0 &&
-    playlist.currentSongIndex !== -1 &&
-    playlist.currentSongIndex < playlist.songs.length - 1;
-
-  const canGoPrevious =
-    playlist.songs.length > 0 &&
-    playlist.currentSongIndex !== -1 &&
-    playlist.currentSongIndex > 0;
-
-  const hasSongs = playlist.songs.length > 0;
-
-  // Handler for playing or pausing the current song
   const handlePlayPause = useCallback(() => {
-    if (isPlaying) {
-      pause();
-      dispatch({ type: "PAUSE", payload: getPosition() });
-    } else {
-      play();
-    }
-  }, [isPlaying, pause, play, dispatch, getPosition]);
+    if (isPlaying) pause();
+    else play();
+  }, [isPlaying, pause, play]);
 
-  // Handler for skipping to the next song
-  const handleNext = useCallback(() => {
-    dispatch({ type: "NEXT_SONG" });
-  }, [dispatch]);
+  const handleNext = useCallback(() => dispatch({ type: "next" }), [dispatch]);
 
-  // Handler for going to the previous song
   const handlePrevious = useCallback(() => {
-    dispatch({ type: "PREV_SONG" });
-  }, [dispatch]);
+    // like any music player: first press goes back to the start of the track
+    if (getPosition() > RESTART_AFTER) seek(0);
+    else dispatch({ type: "prev" });
+  }, [dispatch, getPosition, seek]);
 
-  // Handler for seeking forward or backward
-  const handleSeek = useCallback(
-    (direction: "forward" | "backward") => {
-      const currentPosition = getPosition();
-      const seekAmount = playlist.seekInterval || 10;
-
-      // Calculate new position based on direction with bounds checking
-      let newPosition;
-      if (direction === "forward") {
-        newPosition = Math.min(
-          duration || Infinity,
-          currentPosition + seekAmount,
-        );
-      } else {
-        newPosition = Math.max(0, currentPosition - seekAmount);
-      }
-
-      seek(newPosition);
-    },
-    [getPosition, seek, playlist.seekInterval, duration],
-  );
-
-  // Handler for seeking forward relatively by payload amount
   const handleSeekRelative = useCallback(
     (seconds: number) => {
-      const currentPosition = getPosition();
-      let newPosition = currentPosition + seconds;
-
-      // Apply bounds checking
-      if (duration && newPosition > duration) {
-        newPosition = duration;
-      }
-      if (newPosition < 0) {
-        newPosition = 0;
-      }
-
-      seek(newPosition);
-      dispatch({ type: "SEEK_RELATIVE", payload: seconds });
+      let position = getPosition() + seconds;
+      if (duration && position > duration) position = duration;
+      if (position < 0) position = 0;
+      seek(position);
     },
-    [getPosition, seek, dispatch, duration],
+    [getPosition, seek, duration],
   );
 
-  // Handler for toggling repeat mode
-  const handleToggleRepeat = useCallback(() => {
-    dispatch({ type: "TOGGLE_REPEAT" });
-  }, [dispatch]);
+  const handleCycleRepeat = useCallback(
+    () => dispatch({ type: "cycleRepeat" }),
+    [dispatch],
+  );
 
-  // Handler for clearing the playlist
-  const handleClearPlaylist = useCallback(() => {
-    pause();
-    dispatch({ type: "CLEAR_PLAYLIST" });
-  }, [dispatch, pause]);
+  const handleClearPlaylist = useCallback(
+    () => dispatch({ type: "clear" }),
+    [dispatch],
+  );
 
   return {
-    // Player state
     isPlaying,
-    canGoNext,
-    canGoPrevious,
+    isLoading,
+    current,
+    index: queue.index,
+    count: queue.tracks.length,
+    source: queue.source,
+    canGoNext: hasNext(queue),
+    // going "back" inside a track is always possible
+    canGoPrevious: hasSongs && (hasPrev(queue) || queue.index === 0),
     hasSongs,
-    repeat: playlist.repeat,
+    repeat: queue.repeat,
 
-    // Actions
     handlePlayPause,
     handleNext,
     handlePrevious,
-    handleSeek,
     handleSeekRelative,
-    handleToggleRepeat,
+    handleCycleRepeat,
     handleClearPlaylist,
   };
 }

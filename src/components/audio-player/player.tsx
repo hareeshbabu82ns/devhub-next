@@ -1,130 +1,58 @@
-import { useAudioPlayerContext } from "react-use-audio-player";
-import { useCallback, useEffect, useRef } from "react";
-import { usePlaylistAtom } from "@/hooks/use-songs";
-import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import AudioPlayExtrasBar from "./AudioPlayExtrasBar";
+import { useAudioControls } from "@/hooks/use-audio-controls";
+import { usePlaylistSheet } from "@/hooks/use-playlist-sheet";
 import AudioControls from "./AudioControls";
-// import PlaylistControls from "./PlaylistControls";
-import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
-import { LS_AUDIO_PLAYER_VOLUME } from "@/lib/constants";
 
 interface AudioPlayerProps {
   className?: string;
-  isMini?: boolean;
-  isSidebar?: boolean;
 }
 
 /**
- * Main audio player component that displays audio and playlist controls
- * with optional layout variants (mini, sidebar)
+ * The now-playing strip of the top bar: the one place playback is controlled
+ * from on every page and screen size. It sits in the bar's own row, so it
+ * never covers page content. Tapping the title opens the queue, which has
+ * the seek bar, speed, volume and the track list.
+ *
+ * Renders nothing while the queue is empty. Playback itself is done by
+ * AudioEngine; this only shows state and dispatches.
  */
-const AudioPlayer = ({ className, isMini, isSidebar }: AudioPlayerProps) => {
-  const { load, seek, src } = useAudioPlayerContext();
-  const [playlist, dispatch] = usePlaylistAtom();
-  const savedVolume = useReadLocalStorage<number>(LS_AUDIO_PLAYER_VOLUME) || 1;
+const AudioPlayer = ({ className }: AudioPlayerProps) => {
+  const { current, index, count, hasSongs } = useAudioControls();
+  const { setIsOpen } = usePlaylistSheet();
 
-  // Track if user has requested to stop playback - persists between component renders
-  const userPausedRef = useRef(false);
-
-  // Effect to handle song loading with optimized dependencies
-  useEffect(() => {
-    // Only load a new song when necessary
-    if (
-      playlist.currentSongIndex >= 0 &&
-      playlist.currentSongIndex < playlist.songs.length &&
-      src !== playlist.songs[playlist.currentSongIndex].src
-    ) {
-      const currentSong = playlist.songs[playlist.currentSongIndex];
-      const shouldAutoPlay = !userPausedRef.current;
-
-      load(currentSong.src, {
-        autoplay: shouldAutoPlay,
-        initialVolume: savedVolume,
-        loop: false, // Don't use native loop - we'll handle this in our code
-        html5: playlist.stream,
-        format: "mp3",
-        onload: () => {
-          // Seek to the saved position when loading
-          if (currentSong.position > 0) {
-            seek(currentSong.position);
-          }
-        },
-        onend: handleTrackEnd,
-      });
-    }
-  }, [playlist.currentSongIndex, src]); // Optimized dependency array
-
-  // Centralized track end handler to handle song completion behavior
-  const handleTrackEnd = useCallback(() => {
-    const { repeat, songs, currentSongIndex } = playlist;
-
-    // When a song ends
-    if (repeat) {
-      // For single track repeat, just replay
-      if (songs.length === 1) {
-        seek(0);
-        return;
-      }
-
-      // Don't auto-proceed if user explicitly paused
-      if (userPausedRef.current) {
-        seek(0); // Reset to beginning but don't play
-      } else {
-        dispatch({ type: "NEXT_SONG" });
-      }
-    } else {
-      dispatch({ type: "NEXT_SONG" });
-    }
-  }, [playlist, seek, dispatch]);
-
-  // Don't render if no songs in playlist
-  if (playlist.songs.length === 0) {
-    return null;
-  }
+  if (!hasSongs) return null;
 
   return (
     <div
       className={cn(
-        "flex border bg-muted rounded-sm",
-        isMini
-          ? "flex-row items-center gap-1 sm:gap-2 p-1 min-w-0"
-          : "flex-col gap-2 p-2",
+        "flex min-w-0 flex-1 items-center gap-1 rounded-md border bg-muted/60 pr-1 sm:max-w-md",
         className,
       )}
       role="region"
-      aria-label="Audio player controls"
+      aria-label="Audio player"
     >
-      {/* Player Controls layout adapts based on props */}
-      <div
-        className={cn(
-          "flex min-w-0",
-          isSidebar
-            ? "flex-col gap-2"
-            : "flex-row flex-wrap justify-center gap-1 sm:gap-2",
-          isMini ? "items-center" : "",
-        )}
+      {/* previous / next need more room than a phone has next to the title */}
+      <AudioControls compact className="hidden shrink-0 sm:flex" />
+      <AudioControls
+        compact
+        className="shrink-0 sm:hidden [&>button:first-child]:hidden"
+      />
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="min-w-0 flex-1 rounded-sm px-1 py-0.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        title="Open the queue"
+        aria-label={`Now playing: ${current?.title ?? "nothing"}. Open the queue`}
       >
-        {/* Audio Controls (play/pause, prev/next, seek) */}
-        <AudioControls />
-
-        {/* Separator with responsive orientation */}
-        {!isSidebar && !isMini && (
-          <Separator orientation="vertical" className="h-8" />
-        )}
-        {/* {isSidebar && <Separator className="my-1" />} */}
-
-        {/* Playlist Controls (repeat, clear, playlist) - direct render without passing trigger prop */}
-        {/* <PlaylistControls /> */}
-      </div>
-
-      {/* Extended Controls - hide in mini mode */}
-      {!isMini && (
-        <div className="flex flex-col flex-1 gap-2 min-w-0">
-          <Separator />
-          <AudioPlayExtrasBar isSidebar={isSidebar} />
-        </div>
-      )}
+        <span className="block truncate text-sm font-medium leading-tight">
+          {current?.title ?? "Queue"}
+        </span>
+        <span className="block truncate text-xs leading-tight text-muted-foreground">
+          {count > 1 ? `${index + 1} / ${count}` : ""}
+          {count > 1 && current?.subtitle ? " · " : ""}
+          {current?.subtitle ?? ""}
+        </span>
+      </button>
     </div>
   );
 };

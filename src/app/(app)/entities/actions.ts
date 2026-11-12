@@ -19,7 +19,8 @@ import {
   setLanguageValue,
   syncScripts,
 } from "@/lib/entity-text";
-import { isEntityTypeCode } from "@/lib/entity-types";
+import { entityChildTypes, isEntityTypeCode } from "@/lib/entity-types";
+import { EntityAudio, Track, trackTitle } from "@/lib/audio/queue";
 import { getReadingNeighbours, ReadingRef } from "@/lib/db/entity-flow";
 import { callTTSApi, mapDbToEntity } from "./utils";
 import {
@@ -31,40 +32,115 @@ import { resolveAssetPath } from "@/lib/assets/server";
 import { assetUrl } from "@/lib/assets/shared";
 import { mkdir, writeFile } from "fs/promises";
 
-export const fetchAudioLinksIncludingChildren = async ({
+// Enough for the largest books; keeps a play request on a deity or an author
+// from walking the whole library.
+const AUDIO_MAX_DEPTH = 6;
+const AUDIO_MAX_NODES = 5000;
+
+/**
+ * Everything that can be played for an entity, in reading order: its own
+ * recording and the recordings of what sits under it (verses of a chapter,
+ * chapters and verses of a book). A chapter that has a recording of its own
+ * is played as that one file, its verses are not added on top of it.
+ */
+export const fetchAudioTracks = async ({
   id,
   language,
 }: {
   id: Entity["id"];
   language: string;
-}) => {
+}): Promise<EntityAudio> => {
   const session = await auth();
   if (!session) {
     throw new Error("Unauthorized");
   }
 
-  const entities = await db.entity.findMany({
-    where: {
-      parents: {
-        has: id,
-      },
-      audio: { not: "" },
-    },
-    select: {
-      id: true,
-      audio: true,
-      text: true,
-      order: true,
-    },
-  });
+  const select = {
+    id: true,
+    type: true,
+    order: true,
+    audio: true,
+    text: true,
+    parents: true,
+  };
+  type Node = Prisma.EntityGetPayload<{ select: typeof select }>;
 
-  return entities.map((e) => ({
-    id: e.id,
-    audio: e.audio,
-    text: (e.text.find((w: any) => w.language === language) || e.text[0])
-      .value as string,
-    order: e.order,
-  }));
+  const root = await db.entity.findUnique({ where: { id }, select });
+  if (!root) return { label: "", own: null, tracks: [] };
+
+  const textOf = (e: Node) =>
+    (
+      (e.text?.find((w) => w.language === language) || e.text?.[0])?.value ?? ""
+    ).toString();
+  const isContainer = (e: Node) => entityChildTypes(e.type).length > 0;
+  const hrefOf = (e: Node, parentId?: string) =>
+    !isContainer(e) && parentId
+      ? `/entities/${parentId}/child/${e.id}`
+      : `/entities/${e.id}`;
+
+  // walk down level by level: one query per level, not one per chapter
+  const childrenOf = new Map<string, Node[]>();
+  const seen = new Set([root.id]);
+  let level = isContainer(root) ? [root.id] : [];
+  for (
+    let depth = 0;
+    depth < AUDIO_MAX_DEPTH && level.length > 0 && seen.size < AUDIO_MAX_NODES;
+    depth++
+  ) {
+    const rows = await db.entity.findMany({
+      where: { parents: { hasSome: level } },
+      select,
+      orderBy: [{ order: "asc" }, { id: "asc" }],
+      take: AUDIO_MAX_NODES - seen.size + 1,
+    });
+    const inLevel = new Set(level);
+    const next: string[] = [];
+    for (const row of rows) {
+      if (seen.has(row.id)) continue;
+      const parentId = row.parents.find((p) => inLevel.has(p));
+      if (!parentId) continue;
+      seen.add(row.id);
+      const siblings = childrenOf.get(parentId);
+      if (siblings) siblings.push(row);
+      else childrenOf.set(parentId, [row]);
+      if (isContainer(row) && !row.audio) next.push(row.id);
+    }
+    level = next;
+  }
+
+  const tracks: Track[] = [];
+  const walk = (parentId: string, parentTitle: string) => {
+    for (const child of childrenOf.get(parentId) ?? []) {
+      const number = `${(child.order ?? 0) + 1}`;
+      if (child.audio) {
+        const container = isContainer(child);
+        tracks.push({
+          id: child.id,
+          src: child.audio,
+          title: trackTitle(textOf(child), `${parentTitle} · ${number}`),
+          subtitle: container ? parentTitle : `${parentTitle} · ${number}`,
+          href: hrefOf(child, parentId),
+        });
+      } else if (isContainer(child)) {
+        walk(child.id, trackTitle(textOf(child), number));
+      }
+    }
+  };
+  const label = trackTitle(textOf(root));
+  walk(root.id, label);
+
+  return {
+    label,
+    own: root.audio
+      ? {
+          id: root.id,
+          src: root.audio,
+          title: label,
+          href: hrefOf(root, root.parents[0]),
+        }
+      : null,
+    tracks,
+  };
 };
 
 export const entityHierarchy = async ({
