@@ -30,6 +30,23 @@ export const DictItemFormSchema = z.object({
       }),
     )
     .optional(),
-  sourceData: z.string().optional().default("{}"),
+  sourceData: z
+    .string()
+    .optional()
+    .default("{}")
+    .refine(
+      (v) => {
+        if (!v || !v.trim()) return true;
+        try {
+          JSON.parse(v);
+          return true;
+        } catch {
+          return false;
+        }
+      },
+      { message: "Source data must be valid JSON" },
+    ),
   phonetic: z.string().optional().default(""),
+  /** Kept in sourceData.audioUrl, where the audio player looks for it */
+  audio: z.string().optional().default(""),
 });

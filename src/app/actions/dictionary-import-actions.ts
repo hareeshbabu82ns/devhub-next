@@ -101,7 +101,7 @@ export async function importSingleDictionary(
   try {
     // Check authentication
     const user = await auth();
-    if (!user) {
+    if (!user || user.user?.role !== "ADMIN") {
       // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
@@ -179,7 +179,7 @@ export async function importMultipleDictionariesAction(
   try {
     // Check authentication
     const user = await auth();
-    if (!user) {
+    if (!user || user.user?.role !== "ADMIN") {
       // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
@@ -360,7 +360,7 @@ export async function deleteDictionaryWords(
   try {
     // Check authentication
     const user = await auth();
-    if (!user) {
+    if (!user || user.user?.role !== "ADMIN") {
       // || user.user.role !== "ADMIN") {
       return { status: "error", error: "Unauthorized. Admin access required." };
     }
@@ -412,7 +412,7 @@ export async function reprocessDictionaryWords(
   try {
     // Check authentication
     const user = await auth();
-    if (!user) {
+    if (!user || user.user?.role !== "ADMIN") {
       return { status: "error", error: "Authentication required" };
     }
 

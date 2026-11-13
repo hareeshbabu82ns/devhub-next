@@ -1,523 +1,279 @@
 /**
- * DictionaryFilters - Advanced Filter Sidebar
+ * DictionaryFilters - search options sheet
  *
- * Phase 5: User Story 2 (US2) - Advanced Filter Options
- * Tasks: T74-T86
- *
- * Purpose: Collapsible filter sidebar with Apply button pattern
- * Features:
- * - Origin multi-select
- * - Language select
- * - Word length range
- * - Has audio checkbox
- * - Has attributes checkbox
- * - Date range picker
- * - Apply/Clear buttons
- * - Pending state management
+ * Dictionaries (grouped, with select-all per group), how to match, sort and
+ * view. Choices are drafted in the sheet and applied together; the view
+ * mode applies immediately since it only changes the display.
  */
 
 "use client";
 
-// import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-// import { Checkbox } from "@/components/ui/checkbox";
-// import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetFooter,
-  SheetClose,
 } from "@/components/ui/sheet";
-// import {
-//   Select,
-//   SelectContent,
-//   SelectItem,
-//   SelectTrigger,
-//   SelectValue,
-// } from "@/components/ui/select";
-import MultiSelectChips from "@/components/inputs/MultiSelectChips";
-import { FormSelectOptions } from "@/components/inputs/FormSelect";
-import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
-import { DICTIONARY_ORIGINS_DDLB, DICTIONARY_LANGUAGES } from "../utils";
-import {
-  FilterIcon,
-  XIcon,
-  CheckIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-// import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { SearchModeToggle } from "./SearchModeToggle";
-import { SearchMode } from "@/lib/dictionary/types";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { MatchMode, MATCH_MODES } from "@/lib/dictionary/lookup-query";
+import type { LookupSort } from "@/lib/dictionary/lookup-service";
+import {
+  DICTIONARY_CATALOG,
+  DICTIONARY_GROUPS,
+} from "@/lib/dictionary/dictionary-catalog";
+import { ArrowDownIcon, ArrowUpIcon, CheckIcon, SlidersHorizontalIcon } from "lucide-react";
 import { ViewMode } from "../types";
 import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
+import { MATCH_MODE_INFO } from "./DictionarySearchControls";
+import { DictionaryUrlStateApi } from "./use-dictionary-url-state";
 
 interface DictionaryFiltersProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onApply?: () => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  state: DictionaryUrlStateApi;
 }
 
-/**
- * T74-T86: Advanced Filter Sidebar with Apply Button Pattern
- * Mobile-responsive drawer with sticky Apply button
- */
+const SORT_OPTIONS: { value: LookupSort | "auto"; label: string; hint: string }[] = [
+  { value: "auto", label: "Automatic", hint: "Best match when searching, dictionary order when browsing" },
+  { value: "relevance", label: "Best match", hint: "Exact words first, then shorter words" },
+  { value: "dictionary", label: "Dictionary order", hint: "As the entries appear in each dictionary" },
+  { value: "alphabetical", label: "Latin A–Z", hint: "By romanised spelling" },
+];
+
 export function DictionaryFilters({
-  viewMode, // T87
-  onViewModeChange, // T87
   open,
   onOpenChange,
-  onApply,
+  viewMode,
+  onViewModeChange,
+  state,
 }: DictionaryFiltersProps) {
-  const {
-    filters,
-    pendingFilters,
-    updatePendingFilter,
-    applyFilters,
-    discardPendingFilters,
-    clearFilters,
-    hasPendingChanges,
-    validation,
-    isEmpty,
-  } = useDictionaryFilters();
+  const [origins, setOrigins] = useState<string[]>(state.origins);
+  const [mode, setMode] = useState<MatchMode>(state.mode);
+  const [sort, setSort] = useState<LookupSort | "auto">(state.sortParam ?? "auto");
+  const [order, setOrder] = useState<"asc" | "desc">(state.order);
 
-  // T78: Handle Apply button click
-  const handleApply = () => {
-    applyFilters();
-    onOpenChange(false);
-    onApply?.();
-  };
-
-  // T77: Handle Clear All button click
-  const handleClearAll = () => {
-    clearFilters();
-    onOpenChange(false);
-  };
-
-  // T79: Discard pending changes on close without Apply
-  const handleClose = (shouldClose: boolean) => {
-    if (hasPendingChanges && shouldClose) {
-      discardPendingFilters();
+  // Start each opening from the current search
+  useEffect(() => {
+    if (open) {
+      setOrigins(state.origins);
+      setMode(state.mode);
+      setSort(state.sortParam ?? "auto");
+      setOrder(state.order);
     }
-    onOpenChange(shouldClose);
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
-  // T75: Convert origins to multi-select format
-  const selectedOrigins = pendingFilters.origins
-    .map((origin) => DICTIONARY_ORIGINS_DDLB.find((d) => d.value === origin))
-    .filter(Boolean) as FormSelectOptions[];
-
-  const handleOriginsChange = (value: FormSelectOptions[]) => {
-    updatePendingFilter(
-      "origins",
-      value.map((v) => v.value),
+  const selected = new Set(origins);
+  const toggle = (code: string, on: boolean) =>
+    setOrigins((prev) =>
+      on ? [...new Set([...prev, code])] : prev.filter((c) => c !== code),
     );
-  };
+  const setGroup = (codes: string[], on: boolean) =>
+    setOrigins((prev) =>
+      on
+        ? [...new Set([...prev, ...codes])]
+        : prev.filter((c) => !codes.includes(c)),
+    );
 
-  // T75: Word length range handlers
-  const handleWordLengthMin = (value: string) => {
-    const num = parseInt(value, 10);
-    updatePendingFilter("wordLengthMin", isNaN(num) ? null : num);
+  const apply = () => {
+    state.restore({
+      query: state.query,
+      mode,
+      origins,
+      sort: sort === "auto" ? null : sort,
+      order,
+    });
+    onOpenChange(false);
   };
-
-  const handleWordLengthMax = (value: string) => {
-    const num = parseInt(value, 10);
-    updatePendingFilter("wordLengthMax", isNaN(num) ? null : num);
-  };
-
-  // Count active filters (excluding sorting which is always set)
-  const activeFilterCount = [
-    pendingFilters.origins.length > 0,
-    pendingFilters.language !== null,
-    pendingFilters.wordLengthMin !== null,
-    pendingFilters.wordLengthMax !== null,
-    pendingFilters.hasAudio !== null,
-    pendingFilters.hasAttributes !== null,
-    pendingFilters.dateRange.start !== null,
-    pendingFilters.dateRange.end !== null,
-  ].filter(Boolean).length;
 
   return (
-    <Sheet open={open} onOpenChange={handleClose}>
-      {/* T74: Mobile-responsive drawer (full-height on mobile) */}
+    <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-full sm:max-w-md overflow-y-auto flex flex-col"
-        aria-label="Dictionary filters"
+        className="w-full sm:max-w-md flex flex-col gap-0 p-0"
+        aria-label="Dictionary search options"
       >
-        <SheetHeader>
+        <SheetHeader className="p-4 pb-2">
           <SheetTitle className="flex items-center gap-2">
-            <FilterIcon className="h-5 w-5" aria-hidden="true" />
-            Advanced Filters
-            {activeFilterCount > 0 && (
-              <Badge variant="secondary" className="ml-auto">
-                {activeFilterCount} active
-              </Badge>
-            )}
+            <SlidersHorizontalIcon className="size-5" aria-hidden="true" />
+            Search options
           </SheetTitle>
           <SheetDescription>
-            Refine your dictionary search results. Changes will be applied when
-            you click Apply.
+            Choose dictionaries, how words match, and how results are ordered.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 space-y-6 py-6">
-          {/* T87: View Mode Selector */}
-          <DictionaryViewModeSelector
-            value={viewMode}
-            onChange={onViewModeChange}
-          />
-
-          {/* T211: Search Mode Toggle */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Search Mode</Label>
-            <SearchModeToggle
-              value={pendingFilters.searchMode || SearchMode.FULLTEXT}
-              onChange={(mode) => updatePendingFilter("searchMode", mode)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Choose between full-text search, exact word match, or prefix
-              matching
-            </p>
-          </div>
-
-          {/* T75: Origin multi-select (chips on mobile) */}
-          <div className="space-y-2">
-            <Label htmlFor="filter-origins" className="text-base font-medium">
-              Dictionary Origins
-            </Label>
-            <MultiSelectChips
-              value={selectedOrigins}
-              onChange={handleOriginsChange}
-              defaultOptions={DICTIONARY_ORIGINS_DDLB}
-              placeholder="Select dictionaries..."
-              emptyIndicator={
-                <p className="text-center text-sm text-muted-foreground py-2">
-                  No dictionaries found
-                </p>
-              }
-              aria-label="Select dictionary origins"
-            />
-            <p className="text-xs text-muted-foreground">
-              Multiple origins use OR logic
-            </p>
-          </div>
-
-          {/* T75: Language select */}
-          {/* <div className="space-y-2">
-            <Label htmlFor="filter-language" className="text-base font-medium">
-              Language
-            </Label>
-            <Select
-              value={pendingFilters.language || ""}
-              onValueChange={(value) =>
-                updatePendingFilter("language", value || null)
-              }
-            >
-              <SelectTrigger id="filter-language" aria-label="Select language">
-                <SelectValue placeholder="All languages" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_">All languages</SelectItem>
-                {DICTIONARY_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div> */}
-
-          {/* T75: Word length range inputs (touch-optimized) */}
-          {/* <div className="space-y-2">
-            <Label className="text-base font-medium">Word Length Range</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="filter-word-min" className="text-sm">
-                  Min
-                </Label>
-                <Input
-                  id="filter-word-min"
-                  type="number"
-                  min="1"
-                  placeholder="1"
-                  value={pendingFilters.wordLengthMin ?? ""}
-                  onChange={(e) => handleWordLengthMin(e.target.value)}
-                  className="h-12 text-base" // Touch-friendly height
-                  aria-label="Minimum word length"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="filter-word-max" className="text-sm">
-                  Max
-                </Label>
-                <Input
-                  id="filter-word-max"
-                  type="number"
-                  min="1"
-                  placeholder="∞"
-                  value={pendingFilters.wordLengthMax ?? ""}
-                  onChange={(e) => handleWordLengthMax(e.target.value)}
-                  className="h-12 text-base" // Touch-friendly height
-                  aria-label="Maximum word length"
-                />
-              </div>
+        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-7">
+          {/* Dictionaries */}
+          <section className="space-y-3" aria-labelledby="opt-dicts">
+            <div className="flex items-center justify-between gap-2">
+              <h3 id="opt-dicts" className="text-base font-medium">
+                Dictionaries
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {origins.length === 0 ? "All" : `${origins.length} selected`}
+              </span>
             </div>
-          </div> */}
-
-          {/* T75: Has audio checkbox */}
-          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
-            <Checkbox
-              id="filter-has-audio"
-              checked={pendingFilters.hasAudio ?? false}
-              onCheckedChange={(checked) =>
-                updatePendingFilter("hasAudio", checked ? true : null)
-              }
-              className="h-6 w-6" // Touch-friendly size
-              aria-label="Filter entries with audio"
-            />
-            <Label
-              htmlFor="filter-has-audio"
-              className="text-base font-medium cursor-pointer flex-1"
+            <Button
+              type="button"
+              variant={origins.length === 0 ? "secondary" : "outline"}
+              className="w-full h-11 justify-start"
+              onClick={() => setOrigins([])}
             >
-              Has Audio
-            </Label>
-          </div> */}
+              {origins.length === 0 && <CheckIcon className="size-4 mr-2" />}
+              Search all dictionaries
+            </Button>
+            {DICTIONARY_GROUPS.map((group) => {
+              const items = DICTIONARY_CATALOG.filter((d) => d.group === group.id);
+              const codes = items.map((d) => d.code);
+              const chosen = codes.filter((c) => selected.has(c)).length;
+              const all = chosen === codes.length;
+              return (
+                <div key={group.id} className="rounded-lg border border-border/50">
+                  <label className="flex items-center gap-3 px-3 min-h-12 cursor-pointer bg-muted/30 rounded-t-lg">
+                    <Checkbox
+                      checked={all ? true : chosen > 0 ? "indeterminate" : false}
+                      onCheckedChange={(v) => setGroup(codes, v === true)}
+                      aria-label={`All ${group.label}`}
+                      className="size-5"
+                    />
+                    <span className="flex-1 min-w-0">
+                      <span className="block font-medium text-sm">{group.label}</span>
+                      <span className="block text-xs text-muted-foreground truncate">
+                        {group.description}
+                      </span>
+                    </span>
+                  </label>
+                  <ul className="divide-y divide-border/40">
+                    {items.map((d) => (
+                      <li key={d.code}>
+                        <label className="flex items-center gap-3 px-3 min-h-11 cursor-pointer">
+                          <Checkbox
+                            checked={selected.has(d.code)}
+                            onCheckedChange={(v) => toggle(d.code, v === true)}
+                            className="size-5"
+                          />
+                          <span className="flex-1 min-w-0 text-sm truncate">{d.name}</span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {d.code}
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </section>
 
-          {/* T75: Has attributes checkbox */}
-          {/* <div className="flex items-center space-x-3 p-3 rounded-lg border">
-            <Checkbox
-              id="filter-has-attributes"
-              checked={pendingFilters.hasAttributes ?? false}
-              onCheckedChange={(checked) =>
-                updatePendingFilter("hasAttributes", checked ? true : null)
-              }
-              className="h-6 w-6" // Touch-friendly size
-              aria-label="Filter entries with attributes"
-            />
-            <Label
-              htmlFor="filter-has-attributes"
-              className="text-base font-medium cursor-pointer flex-1"
-            >
-              Has Attributes
-            </Label>
-          </div> */}
-
-          {/* T75: Date range picker (simplified for now) */}
-          {/* <div className="space-y-2">
-            <Label className="text-base font-medium">Date Range</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="filter-date-start" className="text-sm">
-                  From
-                </Label>
-                <Input
-                  id="filter-date-start"
-                  type="date"
-                  value={
-                    pendingFilters.dateRange.start
-                      ? pendingFilters.dateRange.start
-                          .toISOString()
-                          .split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) => {
-                    const date = e.target.value
-                      ? new Date(e.target.value)
-                      : null;
-                    updatePendingFilter("dateRange", {
-                      ...pendingFilters.dateRange,
-                      start: date,
-                    });
-                  }}
-                  className="h-12 text-base"
-                  aria-label="Start date"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="filter-date-end" className="text-sm">
-                  To
-                </Label>
-                <Input
-                  id="filter-date-end"
-                  type="date"
-                  value={
-                    pendingFilters.dateRange.end
-                      ? pendingFilters.dateRange.end.toISOString().split("T")[0]
-                      : ""
-                  }
-                  onChange={(e) => {
-                    const date = e.target.value
-                      ? new Date(e.target.value)
-                      : null;
-                    updatePendingFilter("dateRange", {
-                      ...pendingFilters.dateRange,
-                      end: date,
-                    });
-                  }}
-                  className="h-12 text-base"
-                  aria-label="End date"
-                />
-              </div>
-            </div>
-          </div> */}
-
-          {/* Sort By Options */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Sort By</Label>
+          {/* Match */}
+          <section className="space-y-3" aria-labelledby="opt-match">
+            <h3 id="opt-match" className="text-base font-medium">
+              How to match
+            </h3>
             <RadioGroup
-              value={pendingFilters.sortBy || "wordIndex"}
-              onValueChange={(value) =>
-                updatePendingFilter(
-                  "sortBy",
-                  value as "wordIndex" | "alphabetical" | "relevance",
-                )
-              }
+              value={mode}
+              onValueChange={(v) => setMode(v as MatchMode)}
+              className="gap-2"
             >
-              <div className="flex items-center space-x-3 p-3 rounded-lg border">
-                <RadioGroupItem
-                  value="wordIndex"
-                  id="sort-wordIndex"
-                  className="h-5 w-5"
-                />
+              {MATCH_MODES.map((m) => (
                 <Label
-                  htmlFor="sort-wordIndex"
-                  className="text-base font-medium cursor-pointer flex-1"
+                  key={m}
+                  htmlFor={`mode-${m}`}
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer font-normal",
+                    mode === m && "border-primary/50 bg-primary/5",
+                  )}
                 >
-                  Word Index
+                  <RadioGroupItem value={m} id={`mode-${m}`} className="mt-0.5" />
+                  <span className="space-y-0.5">
+                    <span className="block font-medium">{MATCH_MODE_INFO[m].label}</span>
+                    <span className="block text-xs text-muted-foreground leading-snug">
+                      {MATCH_MODE_INFO[m].hint}
+                    </span>
+                    <span className="block text-xs text-primary/80">
+                      e.g. {MATCH_MODE_INFO[m].example}
+                    </span>
+                  </span>
                 </Label>
-              </div>
-              <div className="flex items-center space-x-3 p-3 rounded-lg border">
-                <RadioGroupItem
-                  value="alphabetical"
-                  id="sort-alphabetical"
-                  className="h-5 w-5"
-                />
-                <Label
-                  htmlFor="sort-alphabetical"
-                  className="text-base font-medium cursor-pointer flex-1"
-                >
-                  Alphabetical
-                </Label>
-              </div>
-              <div className="flex items-center space-x-3 p-3 rounded-lg border">
-                <RadioGroupItem
-                  value="relevance"
-                  id="sort-relevance"
-                  className="h-5 w-5"
-                />
-                <Label
-                  htmlFor="sort-relevance"
-                  className="text-base font-medium cursor-pointer flex-1"
-                >
-                  Relevance
-                </Label>
-              </div>
+              ))}
             </RadioGroup>
-            <p className="text-xs text-muted-foreground">
-              Choose how results should be ordered
-            </p>
-          </div>
+          </section>
 
-          {/* Sort Direction */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium">Sort Direction</Label>
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant={
-                  pendingFilters.sortDirection === "asc" ? "default" : "outline"
-                }
-                className="h-12 justify-start"
-                onClick={() => updatePendingFilter("sortDirection", "asc")}
-              >
-                <ArrowUpIcon className="h-4 w-4 mr-2" aria-hidden="true" />
-                Ascending
-              </Button>
-              <Button
-                type="button"
-                variant={
-                  pendingFilters.sortDirection === "desc"
-                    ? "default"
-                    : "outline"
-                }
-                className="h-12 justify-start"
-                onClick={() => updatePendingFilter("sortDirection", "desc")}
-              >
-                <ArrowDownIcon className="h-4 w-4 mr-2" aria-hidden="true" />
-                Descending
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {pendingFilters.sortDirection === "asc" ? "A → Z" : "Z → A"} for
-              alphabetical,
-              {pendingFilters.sortDirection === "asc"
-                ? " low → high"
-                : " high → low"}{" "}
-              for index
-            </p>
-          </div>
-
-          {/* T84: Validation errors */}
-          {!validation.isValid && validation.errors.length > 0 && (
-            <div
-              className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm"
-              role="alert"
-              aria-live="polite"
+          {/* Sort */}
+          <section className="space-y-3" aria-labelledby="opt-sort">
+            <h3 id="opt-sort" className="text-base font-medium">
+              Order results by
+            </h3>
+            <RadioGroup
+              value={sort}
+              onValueChange={(v) => setSort(v as LookupSort | "auto")}
+              className="gap-2"
             >
-              <ul className="list-disc list-inside space-y-1">
-                {validation.errors.map((error, idx) => (
-                  <li key={idx}>{error}</li>
-                ))}
-              </ul>
+              {SORT_OPTIONS.map((o) => (
+                <Label
+                  key={o.value}
+                  htmlFor={`sort-${o.value}`}
+                  className={cn(
+                    "flex items-start gap-3 rounded-lg border p-3 cursor-pointer font-normal",
+                    sort === o.value && "border-primary/50 bg-primary/5",
+                  )}
+                >
+                  <RadioGroupItem value={o.value} id={`sort-${o.value}`} className="mt-0.5" />
+                  <span>
+                    <span className="block font-medium">{o.label}</span>
+                    <span className="block text-xs text-muted-foreground">{o.hint}</span>
+                  </span>
+                </Label>
+              ))}
+            </RadioGroup>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant={order === "asc" ? "secondary" : "outline"}
+                className="h-11"
+                onClick={() => setOrder("asc")}
+                disabled={sort === "relevance"}
+              >
+                <ArrowUpIcon className="size-4 mr-2" /> Ascending
+              </Button>
+              <Button
+                type="button"
+                variant={order === "desc" ? "secondary" : "outline"}
+                className="h-11"
+                onClick={() => setOrder("desc")}
+                disabled={sort === "relevance"}
+              >
+                <ArrowDownIcon className="size-4 mr-2" /> Descending
+              </Button>
             </div>
-          )}
+          </section>
+
+          {/* View */}
+          <DictionaryViewModeSelector value={viewMode} onChange={onViewModeChange} />
         </div>
 
-        {/* T76, T77: Footer with Apply and Clear buttons (sticky on mobile) */}
-        <SheetFooter className="sticky bottom-0 bg-background border-t pt-4 mt-auto">
-          <div className="flex flex-col sm:flex-row gap-2 w-full">
-            {/* T77: Clear All button */}
-            <Button
-              variant="outline"
-              onClick={handleClearAll}
-              disabled={isEmpty}
-              className="flex-1 h-12 sm:h-10" // Touch-friendly on mobile
-              aria-label="Clear all filters"
-            >
-              <XIcon className="h-4 w-4 mr-2" aria-hidden="true" />
-              Clear All
-            </Button>
-
-            {/* T76: Apply button */}
-            <Button
-              onClick={handleApply}
-              disabled={!validation.isValid}
-              className={cn(
-                "flex-1 h-12 sm:h-10", // Touch-friendly on mobile
-                hasPendingChanges && "ring-2 ring-primary ring-offset-2",
-              )}
-              aria-label="Apply filters"
-              aria-live="polite"
-            >
-              <CheckIcon className="h-4 w-4 mr-2" aria-hidden="true" />
-              Apply Filters
-              {hasPendingChanges && (
-                <Badge variant="secondary" className="ml-2">
-                  Pending
-                </Badge>
-              )}
-            </Button>
-          </div>
+        <SheetFooter className="border-t p-4 flex-row gap-2">
+          <Button
+            variant="outline"
+            className="flex-1 h-11"
+            onClick={() => onOpenChange(false)}
+          >
+            Cancel
+          </Button>
+          <Button className="flex-1 h-11" onClick={apply}>
+            <CheckIcon className="size-4 mr-2" />
+            Apply
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

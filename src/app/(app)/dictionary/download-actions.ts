@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { writeFile, unlink, stat, mkdir } from "fs/promises";
-import { join } from "path";
+import { basename, join } from "path";
 import { randomUUID } from "crypto";
 import JSZip from "jszip";
 import config from "@/config";
@@ -315,8 +315,12 @@ export async function downloadDictionary(
 }
 
 export async function cleanupDownloadFile(filepath: string): Promise<void> {
+  // A server action is callable from any client: only ever delete export
+  // ZIPs inside the temp folder, whatever path is passed in.
+  const name = basename(filepath);
+  if (!/^dictionary_export_[\w.-]+\.zip$/.test(name)) return;
   try {
-    await unlink(filepath);
+    await unlink(join(config.dataFolder, "temp", name));
   } catch (error) {
     console.error("Failed to cleanup download file:", error);
   }

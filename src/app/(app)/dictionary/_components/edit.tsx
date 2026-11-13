@@ -1,62 +1,55 @@
 "use client";
-import DictionaryItemForm from "./form";
-import { useMemo, useState } from "react";
-import { z } from "zod";
+
+import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { DictItemFormSchema } from "@/lib/validations/dictionary";
-import { DictionaryItem } from "../types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Prisma } from "@/app/generated/prisma";
+import { Button } from "@/components/ui/button";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import Loader from "@/components/utils/loader";
-import { toast } from "sonner";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useLanguageAtomValue } from "@/hooks/use-config";
+import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+import { getDictionaryInfo } from "@/lib/dictionary/dictionary-catalog";
+import { ChevronLeftIcon, ChevronRightIcon, EyeIcon } from "lucide-react";
+import DictionaryItemForm, { AfterSave, DictionaryFormValues } from "./form";
+import { DictionaryItem } from "../types";
 import {
   createDictItem,
   deleteDictItem,
   readDictItem,
-  updateDictItem,
   reprocessSingleDictionaryWord,
+  updateDictItem,
 } from "../actions";
-import { Prisma } from "@/app/generated/prisma";
-import { useLanguageAtomValue } from "@/hooks/use-config";
-import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { getDictionaryEntry } from "../lookup-actions";
+import { DICTIONARY_ORIGINS } from "../utils";
 
-const defaultValues: z.infer<typeof DictItemFormSchema> = {
-  origin: "OTHERS",
-  wordIndex: 0,
-  word: [],
-  description: [],
-  attributes: [],
-  phonetic: "",
-  sourceData: "{}",
-};
+function sourceDataText(sourceData: unknown): string {
+  if (!sourceData) return "";
+  if (typeof sourceData === "string") {
+    try {
+      return JSON.stringify(JSON.parse(sourceData), null, 2);
+    } catch {
+      return sourceData;
+    }
+  }
+  return JSON.stringify(sourceData, null, 2);
+}
 
-const mergeWithDefaultValues = (data: Partial<DictionaryItem>) => {
+function toFormValues(item: Partial<DictionaryItem>): DictionaryFormValues {
+  const source = (item.sourceData ?? {}) as Record<string, any>;
   return {
-    origin: data.origin || defaultValues.origin,
-    wordIndex: data.wordIndex || defaultValues.wordIndex,
-    word: data.wordData || defaultValues.word,
-    description: data.descriptionData || defaultValues.description,
-    attributes: data.attributes || defaultValues.attributes,
-    phonetic: data.phonetic || defaultValues.phonetic,
-    sourceData: (() => {
-      // Handle sourceData conversion properly to avoid double JSON stringification
-      if (!data.sourceData) return "";
-      if (typeof data.sourceData === "string") {
-        // If it's already a string, try to parse and reformat it, or use as-is if invalid JSON
-        try {
-          const parsed = JSON.parse(data.sourceData);
-          return JSON.stringify(parsed, null, 2);
-        } catch {
-          // If parsing fails, it's likely already a formatted string, use as-is
-          return data.sourceData;
-        }
-      } else {
-        // If it's an object, stringify it
-        return JSON.stringify(data.sourceData, null, 2);
-      }
-    })(),
-  } as z.infer<typeof DictItemFormSchema>;
-};
+    origin: (item.origin || "OTHERS") as DictionaryFormValues["origin"],
+    wordIndex: item.wordIndex ?? 0,
+    word: (item.wordData ?? []) as DictionaryFormValues["word"],
+    description: (item.descriptionData ?? []) as DictionaryFormValues["description"],
+    attributes: item.attributes ?? [],
+    phonetic: item.phonetic ?? "",
+    sourceData: sourceDataText(item.sourceData),
+    audio: source.audioUrl || source.audio || "",
+  };
+}
 
 interface DictionaryItemEditProps {
   isNew?: boolean;
@@ -66,191 +59,189 @@ const DictionaryItemEdit = ({ isNew }: DictionaryItemEditProps) => {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [refreshCount, setRefreshCount] = useState(0);
+  const queryClient = useQueryClient();
   const language = useLanguageAtomValue();
+  const dictionaryId = isNew ? undefined : (params.dictionaryId as string);
 
-  const dictionaryId = params.dictionaryId as string;
-
-  const {
-    data: dictItem,
-    isLoading,
-    isFetching,
-    refetch,
-    error,
-  } = useQuery({
+  const { data: dictItem, isLoading, error } = useQuery({
     queryKey: ["dictItem", dictionaryId, language],
-    queryFn: () => readDictItem(dictionaryId, language),
+    queryFn: () => readDictItem(dictionaryId!, language),
     enabled: !!dictionaryId,
-    staleTime: QUERY_STALE_TIME_LONG,
   });
 
-  const {
-    mutateAsync: createDictItemFn,
-    isPending: createLoading,
-    error: createDictItemError,
-  } = useMutation({
-    mutationKey: ["createDictItem"],
-    mutationFn: async ({
-      data,
-    }: {
-      data: Prisma.DictionaryWordCreateInput;
-    }) => {
-      const res = await createDictItem({ item: data });
-      return res;
-    },
+  // Neighbours for prev / next and "Save & next"
+  const { data: context } = useQuery({
+    queryKey: ["dictionaryEntry", dictionaryId, language],
+    queryFn: () => getDictionaryEntry(dictionaryId!, language),
+    enabled: !!dictionaryId,
   });
+  const prev = context?.before.at(-1);
+  const next = context?.after[0];
 
-  const {
-    mutateAsync: updateDictItemFn,
-    isPending: updateLoading,
-    error: updateDictItemError,
-  } = useMutation({
-    mutationKey: ["updateDictItem", dictionaryId],
-    mutationFn: async ({
-      data,
-    }: {
-      data: Prisma.DictionaryWordUpdateInput;
-    }) => {
-      const res = await updateDictItem(dictionaryId!, { item: data });
-      return res;
-    },
-  });
+  const invalidate = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["dictItem", dictionaryId] }),
+      queryClient.invalidateQueries({ queryKey: ["dictionaryEntry"] }),
+      queryClient.invalidateQueries({ queryKey: ["dictionaryEntryRelations"] }),
+      queryClient.invalidateQueries({ queryKey: ["dictionaryLookup"] }),
+    ]);
+  };
 
-  // const [deleteDictItem] = useMutation(MUTATION_DELETE_DICT_ITEM);
-  const {
-    mutateAsync: deleteDictItemFn,
-    isPending: deleteLoading,
-    error: deleteDictItemError,
-  } = useMutation({
-    mutationKey: ["deleteDictItem", dictionaryId],
-    mutationFn: async () => {
-      const res = await deleteDictItem(dictionaryId);
-      return res;
-    },
-  });
-
-  const {
-    mutateAsync: reprocessDictItemFn,
-    isPending: reprocessLoading,
-    error: reprocessDictItemError,
-  } = useMutation({
-    mutationKey: ["reprocessDictItem", dictionaryId],
-    mutationFn: async () => {
-      if (!dictionaryId) throw new Error("No dictionary ID provided");
-      const res = await reprocessSingleDictionaryWord(dictionaryId);
-      return res;
-    },
-  });
-
-  const onDelete = useMemo(
-    () => async () => {
-      if (!dictionaryId) return;
-      await deleteDictItemFn(undefined, {
-        onSuccess: () => {
-          toast.success("DictItem Deleted Successfully");
-          router.back();
-        },
-        onError: (error) => {
-          toast.error("Error deleting dictionary");
-        },
-      });
-    },
-    [dictionaryId],
-  );
-
-  const onReprocess = useMemo(
-    () => async () => {
-      if (!dictionaryId) return;
-      await reprocessDictItemFn(undefined, {
-        onSuccess: (data) => {
-          if (data.status === "success") {
-            toast.success("Dictionary word reprocessed successfully");
-            refetch();
-          } else {
-            toast.error(data.error || "Error reprocessing dictionary word");
-          }
-        },
-        onError: (error) => {
-          toast.error("Error reprocessing dictionary word");
-        },
-      });
-    },
-    [dictionaryId, refetch],
-  );
-
-  const onSubmit = useMemo(
-    () => async (data: Partial<z.infer<typeof DictItemFormSchema>>) => {
+  const save = useMutation({
+    mutationFn: async ({ data }: { data: Partial<DictionaryFormValues>; after: AfterSave }) => {
       if (dictionaryId) {
-        const dataFinal: Prisma.DictionaryWordUpdateInput = {
-          ...data,
-        };
-        await updateDictItemFn(
-          { data: dataFinal },
-          {
-            onSuccess: (data) => {
-              toast.success("DictItem updated successfully");
-              refetch();
-            },
-            onError: (error) => {
-              toast.error("Error updating dictionary");
-            },
-          },
-        );
-      } else {
-        if (!data.phonetic || !data.word || !data.description) {
-          toast.error("Please fill all required fields");
-          return;
-        }
-        const dataFinal: Prisma.DictionaryWordCreateInput = {
-          ...data,
-          wordIndex: data.wordIndex || 0,
+        return updateDictItem(dictionaryId, { item: data as Prisma.DictionaryWordUpdateInput });
+      }
+      return createDictItem({
+        item: {
+          ...(data as Prisma.DictionaryWordCreateInput),
           origin: data.origin || "OTHERS",
+          wordIndex: data.wordIndex || 0, // 0 → next free position
           phonetic: data.phonetic || "",
-        };
-        const res = await createDictItemFn(
-          { data: dataFinal },
-          {
-            onSuccess: (data) => {
-              toast.success("DictItem created successfully");
-              if (data?.id) router.replace(`/dictionary/${data.id}/edit`);
-            },
-            onError: (error) => {
-              toast.error("Error creating dictionary");
-            },
-          },
+        },
+      });
+    },
+    onSuccess: async (res, { after, data }) => {
+      toast.success(dictionaryId ? "Saved" : "Entry created");
+      await invalidate();
+      if (after === "next" && next) {
+        router.push(`/dictionary/${next.id}/edit`);
+      } else if (after === "new") {
+        // A fresh `n` gives the form a new key, so it starts empty
+        router.replace(
+          `/dictionary/new?origin=${data.origin ?? "OTHERS"}&tab=word&n=${Date.now()}`,
         );
+      } else if (!dictionaryId && res?.id) {
+        router.replace(`/dictionary/${res.id}/edit`);
       }
     },
-    [dictionaryId],
-  );
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Could not save the entry"),
+  });
 
-  if (isLoading || isFetching) return <Loader />;
+  const remove = useMutation({
+    mutationFn: () => deleteDictItem(dictionaryId!),
+    onSuccess: async () => {
+      toast.success("Entry deleted");
+      await invalidate();
+      const goTo = next ?? prev;
+      router.replace(
+        goTo ? `/dictionary/${goTo.id}` : `/dictionary?origins=${dictItem?.origin ?? ""}`,
+      );
+    },
+    onError: () => toast.error("Could not delete the entry"),
+  });
+
+  const reprocess = useMutation({
+    mutationFn: () => reprocessSingleDictionaryWord(dictionaryId!),
+    onSuccess: async (r) => {
+      if (r.status === "success") {
+        toast.success("Rebuilt from the source data");
+        await invalidate();
+      } else {
+        toast.error(r.error || "Could not reprocess the entry");
+      }
+    },
+    onError: () => toast.error("Could not reprocess the entry"),
+  });
+
+  if (dictionaryId && isLoading) return <Loader />;
   if (error) return <SimpleAlert title={error.message} />;
+  if (dictionaryId && !dictItem) {
+    return <SimpleAlert title="This dictionary entry could not be found" />;
+  }
 
-  if (!isNew && !dictItem)
-    return (
-      <SimpleAlert
-        title={`Dictionary Item not found with id: ${dictionaryId}`}
-      />
-    );
-
-  const item = isNew ? { ...defaultValues } : mergeWithDefaultValues(dictItem!);
+  const requestedOrigin = searchParams.get("origin");
+  const newOrigin = (DICTIONARY_ORIGINS as readonly string[]).includes(requestedOrigin ?? "")
+    ? requestedOrigin!
+    : "OTHERS";
+  const values = dictItem
+    ? toFormValues(dictItem)
+    : toFormValues({ origin: newOrigin, wordIndex: 0 });
+  const info = getDictionaryInfo(values.origin);
 
   return (
-    <div className="space-y-2 flex flex-col flex-1">
+    <div className="flex flex-1 flex-col gap-4 min-w-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="Breadcrumb" className="min-w-0 flex items-center gap-1.5 text-sm">
+          <Link href="/dictionary" className="text-muted-foreground hover:text-foreground">
+            Dictionary
+          </Link>
+          <span className="text-muted-foreground">/</span>
+          <Link
+            href={`/dictionary?origins=${values.origin}`}
+            className="text-muted-foreground hover:text-foreground truncate"
+          >
+            {info.short}
+          </Link>
+          <span className="text-muted-foreground">/</span>
+          <span
+            className={cn(
+              "font-semibold truncate",
+              LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY],
+            )}
+          >
+            {dictItem ? dictItem.word : "New entry"}
+          </span>
+          {context && (
+            <span className="hidden sm:inline text-xs text-muted-foreground tabular-nums ml-1">
+              #{(context.position + 1).toLocaleString()} of{" "}
+              {context.dictionaryTotal.toLocaleString()}
+            </span>
+          )}
+        </nav>
+        {dictionaryId && (
+          <div className="flex items-center gap-1.5">
+            <Button asChild variant="outline" size="sm" className="h-9">
+              <Link href={`/dictionary/${dictionaryId}`}>
+                <EyeIcon className="size-4 mr-1.5" /> View
+              </Link>
+            </Button>
+            <Button
+              asChild={!!prev}
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!prev}
+              aria-label="Edit previous entry"
+            >
+              {prev ? (
+                <Link href={`/dictionary/${prev.id}/edit`}>
+                  <ChevronLeftIcon className="size-4" />
+                </Link>
+              ) : (
+                <ChevronLeftIcon className="size-4" />
+              )}
+            </Button>
+            <Button
+              asChild={!!next}
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              disabled={!next}
+              aria-label="Edit next entry"
+            >
+              {next ? (
+                <Link href={`/dictionary/${next.id}/edit`}>
+                  <ChevronRightIcon className="size-4" />
+                </Link>
+              ) : (
+                <ChevronRightIcon className="size-4" />
+              )}
+            </Button>
+          </div>
+        )}
+      </div>
+
       <DictionaryItemForm
-        key={`dict-form-${dictionaryId}-${refreshCount}`}
+        key={dictionaryId ?? `new-${newOrigin}-${searchParams.get("n") ?? ""}`}
         itemId={dictionaryId}
-        data={item}
-        onSubmit={onSubmit}
-        onDelete={isNew ? undefined : onDelete}
-        onReprocess={isNew ? undefined : onReprocess}
-        // onRefresh={() => {
-        //   refetch();
-        //   setRefreshCount((refreshCount) => refreshCount + 1);
-        // }}
-        updating={createLoading || updateLoading}
-        reprocessing={reprocessLoading}
+        data={values}
+        hasNext={!!next}
+        onSubmit={(data, after) => save.mutate({ data, after })}
+        onDelete={dictionaryId ? () => remove.mutate() : undefined}
+        onReprocess={dictionaryId ? () => reprocess.mutate() : undefined}
+        updating={save.isPending || remove.isPending}
+        reprocessing={reprocess.isPending}
       />
     </div>
   );

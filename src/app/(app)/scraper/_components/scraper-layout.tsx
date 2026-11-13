@@ -55,7 +55,7 @@ const navItems = [
   },
   {
     id: "dictionaryUploadsSqlite",
-    label: "Dictionary Uploads (SQLite)",
+    label: "Dictionaries: import & export",
     group: "Tools",
     status: "available",
   },

@@ -6,6 +6,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Icons } from "@/components/utils/icons";
@@ -16,6 +17,16 @@ import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
 import { SearchResultHighlight } from "./SearchResultHighlight";
 import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
 import { DictionaryItem, ViewMode } from "../types";
+import { getDictionaryInfo } from "@/lib/dictionary/dictionary-catalog";
+
+const MATCH_LABEL: Record<string, string> = {
+    exact: "Exact",
+    prefix: "Starts with",
+    contains: "Contains",
+    meaning: "In meaning",
+    fuzzy: "Similar",
+    phonetic: "Sounds like",
+};
 import {
     getRelevanceLabel,
     getRelevanceCategory
@@ -32,6 +43,9 @@ interface DictionaryResultCardProps {
     onCopyDescription: (description: string) => void;
     onEditItem: (itemId: string) => void;
     onCompare?: (word: string) => void;
+    /** Highlight this card (jumped-to entry) */
+    focused?: boolean;
+    showMatchType?: boolean;
 }
 
 export function DictionaryResultCard({
@@ -45,7 +59,11 @@ export function DictionaryResultCard({
     onCopyDescription,
     onEditItem,
     onCompare,
+    focused = false,
+    showMatchType = true,
 }: DictionaryResultCardProps) {
+    const dictInfo = getDictionaryInfo(item.origin ?? "");
+    const entryHref = `/dictionary/${item.id}`;
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Audio check
@@ -67,29 +85,26 @@ export function DictionaryResultCard({
     // Render Compact Mode
     if (viewMode === "compact") {
         return (
-            <div className="group relative overflow-hidden rounded-lg border border-border/40 bg-background/50 backdrop-blur-sm p-3 transition-all hover:bg-muted/80 hover:border-border/80">
+            <div id={`entry-${item.id}`} className={cn("group relative overflow-hidden rounded-lg border border-border/40 bg-background/50 backdrop-blur-sm p-3 transition-all hover:bg-muted/80 hover:border-border/80 scroll-mt-24", focused && "ring-2 ring-primary border-primary/60")}>
                 <div className="flex items-center justify-between gap-4">
                     <div className="flex-1 flex items-center gap-3 min-w-0">
-                        <div className={cn(
-                            "font-bold text-base truncate",
-                            LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY]
-                        )}>
-                            {searchTerm ? (
-                                <SearchResultHighlight
-                                    text={item.word ?? ""}
-                                    searchTerm={searchTerm}
-                                    language={language}
-                                />
-                            ) : (
-                                item.word
+                        <Link
+                            href={entryHref}
+                            className={cn(
+                                "font-bold text-base truncate shrink-0 max-w-[50%] hover:text-primary hover:underline underline-offset-4",
+                                LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY]
                             )}
-                        </div>
-                        {hasRelevanceScore && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 font-mono text-muted-foreground">
-                                {relevanceScore}
-                            </Badge>
-                        )}
-                        <span className="text-sm text-muted-foreground truncate italic">
+                        >
+                            {item.word}
+                        </Link>
+                        <Badge
+                            variant="secondary"
+                            title={dictInfo.name}
+                            className="text-[10px] px-1.5 h-5 shrink-0 bg-muted/50 border-transparent"
+                        >
+                            {dictInfo.short}
+                        </Badge>
+                        <span className="text-sm text-muted-foreground truncate italic min-w-0">
                             {truncatedDescription}
                         </span>
                     </div>
@@ -126,10 +141,12 @@ export function DictionaryResultCard({
     // Render Card/Detailed Mode
     return (
         <div
+            id={`entry-${item.id}`}
             className={cn(
-                "group relative flex flex-col h-full rounded-xl border border-border/40 bg-background/60 backdrop-blur-md p-5 transition-all duration-300",
-                "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20 hover:scale-[1.012]",
-                viewMode === "detailed" ? "p-7 space-y-4" : "p-5"
+                "group relative flex flex-col h-full rounded-xl border border-border/40 bg-background/60 backdrop-blur-md p-4 sm:p-5 transition-all duration-300 scroll-mt-24",
+                "hover:shadow-lg hover:shadow-primary/5 hover:border-primary/20",
+                viewMode === "detailed" ? "sm:p-7 space-y-4" : "",
+                focused && "ring-2 ring-primary border-primary/60"
             )}
         >
             {/* Decorative Gradient Blob */}
@@ -144,15 +161,12 @@ export function DictionaryResultCard({
                             textSize === "sm" ? "text-lg" : textSize === "lg" ? "text-2xl" : "text-xl",
                             LANGUAGE_FONT_FAMILY[language as keyof typeof LANGUAGE_FONT_FAMILY]
                         )}>
-                            {searchTerm && searchTerm.trim().length > 0 ? (
-                                <SearchResultHighlight
-                                    text={item.word ?? ""}
-                                    searchTerm={searchTerm}
-                                    language={language}
-                                />
-                            ) : (
-                                item.word
-                            )}
+                            <Link
+                                href={entryHref}
+                                className="hover:underline underline-offset-4 decoration-primary/40"
+                            >
+                                {item.word}
+                            </Link>
                         </h3>
                         {/* {hasRelevanceScore && (
                             <Badge
@@ -165,13 +179,17 @@ export function DictionaryResultCard({
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-                        <Badge variant="secondary" className="bg-muted/50 text-[10px] px-1.5 h-4.5 border-transparent">
-                            {item.origin}
+                        <Badge
+                            variant="secondary"
+                            title={dictInfo.name}
+                            className="bg-muted/50 text-[10px] px-1.5 h-5 border-transparent"
+                        >
+                            {dictInfo.short}
                         </Badge>
-                        {item.matchType && searchTerm && (
+                        {showMatchType && item.matchType && MATCH_LABEL[item.matchType] && (
                             <span className="flex items-center gap-1 opacity-70">
                                 <span className="w-1 h-1 rounded-full bg-border" />
-                                {item.matchType} Match
+                                {MATCH_LABEL[item.matchType]}
                             </span>
                         )}
                     </div>

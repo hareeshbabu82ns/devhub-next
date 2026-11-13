@@ -14,7 +14,7 @@ export type DictionaryItem = {
 
   // T122: Relevance scoring fields (optional for backward compatibility)
   relevanceScore?: number; // 0-100 range
-  matchType?: "exact" | "prefix" | "fuzzy" | "phonetic";
+  matchType?: "exact" | "prefix" | "fuzzy" | "phonetic" | "contains" | "meaning";
   searchMetadata?: {
     queryLanguage: string;
     matchedLanguage: string;

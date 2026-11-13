@@ -53,13 +53,14 @@ export default auth((req) => {
 });
 
 export const config = {
-  // /api/upload is left out on purpose: the proxy buffers request bodies and
-  // caps them at 10 MB, which would truncate large uploads. That route checks
-  // the session itself.
+  // Upload routes are left out on purpose: the proxy buffers request bodies
+  // and caps them at 10 MB, which would truncate large uploads. Those routes
+  // (/api/upload, /api/dictionary/upload, /api/dictionary/restore) check the
+  // session themselves.
   matcher: [
-    "/((?!api/upload$|.*\\..*|_next).*)",
+    "/((?!api/upload$|api/dictionary/upload$|api/dictionary/restore$|.*\\..*|_next).*)",
     "/",
-    "/api/((?!upload$).*)",
+    "/api/((?!upload$|dictionary/upload$|dictionary/restore$).*)",
     "/trpc(.*)",
   ],
 };

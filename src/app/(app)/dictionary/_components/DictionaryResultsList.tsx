@@ -1,93 +1,86 @@
 /**
- * DictionaryResultsList - Presentation Layer
- *
- * Task: T094-T095
- * Purpose: Pure presentation component for rendering dictionary results
- * Responsibilities:
- * - JSX rendering only
- * - No hooks (except maybe useMemo for optimization)
- * - No business logic
- * - Props-driven rendering
- * - Responsive grid layout with @container queries
- * - Mobile-optimized UI (touch targets, spacing)
- *
- * All data and callbacks come from parent Container component
+ * DictionaryResultsList - presentation of a page of dictionary results.
+ * All data and callbacks come from DictionaryResultsContainer.
  */
 
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Icons } from "@/components/utils/icons";
-import { TargetIcon, ZapIcon, InfoIcon } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import Markdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import { DictionaryItem } from "../types";
 import PaginationDDLB from "@/components/blocks/SimplePaginationDDLB";
 import ScrollToTopButton from "@/components/utils/ScrollToTopButton";
 import { cn } from "@/lib/utils";
-import { LANGUAGE_FONT_FAMILY } from "@/lib/constants";
-import { SearchResultHighlight } from "./SearchResultHighlight";
-import {
-  getRelevanceLabel,
-  getRelevanceCategory,
-} from "@/lib/dictionary/relevance-scoring";
-import { AudioPlayer } from "@/components/features/dictionary/AudioPlayer";
-import { SearchMode } from "@/lib/dictionary/types";
-
-import { ViewMode } from "../types";
+import { MatchMode } from "@/lib/dictionary/lookup-query";
+import type { LookupSort } from "@/lib/dictionary/lookup-service";
+import { InfoIcon, Loader2Icon, SearchXIcon } from "lucide-react";
+import { DictionaryItem, ViewMode } from "../types";
 import { DictionaryResultCard } from "./DictionaryResultCard";
+import { MATCH_MODE_INFO } from "./DictionarySearchControls";
 
 interface DictionaryResultsListProps {
-  // Data
-  results: any[];
+  results: Partial<DictionaryItem>[];
   total: number;
-  originParam: string[];
 
-  // State
   isLoading: boolean;
   isFetching: boolean;
   isError: boolean;
   error: Error | null;
 
-  // Pagination
   currentPage: number;
   limit: number;
 
-  // Configuration
   language: string;
   textSize: string;
   isTouchDevice: boolean;
   asBrowse?: boolean;
-  searchTerm?: string; // T123: For highlighting search matches
-  viewMode?: ViewMode; // T89: View mode for rendering
-  searchMode?: string; // T221: Current search mode for badge display
+  searchTerm?: string;
+  viewMode?: ViewMode;
 
-  // Callbacks
+  requestedMode: MatchMode;
+  effectiveMode: MatchMode;
+  fellBack: boolean;
+  isBrowse: boolean;
+  sort: LookupSort;
+  sortIsDefault: boolean;
+  focusId?: string | null;
+
+  onSortChange: (sort: LookupSort | null) => void;
+  onModeChange: (mode: MatchMode) => void;
   onPageChange: (page: number) => void;
   onNextPage: () => void;
   onPrevPage: () => void;
   onRefresh: () => void;
   onCopyDescription: (description: string) => void;
   onEditItem: (itemId: string) => void;
-  onCompare?: (word: string) => void; // T148: Compare callback
-  onSwitchToFullText?: () => void; // T222: Fallback to full-text search
+  onCompare?: (word: string) => void;
 }
 
-/**
- * T094-T095: Pure presentation component
- * Renders dictionary results with responsive grid layout
- * T89: Added view mode support for Compact/Card/Detailed rendering
- */
+const SORT_LABEL: Record<LookupSort, string> = {
+  relevance: "Best match",
+  dictionary: "Dictionary order",
+  alphabetical: "Latin A–Z",
+};
+
+/** Broader modes to suggest when a search finds nothing */
+const BROADER: Partial<Record<MatchMode, MatchMode[]>> = {
+  exact: ["smart", "prefix", "meaning"],
+  prefix: ["contains", "meaning"],
+  suffix: ["contains", "meaning"],
+  contains: ["meaning"],
+  smart: ["meaning"],
+  meaning: ["smart"],
+};
+
 export function DictionaryResultsList({
   results,
   total,
@@ -101,194 +94,187 @@ export function DictionaryResultsList({
   textSize,
   isTouchDevice,
   asBrowse,
-  originParam,
   searchTerm,
   viewMode = "card",
-  searchMode = SearchMode.FULLTEXT,
+  requestedMode,
+  effectiveMode,
+  fellBack,
+  isBrowse,
+  sort,
+  sortIsDefault,
+  focusId,
+  onSortChange,
+  onModeChange,
   onPageChange,
   onNextPage,
   onPrevPage,
   onRefresh,
   onCopyDescription,
   onEditItem,
-  onCompare, // T148
-  onSwitchToFullText, // T222
+  onCompare,
 }: DictionaryResultsListProps) {
-  // Loading state
-  if (isLoading || isFetching) {
-    return <Loader />;
-  }
+  // Bring a jumped-to entry into view once its page has loaded
+  useEffect(() => {
+    if (!focusId || isFetching) return;
+    const el = document.getElementById(`entry-${focusId}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusId, isFetching, results]);
 
-  // Error state
+  if (isLoading) return <Loader />;
+
   if (isError) {
     return <SimpleAlert title={error?.message ?? "An error occurred"} />;
   }
 
-  // T222: Empty state with fallback to full-text search for key-based modes
-  if (!results || total === 0) {
-    const isKeyBasedSearch =
-      searchMode === SearchMode.KEY_EXACT ||
-      searchMode === SearchMode.KEY_PREFIX;
+  const query = searchTerm?.trim() ?? "";
 
+  if (total === 0) {
+    const suggestions = query ? (BROADER[requestedMode] ?? []) : [];
     return (
-      <div className="space-y-4">
-        <SimpleAlert
-          title="No results found"
-          extraMessages={["Try adjusting your search or browse by dictionary."]}
-        />
-
-        {/* T222: Suggest switching to Full-Text search for key-based modes */}
-        {isKeyBasedSearch && onSwitchToFullText && searchTerm && (
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardDescription className="flex flex-col gap-3">
-                <div className="flex items-start gap-2">
-                  <InfoIcon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground mb-1">
-                      No exact matches found in word field
-                    </p>
-                    <p className="text-sm">
-                      Try Full-Text Search to search across all fields including
-                      descriptions.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  onClick={onSwitchToFullText}
-                  variant="default"
-                  size="sm"
-                  className="w-full sm:w-auto"
-                >
-                  <Icons.search className="mr-2 h-4 w-4" />
-                  Switch to Full-Text Search
-                </Button>
-              </CardDescription>
-            </CardHeader>
-          </Card>
+      <div className="flex flex-col items-center text-center gap-3 rounded-xl border border-dashed p-8">
+        <SearchXIcon className="size-8 text-muted-foreground" aria-hidden="true" />
+        <div>
+          <p className="font-medium">
+            {query ? `Nothing found for “${query}”` : "This dictionary has no entries"}
+          </p>
+          {query && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Try a shorter word, a wildcard like <code>{query}*</code>, a looser match, or all dictionaries.
+            </p>
+          )}
+        </div>
+        {suggestions.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-2">
+            {suggestions.map((m) => (
+              <Button
+                key={m}
+                variant="outline"
+                className="h-10"
+                onClick={() => onModeChange(m)}
+              >
+                Try “{MATCH_MODE_INFO[m].label}”
+              </Button>
+            ))}
+          </div>
         )}
       </div>
     );
   }
 
-  // T125: Calculate average relevance score for screen reader announcement
-  const avgRelevanceScore =
-    results.reduce((sum, item) => {
-      return sum + (item.relevanceScore ?? 0);
-    }, 0) / (results.length || 1);
-  const hasRelevanceScores = results.some(
-    (item) => typeof item.relevanceScore === "number",
+  const from = (currentPage - 1) * limit + 1;
+  const to = Math.min(currentPage * limit, total);
+
+  const pagination = (
+    <PaginationDDLB
+      totalCount={total}
+      limit={limit}
+      page={currentPage}
+      onFwdClick={onNextPage}
+      onBackClick={onPrevPage}
+      onPageChange={onPageChange}
+    />
   );
 
-  // Results display
   return (
-    <Card className="w-full bg-transparent @container">
-      {/* T125: ARIA live region for screen reader announcements */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
-        className="sr-only"
-      >
-        {total > 0 && (
-          <>
-            {`Found ${total} results${hasRelevanceScores ? ` with average relevance score of ${Math.round(avgRelevanceScore)}` : ""}`}
-            {searchTerm && ` for search term "${searchTerm}"`}
-          </>
-        )}
+    <div className="w-full @container space-y-3">
+      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+        {`${total} ${isBrowse ? "entries" : "results"}${query ? ` for ${query}` : ""}`}
       </div>
 
-      <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-2">
-        <CardDescription className="flex items-center gap-2 flex-wrap">
-          <span>Results</span>
-          {/* T221: Search mode badge with result count */}
-          {searchMode !== SearchMode.FULLTEXT && (
-            <Badge variant="secondary" className="gap-1.5">
-              {searchMode === SearchMode.KEY_EXACT && (
-                <TargetIcon className="h-3 w-3" />
-              )}
-              {searchMode === SearchMode.KEY_PREFIX && (
-                <ZapIcon className="h-3 w-3" />
-              )}
-              <span className="text-xs">
-                {searchMode === SearchMode.KEY_EXACT
-                  ? "Exact Match"
-                  : "Prefix Match"}
-              </span>
-              <span className="text-xs font-semibold">({total})</span>
-            </Badge>
-          )}
-          {hasRelevanceScores && searchTerm && (
-            <span className="ml-0 sm:ml-2 text-xs text-muted-foreground">
-              (sorted by relevance)
+      {fellBack && (
+        <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+          <InfoIcon className="size-4 mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+          <p className="flex-1">
+            No headword matches “{query}”, so these are entries that mention it
+            in their <strong>meaning</strong>.
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground flex items-center gap-2 min-w-0">
+          <span className="tabular-nums">
+            {from.toLocaleString()}–{to.toLocaleString()} of{" "}
+            <span className="font-semibold text-foreground">{total.toLocaleString()}</span>
+          </span>
+          {!isBrowse && (
+            <span className="truncate">
+              · {MATCH_MODE_INFO[effectiveMode].label.toLowerCase()}
             </span>
           )}
-        </CardDescription>
-        <div className="flex flex-row items-center gap-2">
-          <Button
-            onClick={onRefresh}
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Refresh search results"
-          >
-            <Icons.refresh className="size-4" />
-          </Button>
-          <PaginationDDLB
-            totalCount={total}
-            limit={limit}
-            page={currentPage}
-            onFwdClick={onNextPage}
-            onBackClick={onPrevPage}
-            onPageChange={onPageChange}
-          />
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-0 sm:p-6">
-        {/* T089, T093: Premium Responsive grid with layout mapping based on view mode */}
-        <div
-          className={cn(
-            "transition-all duration-500",
-            viewMode === "compact" && "flex flex-col gap-3",
-            viewMode === "card" &&
-            "grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6",
-            viewMode === "detailed" && "flex flex-col gap-6",
+          {isFetching && (
+            <Loader2Icon className="size-3.5 animate-spin" aria-label="Updating" />
           )}
-        >
-          {results.map((item) => (
-            <DictionaryResultCard
-              key={item.id}
-              item={item}
-              language={language}
-              textSize={textSize}
-              isTouchDevice={isTouchDevice}
-              asBrowse={asBrowse}
-              searchTerm={searchTerm}
-              viewMode={viewMode}
-              onCopyDescription={onCopyDescription}
-              onEditItem={onEditItem}
-              onCompare={onCompare}
-            />
-          ))}
+        </p>
+        <div className="flex items-center gap-2 justify-between sm:justify-end">
+          <Select
+            value={sortIsDefault ? "auto" : sort}
+            onValueChange={(v) => onSortChange(v === "auto" ? null : (v as LookupSort))}
+          >
+            <SelectTrigger className="h-10 w-[11.5rem]" aria-label="Order results by">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="auto">
+                Auto ({SORT_LABEL[isBrowse ? "dictionary" : "relevance"]})
+              </SelectItem>
+              {(Object.keys(SORT_LABEL) as LookupSort[]).map((s) => (
+                <SelectItem key={s} value={s}>
+                  {SORT_LABEL[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={onRefresh}
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 hidden sm:inline-flex"
+              aria-label="Refresh results"
+            >
+              <Icons.refresh className="size-4" />
+            </Button>
+            {pagination}
+          </div>
         </div>
+      </div>
 
-        {/* Bottom pagination */}
-        <div className="flex flex-1 justify-end mt-4">
-          <ScrollToTopButton />
-          <PaginationDDLB
-            totalCount={total}
-            limit={limit}
-            page={currentPage}
-            onFwdClick={onNextPage}
-            onBackClick={onPrevPage}
-            onPageChange={onPageChange}
+      <div
+        className={cn(
+          "transition-opacity",
+          isFetching && "opacity-60",
+          viewMode === "compact" && "flex flex-col gap-2",
+          viewMode === "card" && "grid grid-cols-1 @3xl:grid-cols-2 @6xl:grid-cols-3 gap-4",
+          viewMode === "detailed" && "flex flex-col gap-4",
+        )}
+      >
+        {results.map((item) => (
+          <DictionaryResultCard
+            key={item.id}
+            item={item}
+            language={language}
+            textSize={textSize}
+            isTouchDevice={isTouchDevice}
+            asBrowse={asBrowse}
+            searchTerm={effectiveMode === "meaning" ? searchTerm : undefined}
+            viewMode={viewMode}
+            focused={item.id === focusId}
+            showMatchType={!isBrowse}
+            onCopyDescription={onCopyDescription}
+            onEditItem={onEditItem}
+            onCompare={onCompare}
           />
-        </div>
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-end gap-2 pt-2">
+        <ScrollToTopButton />
+        {pagination}
+      </div>
+    </div>
   );
 }
-
 
 export default DictionaryResultsList;

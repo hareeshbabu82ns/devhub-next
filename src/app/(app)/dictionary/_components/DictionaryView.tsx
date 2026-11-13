@@ -1,180 +1,152 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import DictionaryResults from "./DictionaryResults";
 import { SearchToolBar } from "./search-toolbar";
 import DictionaryFilters from "./DictionaryFilters";
-import DictionaryViewModeSelector from "./DictionaryViewModeSelector";
 import SavedSearchModal from "./SavedSearchModal";
 import DictionaryExportModal from "./DictionaryExportModal";
 import DictionaryComparison from "./DictionaryComparison";
 import { DictionarySkipLinks, SkipLinkTarget } from "./DictionarySkipLinks";
 import { ViewMode } from "../types";
-import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { useLanguageAtomValue } from "@/hooks/use-config";
-import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
-import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
 import { useSavedSearches } from "@/hooks/use-saved-searches";
 import { useSearchHistory } from "@/hooks/use-search-history";
-import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
-import { useQuery } from "@tanstack/react-query";
-import { searchDictionary } from "../actions";
-import { cn } from "@/lib/utils";
+import { FilterService } from "@/lib/dictionary/filter-service";
+import { lookupDictionary } from "../lookup-actions";
+import { useDictionaryUrlState } from "./use-dictionary-url-state";
 
 const VIEW_MODE_STORAGE_KEY = "dictionary-view-mode";
-
-// import DictionaryItemList from "./DictionaryResults";
 
 interface DictionaryViewProps {
   asBrowse?: boolean;
 }
 
-/**
- * T80: Integrated filter sidebar with toggle functionality
- * T87-T94: Integrated view mode selector with state management
- * T100-T102: Integrated saved searches with modal and restoration
- */
 const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
-  const [filterOpen, setFilterOpen] = useState(false);
-  // T94: Initialize with default, then load from localStorage after hydration
+  const state = useDictionaryUrlState();
+  const language = useLanguageAtomValue();
+
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("card");
   const [saveSearchModalOpen, setSaveSearchModalOpen] = useState(false);
-  const [exportModalOpen, setExportModalOpen] = useState(false); // T143
-  const [comparisonOpen, setComparisonOpen] = useState(false); // T148
-  const [comparisonWord, setComparisonWord] = useState<string>(""); // T148
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [comparisonWord, setComparisonWord] = useState<string>("");
 
-  // T94: Load view mode from localStorage after hydration to prevent SSR mismatch
+  // Load the view mode after hydration to avoid an SSR mismatch
   useEffect(() => {
-    const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode;
-    if (
-      stored &&
-      (stored === "compact" || stored === "card" || stored === "detailed")
-    ) {
-      setViewMode(stored);
+    try {
+      const stored = localStorage.getItem(VIEW_MODE_STORAGE_KEY) as ViewMode;
+      if (stored === "compact" || stored === "card" || stored === "detailed") {
+        setViewMode(stored);
+      }
+    } catch {
+      // storage unavailable
     }
   }, []);
 
-  // T94: Persist view mode changes to localStorage
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+    try {
+      localStorage.setItem(VIEW_MODE_STORAGE_KEY, mode);
+    } catch {
+      // storage unavailable
+    }
   }, []);
-
-  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
-  const language = useLanguageAtomValue();
-  const localOrigins =
-    useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
 
   const { createSavedSearch, isCreating } = useSavedSearches();
   const { addToHistory } = useSearchHistory();
-  const { filters } = useDictionaryFilters();
 
-  // Get current search state - MUST be before useQuery hooks
-  const originParam = (
-    searchParams.get("origins")?.split(",") ??
-    localOrigins ??
-    []
-  ).filter((o) => o.trim().length > 0);
-  const searchParam = searchParams.get("search") ?? "";
-  const ftsParam = searchParams.get("fts") ?? "";
-  // Use sorting from filters instead of separate URL params
-  const sortByParam = filters.sortBy || "wordIndex";
-  const sortOrderParam = filters.sortDirection || "asc";
+  // Saved searches and history store the filter shape; keep origins and
+  // mode in it so a restored search is complete.
+  const savedFilters = {
+    ...FilterService.createEmptyFilter(),
+    origins: state.origins,
+    mode: state.mode,
+  } as any;
 
-  // T142: Fetch all results for export (without pagination)
+  // Export: every result of the current search (not just this page)
   const {
     data: exportData,
     refetch: refetchExportData,
     isFetching: isFetchingExportData,
   } = useQuery({
-    queryKey: ["dictionaryExport", originParam, searchParam, ftsParam, filters],
-    queryFn: async () => {
-      const response = await searchDictionary({
-        dictFrom: originParam,
-        queryText: searchParam,
-        queryOperation:
-          ftsParam === "x"
-            ? "FULL_TEXT_SEARCH"
-            : searchParam
-              ? "REGEX"
-              : "BROWSE",
-        sortBy: sortByParam as any,
-        sortOrder: sortOrderParam as any,
+    queryKey: [
+      "dictionaryExport",
+      state.query,
+      state.mode,
+      state.origins,
+      state.sort,
+      state.order,
+      language,
+    ],
+    queryFn: () =>
+      lookupDictionary({
+        query: state.query,
+        mode: state.mode,
+        origins: state.origins,
+        sort: state.sort,
+        sortOrder: state.order,
         language,
-        limit: 10000, // Max limit for export
+        limit: 10000,
         offset: 0,
-      });
-      return response;
-    },
-    enabled: false, // Only fetch when export is triggered
+      }),
+    enabled: false,
   });
 
-  // T148: Fetch entries for comparison across all dictionaries
+  // Compare: the same word across every dictionary
   const { data: comparisonData, refetch: refetchComparison } = useQuery({
-    queryKey: ["dictionaryComparison", comparisonWord],
-    queryFn: async () => {
-      if (!comparisonWord) return { results: [], total: 0 };
-
-      const response = await searchDictionary({
-        dictFrom: [], // Empty to search all dictionaries
-        queryText: comparisonWord,
-        queryOperation: "REGEX",
-        sortBy: "wordIndex" as any,
-        sortOrder: "asc" as any,
-        language,
-        limit: 100, // Get all matches across dictionaries
-        offset: 0,
-      });
-      return response;
-    },
-    enabled: false, // Only fetch when comparison is triggered
+    queryKey: ["dictionaryComparison", comparisonWord, language],
+    queryFn: () =>
+      comparisonWord
+        ? lookupDictionary({
+            query: comparisonWord,
+            mode: "exact",
+            origins: [],
+            sort: "dictionary",
+            language,
+            limit: 100,
+            offset: 0,
+          })
+        : Promise.resolve(null),
+    enabled: false,
   });
 
-  // T148: Handle comparison
-  const handleCompare = useCallback(
-    (word: string) => {
-      setComparisonWord(word);
-      setComparisonOpen(true);
-      // Fetch comparison data
-      setTimeout(() => {
-        refetchComparison();
-      }, 100);
-    },
-    [refetchComparison],
-  );
+  useEffect(() => {
+    if (comparisonOpen && comparisonWord) refetchComparison();
+  }, [comparisonOpen, comparisonWord, refetchComparison]);
 
-  // T143: Handle export button click - fetch current search results
+  const handleCompare = useCallback((word: string) => {
+    setComparisonWord(word);
+    setComparisonOpen(true);
+  }, []);
+
   const handleExport = useCallback(() => {
     setExportModalOpen(true);
-    // Trigger fetch of export data with current search parameters
-    setTimeout(() => {
-      refetchExportData();
-    }, 100);
+    refetchExportData();
   }, [refetchExportData]);
 
-  // T100: Handle opening save search modal
   const handleSaveSearch = () => {
-    // T103: Add to search history
-    addToHistory(searchParam, filters);
+    addToHistory(state.query, savedFilters);
     setSaveSearchModalOpen(true);
   };
 
-  // T100-T101: Handle saving search
   const handleSaveSearchSubmit = useCallback(
     (name: string) => {
       createSavedSearch({
         name,
-        queryText: searchParam,
-        filters: filters,
-        sortBy: sortByParam,
-        sortOrder: sortOrderParam,
-      });
+        queryText: state.query,
+        filters: savedFilters,
+        sortBy: state.sortParam ?? undefined,
+        sortOrder: state.order,
+      } as any);
       setSaveSearchModalOpen(false);
     },
-    [searchParam, filters, sortByParam, sortOrderParam, createSavedSearch],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.query, state.origins, state.mode, state.sortParam, state.order, createSavedSearch],
   );
 
-  // T102: Handle selecting a saved search to restore
   const handleSelectSearch = useCallback(
     (search: {
       queryText: string;
@@ -182,104 +154,81 @@ const DictionaryView = ({ asBrowse }: DictionaryViewProps) => {
       sortBy?: string;
       sortOrder?: string;
     }) => {
-      // Update URL params to restore the search
-      const updates: Record<string, string> = {
-        search: search.queryText || "",
-        offset: "0", // Reset to first page
-      };
-
-      if (search.sortBy) {
-        updates.sortBy = search.sortBy;
-      }
-
-      if (search.sortOrder) {
-        updates.sortOrder = search.sortOrder;
-      }
-
-      // TODO: T102: Also restore filters from search.filters
-      // This would require integrating with the filter service to deserialize
-
-      updateSearchParams(updates);
-
-      // T103: Add to search history when selecting a saved search
+      const f = search.filters ?? {};
+      state.restore({
+        query: search.queryText ?? "",
+        mode: f.mode ?? f.searchMode,
+        origins: Array.isArray(f.origins) ? f.origins : undefined,
+        sort: search.sortBy ?? null,
+        order: search.sortOrder ?? null,
+      });
       addToHistory(search.queryText, search.filters);
     },
-    [updateSearchParams, addToHistory],
+    [state, addToHistory],
   );
 
   return (
-    <div className="dictionary-component flex flex-col w-full h-full space-y-4">
-      {/* T164: Skip links for keyboard navigation */}
+    <div className="dictionary-component flex flex-col w-full h-full">
       <DictionarySkipLinks />
 
       <SkipLinkTarget id="dictionary-main-content" as="main">
-        <main
-          className={cn(
-            "flex flex-1 flex-col gap-6 min-h-[calc(100vh-(--spacing(20)))]",
-            "focus:outline-none", // Remove focus outline on main since it's just a skip target
-          )}
-        >
+        <main className="flex flex-1 flex-col gap-4 focus:outline-none">
           <SkipLinkTarget id="dictionary-search">
-            <div className="flex flex-col gap-4">
-              <div className="w-full">
-                <SearchToolBar
-                  asBrowse={asBrowse}
-                  onFilterToggle={() => setFilterOpen(true)}
-                  onSaveSearch={handleSaveSearch}
-                  onSelectSearch={handleSelectSearch}
-                  onExport={handleExport} // T143
-                />
-              </div>
-            </div>
+            <SearchToolBar
+              state={state}
+              asBrowse={asBrowse}
+              onOpenOptions={() => setOptionsOpen(true)}
+              onSaveSearch={handleSaveSearch}
+              onSelectSearch={handleSelectSearch}
+              onExport={state.isBrowse && state.origins.length !== 1 ? undefined : handleExport}
+            />
           </SkipLinkTarget>
 
           <SkipLinkTarget id="dictionary-results">
-            <div className="bg-background/40 backdrop-blur-sm rounded-xl border border-border/40 p-1 min-h-[500px]">
+            <div className="min-h-[50vh]">
               <DictionaryResults
+                state={state}
                 asBrowse={asBrowse}
                 viewMode={viewMode}
-                onCompare={handleCompare} // T148
+                onCompare={handleCompare}
               />
             </div>
           </SkipLinkTarget>
 
-          {/* T74-T86: Advanced Filter Sidebar with skip target */}
           <div id="dictionary-filters">
             <DictionaryFilters
-              open={filterOpen}
-              onOpenChange={setFilterOpen}
-              viewMode={viewMode} // T87
-              onViewModeChange={handleViewModeChange} // T87
+              open={optionsOpen}
+              onOpenChange={setOptionsOpen}
+              viewMode={viewMode}
+              onViewModeChange={handleViewModeChange}
+              state={state}
             />
           </div>
         </main>
       </SkipLinkTarget>
 
-      {/* T101: Save Search Modal */}
       <SavedSearchModal
         open={saveSearchModalOpen}
         onOpenChange={setSaveSearchModalOpen}
         searchData={{
-          queryText: searchParam,
-          filters: filters,
-          sortBy: sortByParam,
-          sortOrder: sortOrderParam,
+          queryText: state.query,
+          filters: savedFilters,
+          sortBy: state.sort,
+          sortOrder: state.order,
         }}
         onSave={handleSaveSearchSubmit}
         isSaving={isCreating}
       />
 
-      {/* T137-T145: Export Modal */}
       <DictionaryExportModal
         open={exportModalOpen}
         onOpenChange={setExportModalOpen}
         results={exportData?.results || []}
         totalResults={exportData?.total || 0}
-        filters={filters}
+        filters={savedFilters}
         isLoadingResults={isFetchingExportData}
       />
 
-      {/* T146-T154: Comparison View */}
       <DictionaryComparison
         open={comparisonOpen}
         onOpenChange={setComparisonOpen}

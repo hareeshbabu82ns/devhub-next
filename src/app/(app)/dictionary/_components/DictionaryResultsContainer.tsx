@@ -1,187 +1,144 @@
 /**
- * DictionaryResultsContainer - Logic Layer
+ * DictionaryResultsContainer - data and state for the results area.
  *
- * Task: T092-T093, T89 (view mode management)
- * Purpose: Container component managing state, hooks, and event handlers
- * Responsibilities:
- * - All React hooks (useState, useQuery, custom hooks)
- * - Event handlers and callbacks
- * - URL parameter parsing and state management
- * - Data fetching coordination
- * - Pagination logic
- * - Touch device detection
- * - View mode management (T89)
- *
- * This component delegates ALL rendering to DictionaryResultsList (presentation layer)
+ * - No search, no single dictionary  → dictionary catalog to browse
+ * - No search, one dictionary        → letter strip + paged entries
+ * - A search                         → per-dictionary counts + results
  */
 
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useReadLocalStorage } from "@/hooks/use-hydration-safe-storage";
-import { DICTIONARY_ORIGINS_SELECT_KEY } from "./DictionaryMultiSelectChips";
-import { useQuery } from "@tanstack/react-query";
-import { searchDictionary } from "../actions";
-import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   useLanguageAtomValue,
   useQueryLimitAtomValue,
   useTextSizeAtomValue,
 } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { DictionaryResultsList } from "./DictionaryResultsList";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { DictionaryResultsList } from "./DictionaryResultsList";
+import { DictionaryBrowseBar } from "./DictionaryBrowseBar";
+import { DictionaryFacets } from "./DictionaryFacets";
+import { DictionaryCatalog } from "./DictionaryCatalog";
 import { ViewMode } from "../types";
-import { useDictionaryFilters } from "@/hooks/use-dictionary-filters";
-import { SearchMode } from "@/lib/dictionary/types";
+import { lookupDictionary } from "../lookup-actions";
+import { DictionaryUrlStateApi } from "./use-dictionary-url-state";
 
 interface DictionaryResultsContainerProps {
+  state: DictionaryUrlStateApi;
   asBrowse?: boolean;
   viewMode?: ViewMode;
-  onCompare?: (word: string) => void; // T148
+  onCompare?: (word: string) => void;
 }
 
-/**
- * T092: Container component for dictionary results
- * Manages all state, hooks, and business logic
- * T89: Added view mode support
- */
 export function DictionaryResultsContainer({
+  state,
   asBrowse,
   viewMode = "card",
-  onCompare, // T148
+  onCompare,
 }: DictionaryResultsContainerProps) {
   const router = useRouter();
-  const { searchParams, updateSearchParams } = useSearchParamsUpdater();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
-
-  const { filters } = useDictionaryFilters();
-
-  // Get configuration from atoms
   const language = useLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
-  const limit = parseInt(useQueryLimitAtomValue());
+  const limit = parseInt(useQueryLimitAtomValue()) || 20;
 
-  // Parse URL parameters
-  const localOrigins =
-    useReadLocalStorage<string[]>(DICTIONARY_ORIGINS_SELECT_KEY) || [];
+  const { query, mode, origins, sort, sortParam, order, page, isBrowse } = state;
+  const showCatalog = isBrowse && origins.length !== 1;
 
-  const originParam = useMemo(() => {
-    const urlOrigins = searchParams.get("origins")?.split(",").filter(Boolean);
-    if (urlOrigins && urlOrigins.length > 0) return urlOrigins;
-    if (filters.origins.length > 0) return filters.origins;
-    return localOrigins.filter(Boolean);
-  }, [searchParams, filters.origins, localOrigins]);
-
-  const searchParam = searchParams.get("search") ?? "";
-  const ftsParam = searchParams.get("fts") ?? "";
-  const sortByParam = searchParams.get("sortBy") ?? "wordIndex";
-  const sortOrderParam = searchParams.get("sortOrder") ?? "asc";
-  const page = parseInt(searchParams.get("offset") || "0", 10);
-
-  // T093: Data fetching - keeping direct useQuery for now since the hook
-  // doesn't match our URL-based state management pattern exactly
-  // TODO: Future enhancement - create a URL-synchronized version of useDictionarySearch
-  const { data, isFetching, isLoading, isError, error, refetch } = useQuery({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery({
     queryKey: [
-      "dictionaryItems",
-      originParam,
-      searchParam,
-      ftsParam,
-      sortByParam,
-      sortOrderParam,
+      "dictionaryLookup",
+      query,
+      mode,
+      origins,
+      sort,
+      order,
       language,
       limit,
       page,
     ],
-    queryFn: async () => {
-      const response = await searchDictionary({
-        dictFrom: originParam,
-        queryText: searchParam,
-        queryOperation: ftsParam === "x" ? "FULL_TEXT_SEARCH" : "REGEX",
-        sortBy: sortByParam as any,
-        sortOrder: sortOrderParam as any,
+    queryFn: () =>
+      lookupDictionary({
+        query,
+        mode,
+        origins,
+        sort,
+        sortOrder: order,
         language,
         limit,
         offset: page * limit,
-      });
-      return response;
-    },
-    enabled:
-      originParam.length > 0 ||
-      (originParam.length > 0 && searchParam.length > 0) ||
-      (searchParam.length > 0 && ftsParam === "x"),
+      }),
+    enabled: !showCatalog,
     staleTime: QUERY_STALE_TIME_LONG,
+    placeholderData: keepPreviousData,
   });
 
-  const currentPage = page + 1;
-  const results = data?.results || [];
-  const total = data?.total || 0;
+  if (showCatalog) {
+    return (
+      <DictionaryCatalog
+        origins={origins}
+        onBrowse={(code) => state.browseTo(code, 0)}
+      />
+    );
+  }
 
-  // T093: Event handlers (moved from presentation layer)
-  const handlePageChange = (newPage: number) => {
-    const offset = newPage - 1;
-    updateSearchParams({ offset: offset.toString() });
-  };
+  const results = data?.results ?? [];
+  const total = data?.total ?? 0;
 
-  const handleNextPage = () => {
-    const newPage = page + 1;
-    updateSearchParams({ offset: newPage.toString() });
-  };
-
-  const handlePrevPage = () => {
-    const newPage = Math.max(0, page - 1);
-    updateSearchParams({ offset: newPage.toString() });
-  };
-
-  const handleRefresh = () => {
-    refetch();
-  };
-
-  const handleCopyDescription = (description: string) => {
-    navigator.clipboard.writeText(description);
-  };
-
-  const handleEditItem = (itemId: string) => {
-    router.push(`/dictionary/${itemId}/edit`);
-  };
-
-  // T222: Handler for switching to full-text search
-  const handleSwitchToFullText = () => {
-    updateSearchParams({ mode: SearchMode.FULLTEXT });
-    // Trigger immediate refetch after mode change
-    setTimeout(() => refetch(), 100);
-  };
-
-  // Delegate all rendering to presentation layer
   return (
-    <DictionaryResultsList
-      results={results}
-      total={total}
-      isLoading={isLoading}
-      isFetching={isFetching}
-      isError={isError}
-      error={error}
-      currentPage={currentPage}
-      limit={limit}
-      language={language}
-      textSize={textSize}
-      isTouchDevice={isTouchDevice}
-      asBrowse={asBrowse}
-      originParam={originParam}
-      searchTerm={searchParam}
-      viewMode={viewMode}
-      searchMode={filters.searchMode || SearchMode.FULLTEXT}
-      onPageChange={handlePageChange}
-      onNextPage={handleNextPage}
-      onPrevPage={handlePrevPage}
-      onRefresh={handleRefresh}
-      onCopyDescription={handleCopyDescription}
-      onEditItem={handleEditItem}
-      onCompare={onCompare} // T148 - pass through from parent
-      onSwitchToFullText={handleSwitchToFullText} // T222 - switch search mode
-    />
+    <div className="space-y-3">
+      {isBrowse ? (
+        <DictionaryBrowseBar
+          origin={origins[0]}
+          language={language}
+          limit={limit}
+          total={data?.browse ? total : undefined}
+          onLocate={(p, id) => state.browseTo(origins[0], p, id)}
+        />
+      ) : (
+        <DictionaryFacets
+          query={query}
+          mode={mode}
+          origins={origins}
+          onSelect={state.setOrigins}
+        />
+      )}
+
+      <DictionaryResultsList
+        results={results}
+        total={total}
+        isLoading={isLoading}
+        isFetching={isFetching}
+        isError={isError}
+        error={error}
+        currentPage={page + 1}
+        limit={limit}
+        language={language}
+        textSize={textSize}
+        isTouchDevice={isTouchDevice}
+        asBrowse={asBrowse}
+        searchTerm={query}
+        viewMode={viewMode}
+        requestedMode={mode}
+        effectiveMode={data?.mode ?? mode}
+        fellBack={data?.fellBack ?? false}
+        isBrowse={isBrowse}
+        sort={sort}
+        sortIsDefault={sortParam === null}
+        focusId={state.focus}
+        onSortChange={(s) => state.setSort(s, order)}
+        onModeChange={state.setMode}
+        onPageChange={(p) => state.setPage(p - 1)}
+        onNextPage={() => state.setPage(page + 1)}
+        onPrevPage={() => state.setPage(Math.max(0, page - 1))}
+        onRefresh={() => refetch()}
+        onCopyDescription={(d) => navigator.clipboard.writeText(d)}
+        onEditItem={(id) => router.push(`/dictionary/${id}/edit`)}
+        onCompare={onCompare}
+      />
+    </div>
   );
 }
 

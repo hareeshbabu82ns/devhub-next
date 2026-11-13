@@ -30,9 +30,9 @@ import {
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { DictionaryRepository } from "@/lib/dictionary/dictionary-repository";
-import { SearchService } from "@/lib/dictionary/search-service";
-import { FilterService } from "@/lib/dictionary/filter-service";
 import { ServiceResponse } from "@/lib/dictionary/types";
+import { lookupDictionary } from "./lookup-actions";
+import { generatePhoneticString } from "@/lib/dictionary/word-utils";
 
 // Response types for reprocess action
 export type ReprocessWordResponse<T = unknown> =
@@ -106,6 +106,35 @@ export const updateDictItem = async (
   return res;
 };
 
+async function nextWordIndex(origin: string): Promise<number> {
+  const last = await db.dictionaryWord.findFirst({
+    where: { origin },
+    orderBy: { wordIndex: "desc" },
+    select: { wordIndex: true },
+  });
+  return (last?.wordIndex ?? 0) + 1;
+}
+
+/** Next free word index in a dictionary (for the "new entry" form) */
+export const getNextWordIndex = async (origin: string): Promise<number> => {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  return nextWordIndex(origin);
+};
+
+/**
+ * Search text for an entry, built the same way the importer builds it, so
+ * edited words and meanings stay findable.
+ */
+export const computeDictPhonetic = async (
+  word: { language: string; value: string }[],
+  description: { language: string; value: string }[],
+): Promise<string> => {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  return generatePhoneticString(word as any, description as any);
+};
+
 export const createDictItem = async (data: {
   item: Prisma.DictionaryWordCreateInput;
   children?: Prisma.DictionaryWordCreateInput[];
@@ -115,9 +144,17 @@ export const createDictItem = async (data: {
     throw new Error("Unauthorized");
   }
 
-  const entityData = {
-    ...data.item,
-  };
+  const entityData = { ...data.item };
+  // (wordIndex, origin) is unique: a new entry without a position goes last
+  if (!entityData.wordIndex || entityData.wordIndex <= 0) {
+    entityData.wordIndex = await nextWordIndex(entityData.origin);
+  }
+  if (!entityData.phonetic) {
+    entityData.phonetic = generatePhoneticString(
+      (entityData.word ?? []) as any,
+      (entityData.description ?? []) as any,
+    );
+  }
 
   const res = await db.$transaction(async (txn) => {
     const itemRes = await txn.dictionaryWord.create({ data: entityData });
@@ -166,8 +203,7 @@ interface SearchDictParams {
 
 /**
  * T75-T77: Refactored searchDictionary action
- * Pattern: auth check → SearchService.performSearch() → format response
- * Lines: <50 (delegated to SearchService)
+ * Kept for existing callers (popup widget); delegates to lookupDictionary
  */
 export const searchDictionary = async ({
   dictFrom,
@@ -184,48 +220,29 @@ export const searchDictionary = async ({
     return createSearchResult([], 0, limit, offset);
   }
 
-  // Create service instances
-  const repository = new DictionaryRepository();
-  const searchService = new SearchService(repository);
-
-  // Build search options using service types
-  const filters = FilterService.createEmptyFilter();
-  filters.origins = dictFrom;
-
-  // Perform search via service
-  const response = await searchService.performSearch({
-    queryText: queryText.trim(),
-    filters,
-    sortBy: sortBy === "relevance" ? "relevance" : "alphabetical",
-    sortDirection: sortOrder,
-    pagination: { limit, offset },
-  });
-
-  // Handle service response
-  if (response.status === "error") {
-    console.error("Search error:", response.error);
+  // Delegates to the script-aware lookup engine (see lookup-actions.ts)
+  const hasQuery = queryText.trim().length > 0;
+  try {
+    const response = await lookupDictionary({
+      query: queryOperation === "BROWSE" ? "" : queryText,
+      mode: queryOperation === "FULL_TEXT_SEARCH" ? "meaning" : "smart",
+      origins: dictFrom,
+      sort:
+        sortBy === "phonetic"
+          ? "alphabetical"
+          : hasQuery && queryOperation !== "BROWSE"
+            ? "relevance"
+            : "dictionary",
+      sortOrder,
+      language,
+      limit,
+      offset,
+    });
+    return createSearchResult(response.results, response.total, limit, offset);
+  } catch (error) {
+    console.error("Search error:", error);
     return createSearchResult([], 0, limit, offset);
   }
-
-  // Map results to DictionaryItem format, preserving relevance data
-  // T122: Include relevance scores in search results
-  const mappedResults: DictionaryItem[] = response.data.results.map((result) => {
-    const mapped = mapDbToDictionary(result, language);
-    // Preserve relevance scoring and match metadata from service layer
-    return {
-      ...mapped,
-      relevanceScore: result.relevanceScore,
-      matchType: result.matchType,
-      searchMetadata: result.searchMetadata,
-    } as DictionaryItem;
-  });
-
-  return createSearchResult(
-    mappedResults,
-    response.data.total,
-    limit,
-    offset
-  );
 };
 
 /**
