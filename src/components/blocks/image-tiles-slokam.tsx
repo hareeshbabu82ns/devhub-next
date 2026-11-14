@@ -119,7 +119,7 @@ export const ArtSlokamTile = ({
       }}
     >
       {model.src && model.src !== ENTITY_DEFAULT_IMAGE_THUMBNAIL && (
-        <div className="aspect-[9/11] w-[150px] rounded-md transform overflow-hidden shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
+        <div className="aspect-9/11 w-37.5 rounded-md transform overflow-hidden shadow-[0_2px_8px_rgba(15,23,42,0.08)]">
           <OptimizedImage
             alt={model.title}
             loading="lazy"

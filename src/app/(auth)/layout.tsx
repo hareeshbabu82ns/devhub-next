@@ -16,7 +16,7 @@ export default async function AuthLayout({
   return (
     <div className="relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
       <div className="bg-sunrise relative hidden h-full flex-col overflow-hidden p-10 text-[#fff6e0] lg:flex">
-        <Mandala className="animate-mandala absolute -bottom-40 -right-40 size-[44rem] text-[#fff6e0]/25" />
+        <Mandala className="animate-mandala absolute -bottom-40 -right-40 size-176 text-[#fff6e0]/25" />
         <Link href="/" className="font-display relative z-20 flex items-center gap-2 text-xl font-semibold">
           <Icons.logo className="size-8" />
           {siteConfig.name}
@@ -39,7 +39,7 @@ export default async function AuthLayout({
         </div>
       </div>
       <div className="p-4 sm:p-8">
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-87.5">
           {children}
           <p className="px-8 text-center text-sm text-muted-foreground">
             By clicking continue, you agree to our{" "}

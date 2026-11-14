@@ -48,13 +48,13 @@ export function OrnamentDivider({ className }: { className?: string }) {
       aria-hidden="true"
       className={cn("flex items-center gap-3 text-gold", className)}
     >
-      <span className="h-px flex-1 bg-gradient-to-r from-transparent to-current opacity-60" />
+      <span className="h-px flex-1 bg-linear-to-r from-transparent to-current opacity-60" />
       <svg viewBox="0 0 48 24" className="h-4 w-8 shrink-0" fill="currentColor">
         <path d="M24 2c4 5 4 12 0 18c-4-6-4-13 0-18z" />
         <path d="M11 8c6 1 10 5 11 12c-6-1-10-5-11-12zM37 8c-6 1-10 5-11 12c6-1 10-5 11-12z" opacity=".75" />
         <path d="M2 16c6-2 12-1 17 5c-7 1-13 0-17-5zM46 16c-6-2-12-1-17 5c7 1 13 0 17-5z" opacity=".5" />
       </svg>
-      <span className="h-px flex-1 bg-gradient-to-l from-transparent to-current opacity-60" />
+      <span className="h-px flex-1 bg-linear-to-l from-transparent to-current opacity-60" />
     </div>
   );
 }

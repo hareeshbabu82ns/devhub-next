@@ -74,7 +74,7 @@ export type NodeHeaderIconProps = HTMLAttributes<HTMLSpanElement>;
 export const NodeHeaderIcon = forwardRef<HTMLSpanElement, NodeHeaderIconProps>(
   ({ className, ...props }, ref) => {
     return (
-      <span ref={ref} {...props} className={cn(className, "[&>*]:size-4")} />
+      <span ref={ref} {...props} className={cn(className, "*:size-4")} />
     );
   },
 );

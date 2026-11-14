@@ -397,11 +397,11 @@ export default function AskAIChat({
                   : turn.sources.slice(0, 6);
               return (
                 <div key={i} className="flex flex-col gap-2">
-                  <p className="self-end rounded-lg bg-secondary/20 px-3 py-2 max-w-[90%] whitespace-pre-wrap break-words">
+                  <p className="self-end rounded-lg bg-secondary/20 px-3 py-2 max-w-[90%] whitespace-pre-wrap wrap-break-word">
                     {turn.question}
                   </p>
                   {turn.answer ? (
-                    <div className="markdown-content break-words leading-relaxed">
+                    <div className="markdown-content wrap-break-word leading-relaxed">
                       <Markdown remarkPlugins={[remarkGfm]}>
                         {turn.answer}
                       </Markdown>
