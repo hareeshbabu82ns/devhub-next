@@ -3,7 +3,8 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AI_NOT_CONFIGURED, getAiConfig } from "@/lib/ai/config";
-import { AskEvent, AskSource, askLibrary } from "@/lib/ai/ask";
+import { AskEvent, AskSource, askLibrary, previousSources } from "@/lib/ai/ask";
+import type { PreviousSources } from "@/lib/ai/retrieval";
 import { AiChatTurn, chatHistory, chatTitleFrom } from "@/lib/ai/chats";
 import { speechStatus } from "@/lib/ai/speech";
 
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
 
   let chat: { id: string; title: string; scopeId: string | null };
   let history: ReturnType<typeof chatHistory> = [];
+  let previous: PreviousSources | undefined;
   if (parsed.data.chatId) {
     const existing = await db.aiChat.findFirst({
       where: { id: parsed.data.chatId, userId },
@@ -64,6 +66,7 @@ export async function POST(request: NextRequest) {
     }
     chat = existing;
     history = chatHistory(existing.turns as AiChatTurn[]);
+    previous = previousSources(existing.turns as AiChatTurn[]);
   } else {
     chat = await db.aiChat.create({
       data: {
@@ -97,7 +100,7 @@ export async function POST(request: NextRequest) {
         send({ type: "chat", id: chat.id, title: chat.title });
         const events = askLibrary(
           config,
-          { question, scopeId: chat.scopeId, history },
+          { question, scopeId: chat.scopeId, history, previous },
           userId,
           request.signal,
         );

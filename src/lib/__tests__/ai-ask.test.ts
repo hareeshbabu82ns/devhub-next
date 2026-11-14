@@ -1,15 +1,25 @@
 jest.mock("../db", () => ({ db: {} }));
 
-import { formatPassages, naiveKeywords, parseKeywordReply } from "../ai/ask";
+import {
+  formatPassages,
+  naiveKeywords,
+  parseKeywordReply,
+  previousSources,
+} from "../ai/ask";
 
 describe("parseKeywordReply", () => {
   it("reads a bare JSON array", () => {
-    expect(parseKeywordReply('["Hanuman", "sītā"]')).toEqual(["Hanuman", "sītā"]);
+    expect(parseKeywordReply('["Hanuman", "sītā"]')).toEqual([
+      "Hanuman",
+      "sītā",
+    ]);
   });
 
   it("reads an array wrapped in prose or a code fence", () => {
     expect(
-      parseKeywordReply('Sure!\n```json\n["हनुमान्", "ring"]\n```\nHope it helps'),
+      parseKeywordReply(
+        'Sure!\n```json\n["हनुमान्", "ring"]\n```\nHope it helps',
+      ),
     ).toEqual(["हनुमान्", "ring"]);
   });
 
@@ -22,12 +32,9 @@ describe("parseKeywordReply", () => {
 
 describe("naiveKeywords", () => {
   it("keeps meaningful words in any script and drops filler", () => {
-    expect(naiveKeywords("Where does Hanuman meet सीता in the forest?")).toEqual([
-      "Hanuman",
-      "meet",
-      "सीता",
-      "forest",
-    ]);
+    expect(
+      naiveKeywords("Where does Hanuman meet सीता in the forest?"),
+    ).toEqual(["Hanuman", "meet", "सीता", "forest"]);
   });
 });
 
@@ -56,5 +63,26 @@ describe("formatPassages", () => {
     expect(out).toBe(
       "[1] Book › Chapter › 1\nरामः\nMeaning: Rama\nCommentary (X): note\n\n[2] Book › Chapter › 2\nसीता",
     );
+  });
+});
+
+describe("previousSources", () => {
+  const source = (id: string, type = "SLOKAM") => ({
+    n: 1,
+    id,
+    type,
+    parentId: null,
+    reference: id,
+  });
+
+  it("finds what the latest turns read", () => {
+    expect(
+      previousSources([
+        { mode: "position", sources: [source("a"), source("b")] },
+        { mode: "graph", sources: [source("c"), source("k", "CONCEPT")] },
+        { mode: "position", sources: [] },
+      ]),
+    ).toEqual({ last: ["c"], positional: ["a", "b"] });
+    expect(previousSources([])).toEqual({ last: [], positional: [] });
   });
 });

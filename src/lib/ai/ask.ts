@@ -1,6 +1,16 @@
 import { AiConfig } from "./config";
 import { chatComplete, ChatMessage, chatStream } from "./client";
-import { Passage, resolveScope, searchPassages } from "./retrieval";
+import {
+  Passage,
+  narrowScope,
+  PositionalPassages,
+  positionalPassages,
+  PreviousSources,
+  resolveScope,
+  searchPassages,
+} from "./retrieval";
+import { parseQuestion } from "./positions";
+import { entityChildTypes } from "@/lib/entity-types";
 import { ragRetrieve, RagRetrieval } from "./rag/retrieve";
 import {
   CONCEPT_KIND_LABEL,
@@ -29,6 +39,24 @@ export type AskInput = {
   /** Book, chapter or verse to stay within; null for the whole library. */
   scopeId: string | null;
   history?: { role: "user" | "assistant"; content: string }[];
+  /** what earlier turns read, so "the next 10" has something to follow */
+  previous?: PreviousSources;
+};
+
+/** Which passages earlier turns of a chat were answered from. */
+export const previousSources = (
+  turns: { sources?: AskSource[] | null; mode?: string | null }[],
+): PreviousSources => {
+  const passageIds = (turn: (typeof turns)[number]) =>
+    (turn.sources ?? [])
+      .filter((s) => s.type !== CONCEPT_SOURCE_TYPE)
+      .map((s) => s.id);
+  const answered = [...turns].reverse().filter((t) => passageIds(t).length > 0);
+  const positional = answered.find((t) => t.mode === "position");
+  return {
+    last: answered[0] ? passageIds(answered[0]) : [],
+    positional: positional ? passageIds(positional) : [],
+  };
 };
 
 const STOP_WORDS = new Set(
@@ -148,6 +176,17 @@ If the passages do not contain the answer, say so plainly instead of answering f
 Answer the question that was asked. Never tell the person what they feel; acknowledge a feeling only if they stated it. For personal questions be kind and practical, and if someone mentions self-harm, put their safety first and urge them to contact a local crisis line or emergency services.
 Quote Sanskrit sparingly and explain it. Reply in the language of the question.`;
 
+const positionCoverage = (
+  { passages, total, truncated }: PositionalPassages,
+  scopeName: string,
+) => {
+  const size = total ? ` That section has ${total} in all.` : "";
+  if (passages.length === 0) {
+    return `The question asks for the verses before or after the ones read earlier, but there are no more that way in their section.${size} Say so plainly.`;
+  }
+  return `These are exactly the passages the question points to by position, read in order from ${scopeName}: ${passages[0].reference} to ${passages[passages.length - 1].reference}. The number ending each reference is the verse number.${size}${truncated ? ` Only the first ${passages.length} of those asked for are included; say so.` : ""}`;
+};
+
 /** Answers a question from the library, yielding sources first, then text. */
 export async function* askLibrary(
   config: AiConfig,
@@ -156,11 +195,48 @@ export async function* askLibrary(
   signal?: AbortSignal,
 ): AsyncGenerator<AskEvent> {
   try {
-    const scope = await resolveScope(input.scopeId, userId);
+    let scope = await resolveScope(input.scopeId, userId);
+    let scopeId = input.scopeId;
+    let scopeTitle = scope.entity?.title ?? "Entire library";
+    const target = parseQuestion(input.question);
+    const warn = (what: string) => (error: unknown) => {
+      if (signal?.aborted) throw error;
+      console.warn(`${what} failed, carrying on without:`, error);
+      return null;
+    };
+    const isContainer = () =>
+      !!scope.entity && entityChildTypes(scope.entity.type).length > 0;
+
+    // "chapter 3", "verse 2.47": only that chapter of the scope is needed
+    if (scope.entity && isContainer() && target.path.length > 0) {
+      const narrowed = await narrowScope(scope.entity.id, target.path).catch(
+        warn("Narrowing to the chapter asked about"),
+      );
+      if (narrowed && narrowed !== scope.entity.id) {
+        scope = await resolveScope(narrowed, userId);
+        scopeId = narrowed;
+        scopeTitle = `${scopeTitle} › ${scope.entity?.title}`;
+      }
+    }
+
+    // "the first 10 slokas", "verse 12", "the next 10": read by position —
+    // no search can find a verse by where it stands
+    let positional: PositionalPassages | null = null;
+    if (scope.entity && isContainer() && target.position) {
+      positional = await positionalPassages(
+        scope.entity.id,
+        target.position,
+        userId,
+        input.previous,
+      ).catch(warn("Reading verses by position"));
+    }
     let passages: Passage[];
     let mode: string;
     let graph: RagRetrieval | null = null;
-    if (scope.full) {
+    if (positional) {
+      passages = positional.passages;
+      mode = "position";
+    } else if (scope.full) {
       passages = scope.full;
       mode = "full";
     } else {
@@ -168,7 +244,7 @@ export async function* askLibrary(
       // graph; the model is only asked for keywords when there is no index
       graph = await ragRetrieve(
         input.question,
-        input.scopeId,
+        scopeId,
         scope.containerIds,
         naiveKeywords(input.question),
         userId,
@@ -194,7 +270,7 @@ export async function* askLibrary(
 
     yield {
       type: "sources",
-      scope: scope.entity?.title ?? "Entire library",
+      scope: scopeTitle,
       mode,
       sources: [
         ...passages.map((p, i) => ({
@@ -214,9 +290,7 @@ export async function* askLibrary(
       ],
     };
 
-    const scopeName = scope.entity
-      ? `"${scope.entity.title}"`
-      : "the entire library";
+    const scopeName = scope.entity ? `"${scopeTitle}"` : "the entire library";
     const context =
       passages.length > 0
         ? [
@@ -228,10 +302,12 @@ export async function* askLibrary(
         : "(no matching passages were found)";
     const coverage =
       mode === "full"
-        ? `These passages are the complete content of "${scope.entity?.title}", in reading order.`
-        : mode === "graph"
-          ? `These passages were selected from ${scopeName} by meaning and by following its knowledge graph (${graph!.via}); other relevant passages may exist.`
-          : `These passages were selected by keyword search from ${scopeName}; other relevant passages may exist.`;
+        ? `These passages are the complete content of ${scopeName}, in reading order.`
+        : mode === "position"
+          ? positionCoverage(positional!, scopeName)
+          : mode === "graph"
+            ? `These passages were selected from ${scopeName} by meaning and by following its knowledge graph (${graph!.via}); other relevant passages may exist.`
+            : `These passages were selected by keyword search from ${scopeName}; other relevant passages may exist.`;
 
     const messages: ChatMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },

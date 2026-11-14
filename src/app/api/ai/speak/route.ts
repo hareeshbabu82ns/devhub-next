@@ -6,7 +6,7 @@ import { synthesizeSpeech } from "@/lib/ai/speech";
 const SpeakSchema = z.object({
   // the client sends one sentence or paragraph at a time
   text: z.string().trim().min(1).max(1500),
-  // voice and model on the library's speech server; unset uses its defaults
+  // voice and model on the speech server; unset uses its defaults
   voice: z
     .string()
     .regex(/^[\w-]{1,64}$/)
@@ -18,9 +18,8 @@ const SpeakSchema = z.object({
 });
 
 /**
- * Reads a piece of an answer aloud with the first working local source
- * (library TTS server, then the speech model). On failure the client uses
- * the browser's voices instead.
+ * Reads a piece of an answer aloud with the speech server. On failure the
+ * client uses the browser's voices instead.
  */
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
   try {
-    const { body, contentType, source } = await synthesizeSpeech(
+    const { body, contentType } = await synthesizeSpeech(
       parsed.data.text,
       { voice: parsed.data.voice, model: parsed.data.model },
       request.signal,
@@ -41,7 +40,6 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "no-store",
-        "X-Speech-Source": source,
       },
     });
   } catch (error) {

@@ -7,7 +7,9 @@ import {
   loadSpeechOptions,
   loadTranscribeOptions,
   resolveSpeechUrl,
+  speechStatus,
   synthesizeLibrary,
+  synthesizeSpeech,
   transcribe,
 } from "../ai/speech";
 import {
@@ -38,8 +40,9 @@ const ENV_KEYS = [
   "TTS_MODEL",
   "TTS_VOICE",
   "AI_STT_BASE_URL",
-  "AI_STT_MODEL",
-  "AI_STT_API_KEY",
+  "AI_BASE_URL",
+  "AI_TTS_MODEL",
+  "AI_TTS_BASE_URL",
 ];
 const savedEnv: Record<string, string | undefined> = {};
 const realFetch = global.fetch;
@@ -162,26 +165,28 @@ describe("resolveSpeechUrl", () => {
 describe("getSttConfig", () => {
   it("is null when no speech server is configured", () => {
     expect(getSttConfig()).toBeNull();
+    expect(speechStatus()).toEqual({ transcribe: false, speak: false });
   });
 
-  it("falls back to the library's speech server", () => {
+  it("is the speech server, and nothing else", () => {
     process.env.TTS_UTILS_URL = "http://host:8000";
-    expect(getSttConfig()).toEqual({
-      baseUrl: "http://host:8000/v1",
-      model: undefined,
-      apiKey: undefined,
-    });
+    // the chat model's server and the retired speech variables play no part
+    process.env.AI_BASE_URL = "http://llm:11434/v1";
+    process.env.AI_TTS_MODEL = "phonon";
+    process.env.AI_TTS_BASE_URL = "http://llm:11434/v1";
+    process.env.AI_STT_BASE_URL = "http://stt:9000/v1";
+    expect(getSttConfig()).toEqual({ baseUrl: "http://host:8000/v1" });
+    expect(speechStatus()).toEqual({ transcribe: true, speak: true });
   });
 
-  it("prefers AI_STT_BASE_URL, with whisper-1 as its default model", () => {
-    process.env.TTS_UTILS_URL = "http://host:8000";
-    process.env.AI_STT_BASE_URL = "http://stt:9000/v1/";
-    expect(getSttConfig()).toMatchObject({
-      baseUrl: "http://stt:9000/v1",
-      model: "whisper-1",
-    });
-    process.env.AI_STT_MODEL = "large-v3";
-    expect(getSttConfig()?.model).toBe("large-v3");
+  it("does not speak through the chat model's server", async () => {
+    process.env.AI_BASE_URL = "http://llm:11434/v1";
+    process.env.AI_TTS_MODEL = "phonon";
+    expect(speechStatus().speak).toBe(false);
+    await expect(synthesizeSpeech("hello")).rejects.toThrow(
+      "No text-to-speech server is configured",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -515,17 +520,16 @@ describe("the live server's payloads", () => {
     expect(options.byModel["whisper-large-v3"].modes).toEqual(["native"]);
   });
 
-  it("has nothing to offer for a server that lists nothing", async () => {
-    process.env.AI_STT_BASE_URL = "http://whisper:9000/v1";
-    fetchMock.mockResolvedValue(json({}, 404));
+  it("has nothing to offer when the server is down or not set up", async () => {
+    expect((await loadTranscribeOptions()).live).toBe(false);
+    process.env.TTS_UTILS_URL = "http://host:8000";
+    fetchMock.mockRejectedValue(new Error("down"));
     expect(await loadTranscribeOptions()).toMatchObject({
       models: [],
       defaultModel: "",
       languages: [],
       live: false,
     });
-    delete process.env.AI_STT_BASE_URL;
-    expect((await loadTranscribeOptions()).live).toBe(false);
   });
 
   it("sends the chosen transcription model", async () => {

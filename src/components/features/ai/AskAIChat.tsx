@@ -74,6 +74,7 @@ const MODE_NOTE: Record<string, string> = {
   graph: "Found by meaning and through the knowledge graph",
   search: "Found by keyword search",
   full: "Read in full",
+  position: "Read by verse position",
 };
 
 interface AskAIChatProps {
@@ -131,7 +132,6 @@ export default function AskAIChat({
         speech?: {
           transcribe: boolean;
           speak: boolean;
-          speakVia?: ("library" | "model")[];
         };
       };
     },

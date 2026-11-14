@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 export type SpeechSettings = {
-  /** auto: the local server when there is one, else the browser */
+  /** auto: the speech server when there is one, else the browser */
   inputEngine: "auto" | "browser" | "server";
   /** BCP 47 tag; "" follows the browser's language */
   inputLang: string;
@@ -18,11 +18,11 @@ export type SpeechSettings = {
   sttMode: string;
   /** send the question as soon as speaking ends */
   autoSend: boolean;
-  /** server: local voice servers first, the browser's voices as fallback */
+  /** server: the speech server first, the browser's voices as fallback */
   outputEngine: "browser" | "server";
-  /** voice on the library's speech server; "" uses the server's default */
+  /** voice on the speech server; "" uses the server's default */
   serverVoice: string;
-  /** model on the library's speech server; "" uses the server's default */
+  /** model on the speech server; "" uses the server's default */
   serverModel: string;
   /** a browser voice; "" picks one per language */
   voiceURI: string;

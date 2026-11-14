@@ -56,7 +56,6 @@ interface AskAIVoiceSettingsProps {
   server: {
     transcribe: boolean;
     speak: boolean;
-    speakVia?: ("library" | "model")[];
   };
   browserRecognition: boolean;
   /** which engine voice input will actually use, if any */
@@ -80,11 +79,8 @@ export default function AskAIVoiceSettings({
     return rank(a) - rank(b) || a.lang.localeCompare(b.lang);
   });
 
-  // voices and models of the library's speech server
-  const usesLibrary =
-    settings.outputEngine === "server" &&
-    server.speak &&
-    !!server.speakVia?.includes("library");
+  // voices and models of the speech server
+  const usesLibrary = settings.outputEngine === "server" && server.speak;
   const { data: library } = useQuery({
     queryKey: ["speechOptions"],
     queryFn: () => fetchSpeechOptions(),
@@ -185,7 +181,12 @@ export default function AskAIVoiceSettings({
       <PopoverContent
         align="end"
         collisionPadding={16}
-        className="flex max-h-[min(36rem,calc(100dvh-6rem))] w-[min(22rem,calc(100vw-2rem))] flex-col gap-4 overflow-y-auto"
+        // In the Ask AI sheet the page's scroll lock swallows wheel and touch
+        // scrolling of anything rendered outside the sheet, which this is.
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+        // never taller than the room left on the side it opens to
+        className="flex max-h-[min(36rem,var(--radix-popover-content-available-height))] w-[min(22rem,calc(100vw-2rem))] touch-pan-y flex-col gap-4 overflow-y-auto overscroll-contain [&>section]:shrink-0"
       >
         <section className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">Speak your question</h3>
@@ -206,7 +207,7 @@ export default function AskAIVoiceSettings({
                   Browser
                 </SelectItem>
                 <SelectItem value="server" disabled={!server.transcribe}>
-                  Local speech server
+                  Speech server
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -215,7 +216,7 @@ export default function AskAIVoiceSettings({
                 ? "Recorded audio goes only to your own speech server."
                 : inputEngine === "browser"
                   ? "Uses the browser's recognizer. Chrome and Edge send audio to their online service; Safari may recognize on the device."
-                  : "Voice input is not available here. Use Chrome, Edge or Safari, or set TTS_UTILS_URL or AI_STT_BASE_URL to a local speech server."}
+                  : "Voice input is not available here. Use Chrome, Edge or Safari, or set TTS_UTILS_URL to a speech server."}
             </p>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -339,22 +340,15 @@ export default function AskAIVoiceSettings({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="server" disabled={!server.speak}>
-                  Local voice servers
+                  Speech server
                 </SelectItem>
                 <SelectItem value="browser">Device voices only</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
               {server.speak
-                ? `Tries ${[
-                    ...(server.speakVia ?? []).map((s) =>
-                      s === "library"
-                        ? "the library TTS server"
-                        : "the speech model",
-                    ),
-                    "this device's voice",
-                  ].join(", then ")}.`
-                : "No local voice server is set up (TTS_UTILS_URL or AI_TTS_MODEL), so this device's voices are used."}
+                ? "Tries the speech server, then this device's voice."
+                : "No speech server is set up (TTS_UTILS_URL), so this device's voices are used."}
             </p>
           </div>
           {usesLibrary && (
@@ -430,8 +424,8 @@ export default function AskAIVoiceSettings({
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {library && !library.live
-                    ? "The library speech server did not answer, so these are the standard options."
-                    : "Used by the library speech server. Voices differ between models; those for the language you speak come first."}
+                    ? "The speech server did not answer, so these are the standard options."
+                    : "Voices differ between models; those for the language you speak come first."}
                 </p>
               </div>
             </>

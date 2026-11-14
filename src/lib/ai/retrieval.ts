@@ -1,6 +1,13 @@
 import { db } from "@/lib/db";
 import { annotationKind } from "@/lib/annotations";
 import { ENTITY_TYPE_CODES, entityChildTypes } from "@/lib/entity-types";
+import {
+  isRelative,
+  PositionRequest,
+  RelativePosition,
+  selectPositions,
+  selectRelative,
+} from "./positions";
 
 type LangValue = { language: string; value: string };
 
@@ -306,4 +313,172 @@ export async function searchPassageRows(
     }
   }
   return [...scored.values()].sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+/** The children of one container, in reading order. */
+async function orderedChildren(
+  containerId: string,
+  leaves: boolean,
+): Promise<{ id: string; order: number }[]> {
+  const rows = (await db.entity.aggregateRaw({
+    pipeline: [
+      {
+        $match: {
+          parents: { $in: [{ $oid: containerId }] },
+          type: leaves ? { $nin: CONTAINER_TYPES } : { $in: CONTAINER_TYPES },
+        },
+      },
+      { $sort: { order: 1 } },
+      { $project: { _id: 1, order: 1 } },
+    ],
+  })) as unknown as { _id: { $oid: string }; order?: number }[];
+  return rows.map((row) => ({
+    id: row._id.$oid,
+    order: Number(row.order ?? 0),
+  }));
+}
+
+export type PositionalPassages = {
+  passages: Passage[];
+  /** how many verses the section they were read from holds, when known */
+  total: number | null;
+  /** more were asked for than can be given to the model at once */
+  truncated: boolean;
+};
+
+/** What earlier turns of a chat read, for "the next 10" and "those verses". */
+export type PreviousSources = {
+  /** passages of the latest turn that had any */
+  last: string[];
+  /** passages of the latest turn that read verses by position */
+  positional: string[];
+};
+
+/** Reads the given verses, in the order given. */
+async function readVerses(ids: string[], userId: string): Promise<Passage[]> {
+  const rows = (await db.entity.findMany({
+    where: { id: { in: ids } },
+    select: PASSAGE_SELECT,
+  })) as PassageRow[];
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return withReferences(
+    ids
+      .map((id) => byId.get(id))
+      .filter(
+        (row): row is PassageRow =>
+          !!row && entityChildTypes(row.type).length === 0,
+      ),
+    userId,
+  );
+}
+
+/**
+ * Follows chapter numbers down from a scope, counting in reading order:
+ * [2, 5] in a book is the 5th chapter of its 2nd part (-1: the last one). Null when the scope has no
+ * such chapter — the numbers then say something else, or the scope already
+ * is that chapter.
+ */
+export async function narrowScope(
+  scopeId: string,
+  path: number[],
+): Promise<string | null> {
+  let containerId = scopeId;
+  for (const n of path) {
+    const containers = await orderedChildren(containerId, false);
+    // counted in reading order: stored `order` starts at 0 in some books
+    // and at 1 in others
+    const picked = containers[n === -1 ? containers.length - 1 : n - 1];
+    if (!picked) return null;
+    containerId = picked.id;
+  }
+  return containerId;
+}
+
+/** "The next 10", "the previous verse", "the rest", "those verses". */
+async function relativePassages(
+  request: RelativePosition,
+  previous: PreviousSources,
+  userId: string,
+): Promise<PositionalPassages | null> {
+  if (request.kind === "same") {
+    if (previous.last.length === 0) return null;
+    const passages = await readVerses(
+      previous.last.slice(0, FULL_CONTEXT_MAX_ITEMS),
+      userId,
+    );
+    return passages.length > 0
+      ? { passages, total: null, truncated: false }
+      : null;
+  }
+  const read = previous.positional;
+  if (read.length === 0) return null;
+  // the section the earlier verses ended (or, going back, began) in
+  const edge = await db.entity.findUnique({
+    where: {
+      id: request.kind === "previous" ? read[0] : read[read.length - 1],
+    },
+    select: { parents: true },
+  });
+  if (!edge?.parents[0]) return null;
+  const leaves = await orderedChildren(edge.parents[0], true);
+  const picked = selectRelative(
+    leaves,
+    new Set(read),
+    request,
+    FULL_CONTEXT_MAX_ITEMS,
+  );
+  if (!picked) return null;
+  return {
+    passages: await readVerses(
+      picked.items.map((item) => item.id),
+      userId,
+    ),
+    total: leaves.length,
+    truncated: picked.truncated,
+  };
+}
+
+/**
+ * Reads verses by where they are in a scope ("the first 10", "verses 5 to
+ * 12", "the next 10") rather than by what they say. In a scope that holds
+ * chapters rather than verses, "first" and "last" are read from its first /
+ * last chapter; verse numbers are ambiguous there, so null is returned. Null
+ * also when the scope has no such verses, or there is nothing earlier for
+ * "next" to follow. No passages at all means the earlier verses were already
+ * at the edge of their section.
+ */
+export async function positionalPassages(
+  scopeId: string,
+  request: PositionRequest,
+  userId: string,
+  previous?: PreviousSources,
+): Promise<PositionalPassages | null> {
+  if (isRelative(request)) {
+    return previous ? relativePassages(request, previous, userId) : null;
+  }
+  let containerId = scopeId;
+  for (let depth = 0; depth < 5; depth++) {
+    const leaves = await orderedChildren(containerId, true);
+    if (leaves.length > 0) {
+      const picked = selectPositions(leaves, request, FULL_CONTEXT_MAX_ITEMS);
+      if (picked.items.length === 0) return null;
+      return {
+        passages: await readVerses(
+          picked.items.map((item) => item.id),
+          userId,
+        ),
+        total: leaves.length,
+        truncated: picked.truncated,
+      };
+    }
+    if (request.kind === "numbers") return null;
+    const containers = await orderedChildren(containerId, false);
+    if (containers.length === 0) return null;
+    containerId = (
+      request.kind === "first"
+        ? containers[0]
+        : containers[containers.length - 1]
+    ).id;
+  }
+  return null;
 }

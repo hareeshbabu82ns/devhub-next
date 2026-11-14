@@ -20,41 +20,25 @@ import {
 } from "@/lib/audio/speech-options";
 
 /**
- * Optional local speech servers. Nothing here is required: the browser's own
- * speech recognition and voices are used when these are not set.
+ * The speech server: text to speech (verse audio, reading answers aloud) and
+ * speech recognition (the microphone). Optional — without it the browser's
+ * own voices and speech recognition are used.
  *
- *   TTS_UTILS_URL    the library's speech server (Indic text-to-speech and
- *                    speech recognition, OpenAI-compatible). Given with or
- *                    without the /v1 suffix: http://localhost:8000
- *   TTS_MODEL        model for verse audio and reading aloud
- *                    (default "indic-speak-mlx")
+ * Only speech goes here. The chat model, embeddings and the knowledge index
+ * keep their own settings (AI_BASE_URL, AI_EMBED_*, AI_RAG_*).
+ *
+ *   TTS_UTILS_URL    OpenAI-compatible speech server (/v1/audio/speech,
+ *                    /v1/audio/transcriptions). Given with or without the
+ *                    /v1 suffix: http://localhost:8000
+ *   TTS_MODEL        model for verse audio and reading aloud when none is
+ *                    chosen (default: the server's, else "indic-speak-mlx")
  *   TTS_VOICE        voice when none is chosen (default "alloy")
- *
- * Voice input is transcribed by:
- *   AI_STT_BASE_URL  an OpenAI-compatible transcription server, e.g. a local
- *                    whisper.cpp server, Speaches or LocalAI
- *                    (http://localhost:8000/v1). Defaults to TTS_UTILS_URL.
- *   AI_STT_MODEL     model name as that server knows it. On the library's
- *                    server the transcribing model is looked up; otherwise
- *                    the default is "whisper-1".
- *   AI_STT_API_KEY   optional
- *
- * Reading answers aloud tries, in order:
- *   1. TTS_UTILS_URL    the library's speech server (also used to generate
- *                       verse audio)
- *   2. AI_TTS_MODEL     an OpenAI-compatible /audio/speech endpoint, such as
- *                       Ollama with a voice model ("phonon"). Served from
- *                       AI_TTS_BASE_URL, or AI_BASE_URL when that is unset.
- *      AI_TTS_VOICE     optional voice name
- *      AI_TTS_API_KEY   optional; defaults to AI_API_KEY on AI_BASE_URL
- *   3. the browser's own voices (handled in the client)
  */
 export type SttConfig = {
   /** Includes the /v1 suffix. */
   baseUrl: string;
-  /** Unset on the library's server until it is looked up. */
+  /** Unset: the server's transcribing model is looked up. */
   model?: string;
-  apiKey?: string;
 };
 
 const trimUrl = (url?: string) => url?.trim().replace(/\/+$/, "") || undefined;
@@ -77,51 +61,15 @@ export const defaultSpeechModel = () =>
 const defaultSpeechVoice = () => process.env.TTS_VOICE?.trim() || "alloy";
 
 export const getSttConfig = (): SttConfig | null => {
-  const own = trimUrl(process.env.AI_STT_BASE_URL);
-  const library = ttsBaseUrl();
-  if (!own && !library) return null;
-  const model = process.env.AI_STT_MODEL?.trim();
-  return {
-    baseUrl: own ?? resolveSpeechUrl(library!, "").replace(/\/$/, ""),
-    model: model || (own ? "whisper-1" : undefined),
-    apiKey: process.env.AI_STT_API_KEY?.trim() || undefined,
-  };
+  const server = ttsBaseUrl();
+  return server
+    ? { baseUrl: resolveSpeechUrl(server, "").replace(/\/$/, "") }
+    : null;
 };
-
-export type SpeechModelConfig = {
-  baseUrl: string;
-  model: string;
-  voice?: string;
-  apiKey?: string;
-};
-
-export const getSpeechModelConfig = (): SpeechModelConfig | null => {
-  const model = process.env.AI_TTS_MODEL?.trim();
-  const own = trimUrl(process.env.AI_TTS_BASE_URL);
-  const baseUrl = own ?? trimUrl(process.env.AI_BASE_URL);
-  if (!model || !baseUrl) return null;
-  return {
-    baseUrl,
-    model,
-    voice: process.env.AI_TTS_VOICE?.trim() || undefined,
-    apiKey:
-      process.env.AI_TTS_API_KEY?.trim() ||
-      (own ? undefined : process.env.AI_API_KEY?.trim()) ||
-      undefined,
-  };
-};
-
-export type SpeechSource = "library" | "model";
-
-const speechSources = (): SpeechSource[] => [
-  ...(ttsBaseUrl() ? (["library"] as const) : []),
-  ...(getSpeechModelConfig() ? (["model"] as const) : []),
-];
 
 export const speechStatus = () => ({
-  transcribe: !!getSttConfig(),
-  speak: speechSources().length > 0,
-  speakVia: speechSources(),
+  transcribe: !!ttsBaseUrl(),
+  speak: !!ttsBaseUrl(),
 });
 
 export type TranscribeOptions = {
@@ -177,9 +125,6 @@ export async function transcribe(
   try {
     response = await fetch(`${config.baseUrl}/audio/transcriptions`, {
       method: "POST",
-      headers: config.apiKey
-        ? { Authorization: `Bearer ${config.apiKey}` }
-        : undefined,
       body: form,
       signal,
     });
@@ -226,7 +171,7 @@ const errorDetail = async (response: Response) => {
 };
 
 /**
- * Speaks text with the library's speech server (`POST /v1/audio/speech`).
+ * Speaks text with the speech server (`POST /v1/audio/speech`).
  * The text is sent as given. The server answers with the audio itself or
  * with JSON carrying it in base64; both are accepted.
  */
@@ -289,7 +234,7 @@ export async function synthesizeLibrary(
   };
 }
 
-/* ---------- what the library's speech server offers ---------- */
+/* ---------- what the speech server offers ---------- */
 
 const CATALOG_TIMEOUT_MS = 5000;
 
@@ -388,8 +333,7 @@ export async function loadSpeechOptions(): Promise<SpeechOptions> {
 
 /**
  * Models, languages and output modes of the transcription server, for the
- * microphone settings. A server that does not list them (plain Whisper
- * servers) gives empty lists, and its configured model is used.
+ * microphone settings. Empty lists when the server does not answer.
  */
 export async function loadTranscribeOptions(): Promise<TranscribeCatalog> {
   const empty: TranscribeCatalog = {
@@ -423,100 +367,19 @@ export async function loadTranscribeOptions(): Promise<TranscribeCatalog> {
 }
 
 /**
- * Speaks text with an OpenAI-compatible /audio/speech endpoint (Ollama,
- * Speaches, Kokoro...). The audio streams as it is generated.
- */
-export async function synthesizeModel(
-  config: SpeechModelConfig,
-  text: string,
-  signal?: AbortSignal,
-): Promise<{ body: ReadableStream<Uint8Array>; contentType: string }> {
-  let response: Response;
-  try {
-    response = await fetch(`${config.baseUrl}/audio/speech`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
-      },
-      body: JSON.stringify({
-        model: config.model,
-        input: text,
-        ...(config.voice ? { voice: config.voice } : {}),
-      }),
-      signal,
-    });
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    throw new Error(`Could not reach the speech model at ${config.baseUrl}`);
-  }
-  if (!response.ok || !response.body) {
-    const body = await response.text().catch(() => "");
-    throw new Error(
-      `Speech model responded ${response.status}${body ? `: ${body.slice(0, 300)}` : ""}`,
-    );
-  }
-  return {
-    body: response.body,
-    contentType: response.headers.get("content-type") || "audio/mpeg",
-  };
-}
-
-// a source that just failed is skipped for a while, so every sentence of an
-// answer does not wait on a server that is down
-const RETRY_AFTER_MS = 60 * 1000;
-const failedAt = new Map<SpeechSource, number>();
-
-/**
- * Speaks text with the first local source that works: the library's TTS
- * server, then the speech model. Throws when none is configured or working,
- * and the client falls back to the browser's voices.
+ * Speaks a piece of an answer with the speech server. Throws when there is
+ * none or it fails, and the client falls back to the browser's voices.
  */
 export async function synthesizeSpeech(
   text: string,
-  /** Voice and model on the library's speech server; unset uses its defaults. */
-  library: Pick<SpeechRequest, "voice" | "model"> = {},
+  /** Voice and model; unset uses the defaults. */
+  request: Pick<SpeechRequest, "voice" | "model"> = {},
   signal?: AbortSignal,
-): Promise<{
-  body: ReadableStream<Uint8Array> | Uint8Array;
-  contentType: string;
-  source: SpeechSource;
-}> {
-  const sources = speechSources();
-  if (sources.length === 0) {
-    throw new Error("No text-to-speech server is configured");
-  }
-  const now = Date.now();
-  const fresh = sources.filter(
-    (s) => now - (failedAt.get(s) ?? 0) > RETRY_AFTER_MS,
+): Promise<{ body: Uint8Array; contentType: string }> {
+  const { audio, contentType } = await synthesizeLibrary(
+    text.replace(/\s+/g, " "),
+    { voice: request.voice, model: request.model },
+    signal,
   );
-  // when every source failed recently, try them all again anyway
-  const order = fresh.length > 0 ? fresh : sources;
-  let lastError: unknown;
-  for (const source of order) {
-    try {
-      if (source === "library") {
-        const { audio, contentType } = await synthesizeLibrary(
-          text.replace(/\s+/g, " "),
-          { voice: library.voice, model: library.model },
-          signal,
-        );
-        failedAt.delete(source);
-        return { body: new Uint8Array(audio), contentType, source };
-      }
-      const result = await synthesizeModel(
-        getSpeechModelConfig()!,
-        text,
-        signal,
-      );
-      failedAt.delete(source);
-      return { ...result, source };
-    } catch (error) {
-      if (signal?.aborted) throw error;
-      console.warn(`Speech source "${source}" failed:`, error);
-      failedAt.set(source, Date.now());
-      lastError = error;
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error("Speech failed");
+  return { body: new Uint8Array(audio), contentType };
 }
