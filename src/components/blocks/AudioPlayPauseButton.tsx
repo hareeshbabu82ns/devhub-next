@@ -36,6 +36,8 @@ interface AudioPlayPauseButtonProps {
   contextId?: string;
   /** Hide the menu with the queue options. */
   plain?: boolean;
+  /** More menu items, shown under the queue options. */
+  menuExtra?: React.ReactNode;
   className?: string;
 }
 
@@ -50,6 +52,7 @@ const AudioPlayPauseButton = ({
   track,
   contextId,
   plain,
+  menuExtra,
   className,
 }: AudioPlayPauseButtonProps) => {
   const dispatch = useAudioQueueDispatch();
@@ -131,6 +134,12 @@ const AudioPlayPauseButton = ({
             >
               <ListEnd /> Add to queue
             </DropdownMenuItem>
+            {menuExtra && (
+              <>
+                <DropdownMenuSeparator />
+                {menuExtra}
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}

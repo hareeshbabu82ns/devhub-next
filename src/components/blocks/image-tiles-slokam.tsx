@@ -17,9 +17,31 @@ import { useLanguageAtomValue, useTextSizeAtomValue } from "@/hooks/use-config";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useParams, useRouter } from "next/navigation";
 import AudioGenPlayPauseButton from "./AudioGenPlayPauseButton";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAudioPlayerContext } from "react-use-audio-player";
-import { useCurrentTrack } from "@/hooks/use-audio-queue";
+import {
+  useAudioQueueDispatch,
+  useCurrentTrack,
+  usePlayEntity,
+} from "@/hooks/use-audio-queue";
+import {
+  AudioLines,
+  ListEnd,
+  ListPlus,
+  ListVideo,
+  MoreHorizontal,
+  Play,
+  Trash2,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
+import GenerateAudioDialog from "./GenerateAudioDialog";
+import DeleteAudioDialog from "./DeleteAudioDialog";
 import { Track, trackTitle } from "@/lib/audio/queue";
 
 interface ArtSlokamTileProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -47,6 +69,11 @@ export const ArtSlokamTile = ({
   const language = useLanguageAtomValue();
   const [, copyToClipboard] = useCopyToClipboard();
   const isTouchDevice = useMediaQuery("(pointer: coarse)");
+  const dispatch = useAudioQueueDispatch();
+  const playEntity = usePlayEntity();
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [audioDialogOpen, setAudioDialogOpen] = useState(false);
+  const [confirmDeleteAudio, setConfirmDeleteAudio] = useState(false);
 
   const number = (model.order ? model.order + 1 : index)
     .toString()
@@ -141,45 +168,33 @@ export const ArtSlokamTile = ({
               </div>
             )}
           </div>
+          {/* Stays laid out while hidden: a menu anchored to a button that
+              loses its box (display: none) jumps to the top-left corner. */}
           <div
             className={cn(
-              "hidden group-hover:flex flex-row",
-              (isTouchDevice || isCurrent) && "flex",
+              "flex flex-row items-center gap-1 transition-opacity",
+              isTouchDevice || isCurrent || isMoreMenuOpen || audioDialogOpen
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
             )}
+            onClick={(e) => e.stopPropagation()}
           >
             {model.audio ? (
-              <AudioPlayPauseButton track={track} contextId={entityId} />
+              <AudioPlayPauseButton track={track} contextId={entityId} plain />
             ) : (
-              <span onClick={(e) => e.stopPropagation()}>
-                <AudioGenPlayPauseButton
-                  id={model.id}
-                  title={track.title}
-                  subtitle={track.subtitle}
-                  href={track.href}
-                />
-              </span>
+              <AudioGenPlayPauseButton
+                title={track.title}
+                onClick={() => setAudioDialogOpen(true)}
+              />
             )}
-            <Button
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={(e) => {
-                copyToClipboard(model.title);
-                toast.info("Copied to clipboard");
-                e.stopPropagation();
-              }}
-            >
-              <Icons.clipboard size={14} />
-            </Button>
             {onBookmarkClicked && (
               <Button
                 size="icon"
                 type="button"
                 variant="ghost"
-                onClick={(e) => {
-                  onBookmarkClicked(model);
-                  e.stopPropagation();
-                }}
+                aria-label={model.bookmarked ? "Remove bookmark" : "Bookmark"}
+                aria-pressed={!!model.bookmarked}
+                onClick={() => onBookmarkClicked(model)}
               >
                 {model.bookmarked ? (
                   <Icons.bookmarkCheck size={14} />
@@ -188,36 +203,118 @@ export const ArtSlokamTile = ({
                 )}
               </Button>
             )}
-            {onEditClicked && (
-              <Button
-                size="icon"
-                type="button"
-                variant="ghost"
-                onClick={(e) => {
-                  onEditClicked(model);
-                  e.stopPropagation();
-                }}
+            <DropdownMenu open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                  aria-label="More actions"
+                  title="More actions"
+                >
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-64"
+                // rendered in a portal, but clicks still bubble to the tile
+                onClick={(e) => e.stopPropagation()}
               >
-                <Icons.edit size={14} />
-              </Button>
-            )}
-            {onDeleteClicked && (
-              <Button
-                size="icon"
-                type="button"
-                variant="ghost"
-                color="danger"
-                onClick={(e) => {
-                  onDeleteClicked(model);
-                  e.stopPropagation();
-                }}
-              >
-                <Icons.trash size={14} />
-              </Button>
-            )}
+                {model.audio && (
+                  <>
+                    {entityId && (
+                      <DropdownMenuItem
+                        onClick={() =>
+                          playEntity(entityId, "parts", { fromId: track.id })
+                        }
+                      >
+                        <ListVideo /> Play from here
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem
+                      onClick={() => dispatch({ type: "play", tracks: [track] })}
+                    >
+                      <Play /> Play only this
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        dispatch({ type: "playNext", tracks: [track] });
+                        toast.success("Will play next");
+                      }}
+                    >
+                      <ListPlus /> Play next
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        dispatch({ type: "enqueue", tracks: [track] });
+                        toast.success("Added to the queue");
+                      }}
+                    >
+                      <ListEnd /> Add to queue
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => setAudioDialogOpen(true)}>
+                  <AudioLines />
+                  {model.audio
+                    ? "Modify & Regenerate Audio..."
+                    : "Generate Audio..."}
+                </DropdownMenuItem>
+                {model.audio && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setConfirmDeleteAudio(true)}
+                  >
+                    <Trash2 /> Delete Audio
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => {
+                    copyToClipboard(model.title);
+                    toast.info("Copied to clipboard");
+                  }}
+                >
+                  <Icons.clipboard /> Copy Text
+                </DropdownMenuItem>
+                {onEditClicked && (
+                  <DropdownMenuItem onClick={() => onEditClicked(model)}>
+                    <Icons.edit /> Edit Verse
+                  </DropdownMenuItem>
+                )}
+                {onDeleteClicked && (
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => onDeleteClicked(model)}
+                  >
+                    <Icons.trash /> Delete Verse
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
+      {/* mounted per opening: each one starts from the verse's text */}
+      {audioDialogOpen && (
+        <GenerateAudioDialog
+          open
+          onOpenChange={setAudioDialogOpen}
+          entityId={model.id}
+          title={track.title}
+          subtitle={track.subtitle}
+        />
+      )}
+      {confirmDeleteAudio && (
+        <DeleteAudioDialog
+          open
+          onOpenChange={setConfirmDeleteAudio}
+          entityId={model.id}
+          audioUrl={model.audio}
+        />
+      )}
     </div>
   );
 };

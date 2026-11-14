@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { SpeechSettings } from "./use-speech-settings";
+import { serverInputLang, type SpeechSettings } from "./use-speech-settings";
 
 // The Web Speech API is not in the TypeScript DOM library yet.
 type Recognition = {
@@ -154,9 +154,10 @@ export function useDictation(
           new Blob(chunks, { type: recorder.mimeType || mimeType }),
           filename,
         );
-        if (settings.inputLang) {
-          form.append("language", settings.inputLang.split("-")[0]);
-        }
+        const language = serverInputLang(settings);
+        if (language) form.append("language", language);
+        if (settings.sttModel) form.append("model", settings.sttModel);
+        if (settings.sttMode) form.append("mode", settings.sttMode);
         const res = await fetch("/api/ai/transcribe", {
           method: "POST",
           body: form,

@@ -219,6 +219,47 @@ describe("queueReducer", () => {
   });
 });
 
+describe("removeTrack", () => {
+  const three = run([{ type: "play", tracks: [t(1), t(2), t(3)], startIndex: 1 }]);
+
+  it("drops a queued track by id and keeps the current one playing", () => {
+    const s = queueReducer(three, { type: "removeTrack", id: "id1" });
+    expect(srcs(s)).toEqual(["id2", "id3"]);
+    expect(currentTrack(s)?.id).toBe("id2");
+    expect(s.playToken).toBe(three.playToken);
+    expect(s.autoplay).toBe(true);
+  });
+
+  it("matches by file, ignoring a version in the URL", () => {
+    const s = queueReducer(three, {
+      type: "removeTrack",
+      src: "/audio/3.mp3?v=12",
+    });
+    expect(srcs(s)).toEqual(["id1", "id2"]);
+    expect(currentTrack(s)?.id).toBe("id2");
+  });
+
+  it("stops when the current track is removed; the next one waits", () => {
+    const s = queueReducer(three, { type: "removeTrack", id: "id2" });
+    expect(srcs(s)).toEqual(["id1", "id3"]);
+    expect(currentTrack(s)?.id).toBe("id3");
+    expect(s.autoplay).toBe(false);
+    expect(s.playToken).toBe(three.playToken + 1);
+  });
+
+  it("empties the queue when the only track is removed", () => {
+    const one = run([{ type: "play", tracks: [t(1)] }]);
+    const s = queueReducer(one, { type: "removeTrack", id: "id1" });
+    expect(s.tracks).toEqual([]);
+    expect(s.index).toBe(-1);
+  });
+
+  it("leaves the queue alone when the track is not in it", () => {
+    expect(queueReducer(three, { type: "removeTrack", id: "nope" })).toBe(three);
+    expect(queueReducer(three, { type: "removeTrack" })).toBe(three);
+  });
+});
+
 describe("trackTitle", () => {
   it("takes the first non-empty line without markdown marks", () => {
     expect(trackTitle("\n**dharma-kṣetre** kuru-kṣetre\nsamavetā")).toBe(

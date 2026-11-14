@@ -3,6 +3,7 @@ import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { atomWithReducer } from "jotai/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useAudioPlayerContext } from "react-use-audio-player";
 import {
   currentTrack,
   emptyQueue,
@@ -10,6 +11,7 @@ import {
   QueueAction,
   queueReducer,
   QueueState,
+  sameFile,
 } from "@/lib/audio/queue";
 import { fetchAudioTracks } from "@/app/(app)/entities/actions";
 import { useLanguageAtomValue } from "./use-config";
@@ -103,4 +105,22 @@ export function usePlayEntity() {
     },
     [dispatch, loadAudio],
   );
+}
+
+/**
+ * For a recording that was deleted: stops it if it is the one loaded in the
+ * player and takes it out of the queue.
+ */
+export function usePurgeTrack() {
+  const dispatch = useAudioQueueDispatch();
+  const current = useCurrentTrack();
+  const player = useAudioPlayerContext();
+
+  return (id: string, src?: string) => {
+    const isLoaded =
+      !!current &&
+      (current.id === id || (!!src && sameFile(current.src, src)));
+    if (isLoaded) player.stop();
+    dispatch({ type: "removeTrack", id, src });
+  };
 }

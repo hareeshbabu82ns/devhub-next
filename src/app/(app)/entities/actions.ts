@@ -22,7 +22,7 @@ import {
 import { entityChildTypes, isEntityTypeCode } from "@/lib/entity-types";
 import { EntityAudio, Track, trackTitle } from "@/lib/audio/queue";
 import { getReadingNeighbours, ReadingRef } from "@/lib/db/entity-flow";
-import { callTTSApi, mapDbToEntity } from "./utils";
+import { mapDbToEntity } from "./utils";
 import {
   ENTITY_DEFAULT_IMAGE_THUMBNAIL,
   LANGUAGE_SELECT_DEFAULT,
@@ -30,7 +30,14 @@ import {
 import path from "path";
 import { resolveAssetPath } from "@/lib/assets/server";
 import { assetUrl } from "@/lib/assets/shared";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, unlink, writeFile } from "fs/promises";
+import { loadSpeechOptions, synthesizeLibrary } from "@/lib/ai/speech";
+import {
+  LanguageText,
+  SPEECH_SPEEDS,
+  SpeechOptions,
+  verseTextForSpeech,
+} from "@/lib/audio/speech-options";
 
 // Enough for the largest books; keeps a play request on a deity or an author
 // from walking the whole library.
@@ -803,46 +810,149 @@ export async function fetchEntitySiblings(entityId: string): Promise<{
   };
 }
 
-export async function generateAudioForEntity(
-  entityId: string,
-): Promise<string | null> {
-  const session = await auth();
-  if (!session) {
-    throw new Error("Unauthorized");
-  }
+/** Where a verse's generated recording is kept. */
+const generatedAudioPath = (entityId: string) => `audios/${entityId}.wav`;
 
+const removeGeneratedAudio = async (entityId: string) => {
+  try {
+    await unlink(resolveAssetPath(generatedAudioPath(entityId)));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+};
+
+export type VerseAudioResponse<T> =
+  | { status: "success"; data: T }
+  | { status: "error"; error: string };
+
+const audioError = (error: unknown): { status: "error"; error: string } => ({
+  status: "error",
+  error: error instanceof Error ? error.message : "Unexpected error",
+});
+
+export type VerseAudioRequest = {
+  /** Exactly what is read. Defaults to the verse's Telugu text. */
+  text?: string;
+  model?: string;
+  voice?: string;
+  /** Delivery style / mood. */
+  style?: string;
+  speed?: number;
+};
+
+/** Models, voices, styles and languages of the speech server. */
+export async function fetchSpeechOptions(): Promise<SpeechOptions> {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+  return loadSpeechOptions();
+}
+
+/** A verse's text in every script it has, and its recording. */
+export async function fetchVerseSpeechSource(
+  entityId: string,
+): Promise<{ texts: LanguageText[]; audio: string } | null> {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
   const entity = await db.entity.findUnique({
     where: { id: entityId },
+    select: { text: true, audio: true },
   });
-
   if (!entity) return null;
+  return {
+    texts: entity.text.map(({ language, value }) => ({ language, value })),
+    audio: entity.audio || "",
+  };
+}
 
-  const telText = entity.text.find((t) => t.language === "TEL")?.value;
-  if (!telText) return null;
-  console.log(`Generating audio for entity: ${entityId}`);
+/**
+ * Reads a verse aloud (text to speech) and saves the recording on it as
+ * `audios/[entityId].wav`. A recording made earlier is deleted first.
+ */
+export async function generateAudioForEntity(
+  entityId: string,
+  request: VerseAudioRequest = {},
+): Promise<VerseAudioResponse<{ audio: string }>> {
+  const session = await auth();
+  if (!session) return audioError(new Error("Unauthorized"));
 
-  // Call TTS API to generate audio
-  const audioBase64 = await callTTSApi({
-    text: telText,
-    // voiceKey: "tel_m_wiki_00001",
-  });
-  if (!audioBase64) return null;
+  try {
+    const entity = await db.entity.findUnique({
+      where: { id: entityId },
+      select: { id: true, text: true },
+    });
+    if (!entity) return audioError(new Error("Verse not found"));
 
-  // save to base64 audio to data folder
-  const audioBuffer = Buffer.from(audioBase64, "base64");
-  const audioAssetPath = `audios/${entityId}.wav`;
-  const audioPath = resolveAssetPath(audioAssetPath);
-  await mkdir(path.dirname(audioPath), { recursive: true });
-  await writeFile(audioPath, audioBuffer);
-  const audioUrl = assetUrl(audioAssetPath);
+    const text = (
+      request.text ?? verseTextForSpeech(entity.text, "te")
+    ).trim();
+    if (!text) return audioError(new Error("There is no text to read"));
+    if (text.length > 5000) {
+      return audioError(new Error("The text is too long to read in one go"));
+    }
+    const speed =
+      request.speed !== undefined && Number.isFinite(request.speed)
+        ? Math.min(
+            Math.max(request.speed, SPEECH_SPEEDS[0]),
+            SPEECH_SPEEDS[SPEECH_SPEEDS.length - 1],
+          )
+        : undefined;
 
-  // Update entity with audio URL
-  await db.entity.update({
-    where: { id: entityId },
-    data: { audio: audioUrl },
-  });
+    const { audio } = await synthesizeLibrary(text, {
+      model: request.model?.trim() || undefined,
+      voice: request.voice?.trim() || undefined,
+      style: request.style?.trim() || undefined,
+      speed,
+      format: "wav",
+    });
 
-  return audioUrl;
+    // only now that the new audio exists: a failed synthesis keeps the old one
+    await removeGeneratedAudio(entity.id);
+    const assetPath = generatedAudioPath(entity.id);
+    const filePath = resolveAssetPath(assetPath);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, audio);
+
+    const audioUrl = assetUrl(assetPath);
+    await db.entity.update({
+      where: { id: entity.id },
+      data: { audio: audioUrl },
+    });
+    return { status: "success", data: { audio: audioUrl } };
+  } catch (error) {
+    console.error(`Audio generation failed for entity ${entityId}:`, error);
+    return audioError(error);
+  }
+}
+
+/**
+ * Removes a verse's recording: the generated file on disk and the `audio`
+ * field. A file attached from the asset manager is only detached — it may be
+ * in use elsewhere and stays in the assets.
+ */
+export async function deleteAudioForEntity(
+  entityId: string,
+): Promise<VerseAudioResponse<{ audio: string }>> {
+  const session = await auth();
+  if (!session) return audioError(new Error("Unauthorized"));
+
+  try {
+    const entity = await db.entity.findUnique({
+      where: { id: entityId },
+      select: { id: true, audio: true },
+    });
+    if (!entity) return audioError(new Error("Verse not found"));
+
+    await removeGeneratedAudio(entity.id);
+    await db.entity.update({
+      where: { id: entity.id },
+      data: { audio: "" },
+    });
+    // what was removed, so players can drop it
+    return { status: "success", data: { audio: entity.audio || "" } };
+  } catch (error) {
+    console.error(`Audio deletion failed for entity ${entityId}:`, error);
+    return audioError(error);
+  }
 }
 
 //********** Fast content entry **********//

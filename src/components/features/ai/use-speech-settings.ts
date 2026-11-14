@@ -7,10 +7,23 @@ export type SpeechSettings = {
   inputEngine: "auto" | "browser" | "server";
   /** BCP 47 tag; "" follows the browser's language */
   inputLang: string;
+  /**
+   * language for the speech server: a code it lists, "auto" to let it
+   * detect, or "" to follow `inputLang`
+   */
+  sttLang: string;
+  /** transcribing model on the speech server; "" uses its default */
+  sttModel: string;
+  /** script of the transcript (native, mixed, romanised); "" = default */
+  sttMode: string;
   /** send the question as soon as speaking ends */
   autoSend: boolean;
   /** server: local voice servers first, the browser's voices as fallback */
   outputEngine: "browser" | "server";
+  /** voice on the library's speech server; "" uses the server's default */
+  serverVoice: string;
+  /** model on the library's speech server; "" uses the server's default */
+  serverModel: string;
   /** a browser voice; "" picks one per language */
   voiceURI: string;
   rate: number;
@@ -21,8 +34,13 @@ export type SpeechSettings = {
 export const DEFAULT_SPEECH_SETTINGS: SpeechSettings = {
   inputEngine: "auto",
   inputLang: "",
+  sttLang: "",
+  sttModel: "",
+  sttMode: "",
   autoSend: false,
   outputEngine: "server",
+  serverVoice: "",
+  serverModel: "",
   voiceURI: "",
   rate: 1,
   autoRead: false,
@@ -69,3 +87,9 @@ export function useSpeechSettings() {
 
   return [settings, update] as const;
 }
+
+/** The language sent to the speech server; undefined lets it detect. */
+export const serverInputLang = (settings: SpeechSettings) => {
+  const lang = settings.sttLang || settings.inputLang.split("-")[0];
+  return lang && lang !== "auto" ? lang : undefined;
+};

@@ -6,9 +6,14 @@ import { synthesizeSpeech } from "@/lib/ai/speech";
 const SpeakSchema = z.object({
   // the client sends one sentence or paragraph at a time
   text: z.string().trim().min(1).max(1500),
+  // voice and model on the library's speech server; unset uses its defaults
   voice: z
     .string()
     .regex(/^[\w-]{1,64}$/)
+    .optional(),
+  model: z
+    .string()
+    .regex(/^[\w.:-]{1,64}$/)
     .optional(),
 });
 
@@ -29,7 +34,7 @@ export async function POST(request: NextRequest) {
   try {
     const { body, contentType, source } = await synthesizeSpeech(
       parsed.data.text,
-      parsed.data.voice ?? "PAN_F_HAPPY_00001",
+      { voice: parsed.data.voice, model: parsed.data.model },
       request.signal,
     );
     return new Response(body as BodyInit, {

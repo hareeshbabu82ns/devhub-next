@@ -1,6 +1,7 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -12,13 +13,36 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetchSpeechOptions } from "@/app/(app)/entities/actions";
+import {
+  sortVoicesForLanguage,
+  speechAliasLabel,
+  speechModelLabel,
+  speechVoiceLabel,
+  voiceCatalogFor,
+  type TranscribeOptions,
+} from "@/lib/audio/speech-options";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { INPUT_LANGUAGES, type SpeechSettings } from "./use-speech-settings";
+import {
+  INPUT_LANGUAGES,
+  serverInputLang,
+  type SpeechSettings,
+} from "./use-speech-settings";
+
+const MODE_LABELS: Record<string, string> = {
+  native: "Native script",
+  mixed: "Native script, numbers as digits",
+  romanised: "Romanised (Latin letters)",
+};
+const modeLabel = (mode: string) =>
+  MODE_LABELS[mode] ?? mode.charAt(0).toUpperCase() + mode.slice(1);
 
 // Radix Select cannot hold an empty value
 const AUTO = "auto";
@@ -55,6 +79,94 @@ export default function AskAIVoiceSettings({
       /^(en|hi|te|sa|kn|ta)/i.test(v.lang) ? 0 : 1;
     return rank(a) - rank(b) || a.lang.localeCompare(b.lang);
   });
+
+  // voices and models of the library's speech server
+  const usesLibrary =
+    settings.outputEngine === "server" &&
+    server.speak &&
+    !!server.speakVia?.includes("library");
+  const { data: library } = useQuery({
+    queryKey: ["speechOptions"],
+    queryFn: () => fetchSpeechOptions(),
+    enabled: usesLibrary,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  // voices differ between models
+  const libraryCatalog = library
+    ? voiceCatalogFor(library, settings.serverModel || library.defaultModel)
+    : undefined;
+  const libraryVoices = sortVoicesForLanguage(
+    libraryCatalog?.voices ?? [],
+    serverInputLang(settings),
+  );
+  const libraryAliases = Object.entries(libraryCatalog?.aliases ?? {}).filter(
+    ([alias]) => !libraryVoices.some((v) => v.name === alias),
+  );
+  const knowsVoice = (name: string) =>
+    libraryVoices.some((v) => v.name === name) ||
+    libraryAliases.some(([alias]) => alias === name);
+  const knowsModel = (name: string) =>
+    !!library?.models.some((m) => m.id === name);
+
+  // a saved voice or model the server no longer has would fail every request
+  useEffect(() => {
+    if (!library?.live) return;
+    if (settings.serverVoice && !knowsVoice(settings.serverVoice)) {
+      onChange({ serverVoice: "" });
+    }
+    if (settings.serverModel && !knowsModel(settings.serverModel)) {
+      onChange({ serverModel: "" });
+    }
+    // only when the server's lists arrive or another model is chosen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [library, settings.serverModel]);
+
+  // what the transcription server can do: models, languages, scripts
+  const { data: stt } = useQuery({
+    queryKey: ["transcribeOptions"],
+    queryFn: async (): Promise<TranscribeOptions> => {
+      const res = await fetch("/api/ai/transcribe");
+      if (!res.ok) throw new Error(`Speech options failed (${res.status})`);
+      return res.json();
+    },
+    enabled: server.transcribe,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+  const onServer = inputEngine === "server";
+  const sttModel =
+    stt?.models.find((m) => m.id === settings.sttModel)?.id ?? "";
+  // languages and scripts differ between models
+  const sttCatalog =
+    stt?.byModel[sttModel || stt.defaultModel] ?? stt ?? undefined;
+  const sttLanguages = (sttCatalog?.languages ?? []).filter(
+    (l) => l.code !== "auto",
+  );
+  const sttModes = sttCatalog?.modes ?? [];
+  const sttLang = serverInputLang(settings);
+
+  // a saved model, language or script the server does not have would fail
+  // every recording
+  useEffect(() => {
+    if (!stt?.live) return;
+    const patch: Partial<SpeechSettings> = {};
+    if (settings.sttModel && !sttModel) patch.sttModel = "";
+    if (
+      settings.sttLang &&
+      settings.sttLang !== "auto" &&
+      sttLanguages.length > 0 &&
+      !sttLanguages.some((l) => l.code === settings.sttLang)
+    ) {
+      patch.sttLang = "";
+    }
+    if (settings.sttMode && !sttModes.includes(settings.sttMode)) {
+      patch.sttMode = "";
+    }
+    if (Object.keys(patch).length > 0) onChange(patch);
+    // only when the server's lists arrive or another model is chosen
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stt, settings.sttModel]);
 
   return (
     <Popover>
@@ -103,27 +215,101 @@ export default function AskAIVoiceSettings({
                 ? "Recorded audio goes only to your own speech server."
                 : inputEngine === "browser"
                   ? "Uses the browser's recognizer. Chrome and Edge send audio to their online service; Safari may recognize on the device."
-                  : "Voice input is not available here. Use Chrome, Edge or Safari, or set AI_STT_BASE_URL to a local Whisper server."}
+                  : "Voice input is not available here. Use Chrome, Edge or Safari, or set TTS_UTILS_URL or AI_STT_BASE_URL to a local speech server."}
             </p>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${id}-in-lang`}>Language you speak</Label>
-            <Select
-              value={toSelect(settings.inputLang)}
-              onValueChange={(v) => onChange({ inputLang: fromSelect(v) })}
-            >
-              <SelectTrigger id={`${id}-in-lang`} className="h-10">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {INPUT_LANGUAGES.map((l) => (
-                  <SelectItem key={l.label} value={toSelect(l.value)}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {onServer && sttLanguages.length > 0 ? (
+              // what the speech server understands
+              <Select
+                value={
+                  sttLang && sttLanguages.some((l) => l.code === sttLang)
+                    ? sttLang
+                    : AUTO
+                }
+                onValueChange={(v) => onChange({ sttLang: v })}
+              >
+                <SelectTrigger id={`${id}-in-lang`} className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value={AUTO}>Detect automatically</SelectItem>
+                  {sttLanguages.map((l) => (
+                    <SelectItem key={l.code} value={l.code}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Select
+                value={toSelect(settings.inputLang)}
+                onValueChange={(v) => onChange({ inputLang: fromSelect(v) })}
+              >
+                <SelectTrigger id={`${id}-in-lang`} className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {INPUT_LANGUAGES.map((l) => (
+                    <SelectItem key={l.label} value={toSelect(l.value)}>
+                      {l.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
+          {onServer && !!stt && stt.models.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-in-model`}>Transcription model</Label>
+              <Select
+                value={sttModel || AUTO}
+                onValueChange={(v) => onChange({ sttModel: fromSelect(v) })}
+              >
+                <SelectTrigger
+                  id={`${id}-in-model`}
+                  className="h-10 [&>span]:truncate"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 max-w-[calc(100vw-2rem)]">
+                  <SelectItem value={AUTO}>
+                    Server default
+                    {stt.defaultModel ? ` (${stt.defaultModel})` : ""}
+                  </SelectItem>
+                  {stt.models.map((m) => (
+                    <SelectItem key={m.id} value={m.id} title={m.description}>
+                      {speechModelLabel(m)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {onServer && sttModes.length > 1 && (
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor={`${id}-in-mode`}>Write the transcript in</Label>
+              <Select
+                value={
+                  sttModes.includes(settings.sttMode) ? settings.sttMode : AUTO
+                }
+                onValueChange={(v) => onChange({ sttMode: fromSelect(v) })}
+              >
+                <SelectTrigger id={`${id}-in-mode`} className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={AUTO}>Server default</SelectItem>
+                  {sttModes.map((mode) => (
+                    <SelectItem key={mode} value={mode}>
+                      {modeLabel(mode)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="flex items-center justify-between gap-3">
             <Label htmlFor={`${id}-auto-send`}>Ask as soon as I stop</Label>
             <Switch
@@ -171,6 +357,85 @@ export default function AskAIVoiceSettings({
                 : "No local voice server is set up (TTS_UTILS_URL or AI_TTS_MODEL), so this device's voices are used."}
             </p>
           </div>
+          {usesLibrary && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${id}-server-voice`}>Server voice</Label>
+                <Select
+                  value={
+                    knowsVoice(settings.serverVoice)
+                      ? settings.serverVoice
+                      : AUTO
+                  }
+                  onValueChange={(v) => onChange({ serverVoice: fromSelect(v) })}
+                >
+                  <SelectTrigger
+                    id={`${id}-server-voice`}
+                    className="h-10 [&>span]:truncate"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 max-w-[calc(100vw-2rem)]">
+                    <SelectItem value={AUTO}>Server default</SelectItem>
+                    {libraryVoices.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Voices</SelectLabel>
+                        {libraryVoices.map((v) => (
+                          <SelectItem key={v.name} value={v.name}>
+                            {speechVoiceLabel(v)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {libraryAliases.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>OpenAI names</SelectLabel>
+                        {libraryAliases.map(([alias, target]) => (
+                          <SelectItem key={alias} value={alias}>
+                            {speechAliasLabel(alias, target)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor={`${id}-server-model`}>Server model</Label>
+                <Select
+                  value={
+                    knowsModel(settings.serverModel)
+                      ? settings.serverModel
+                      : AUTO
+                  }
+                  onValueChange={(v) => onChange({ serverModel: fromSelect(v) })}
+                >
+                  <SelectTrigger
+                    id={`${id}-server-model`}
+                    className="h-10 [&>span]:truncate"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 max-w-[calc(100vw-2rem)]">
+                    <SelectItem value={AUTO}>
+                      Server default
+                      {library ? ` (${library.defaultModel})` : ""}
+                    </SelectItem>
+                    {library?.models.map((m) => (
+                      <SelectItem key={m.id} value={m.id} title={m.description}>
+                        {speechModelLabel(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {library && !library.live
+                    ? "The library speech server did not answer, so these are the standard options."
+                    : "Used by the library speech server. Voices differ between models; those for the language you speak come first."}
+                </p>
+              </div>
+            </>
+          )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${id}-voice`}>
               {settings.outputEngine === "server" && server.speak

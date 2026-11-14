@@ -128,7 +128,11 @@ export function useReadAloud(
       const res = await fetch("/api/ai/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text,
+          voice: settings.serverVoice || undefined,
+          model: settings.serverModel || undefined,
+        }),
         signal: controller.signal,
       });
       if (!res.ok) {

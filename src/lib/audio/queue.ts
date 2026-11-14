@@ -62,6 +62,8 @@ export type QueueAction =
   /** The current track played to its end. */
   | { type: "ended" }
   | { type: "remove"; index: number; keepPlaying?: boolean }
+  /** Drop a recording that no longer exists, wherever it is queued. */
+  | { type: "removeTrack"; id?: string; src?: string }
   | { type: "clear" }
   | { type: "cycleRepeat" }
   | { type: "restore"; saved: PersistedQueue; resumeAt?: number };
@@ -92,6 +94,10 @@ export const uniqueTracks = (tracks: Track[], taken?: Set<string>): Track[] => {
     return true;
   });
 };
+
+/** Same recording, whatever version or query string the URL carries. */
+export const sameFile = (a: string, b: string) =>
+  a.split(/[?#]/)[0] === b.split(/[?#]/)[0];
 
 /** Start (or restart) the track at `index`. */
 const startAt = (state: QueueState, index: number): QueueState => ({
@@ -226,6 +232,32 @@ export function queueReducer(
         tracks,
         index: Math.min(state.index, tracks.length - 1),
         autoplay: action.keepPlaying ?? false,
+        playToken: state.playToken + 1,
+        resumeAt: 0,
+      };
+    }
+
+    case "removeTrack": {
+      if (!action.id && !action.src) return state;
+      const gone = (t: Track) =>
+        (!!action.id && t.id === action.id) ||
+        (!!action.src && sameFile(t.src, action.src));
+      if (!state.tracks.some(gone)) return state;
+      const current = currentTrack(state);
+      const tracks = state.tracks.filter((t) => !gone(t));
+      if (tracks.length === 0) {
+        return { ...emptyQueue, repeat: state.repeat, playToken: state.playToken };
+      }
+      if (current && !gone(current)) {
+        return { ...state, tracks, index: tracks.indexOf(current) };
+      }
+      // the current track went away: the next one waits for the listener
+      const before = state.tracks.slice(0, state.index).filter((t) => !gone(t));
+      return {
+        ...state,
+        tracks,
+        index: Math.min(before.length, tracks.length - 1),
+        autoplay: false,
         playToken: state.playToken + 1,
         resumeAt: 0,
       };
