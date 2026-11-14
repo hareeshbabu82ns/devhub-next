@@ -2,7 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 // import { ScanSearch as AddIcon } from "lucide-react";
 import { Entity } from "@/lib/types";
-import { DialogProps } from "@radix-ui/react-dialog";
+import type { Dialog as DialogPrimitive } from "radix-ui";
+
+type DialogProps = DialogPrimitive.DialogProps;
 import SlokamDetails from "./SlokamDetails";
 
 interface SlokamDisplayDlgTriggerProps extends DialogProps {

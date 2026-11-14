@@ -5,7 +5,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { DialogProps } from "@radix-ui/react-dialog";
+import type { Dialog as DialogPrimitive } from "radix-ui";
+
+type DialogProps = DialogPrimitive.DialogProps;
 import { InfoIcon } from "lucide-react";
 import SanscriptConvertor from "./SanscriptConvertor";
 

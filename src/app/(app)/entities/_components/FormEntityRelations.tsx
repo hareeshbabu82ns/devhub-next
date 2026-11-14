@@ -2,7 +2,8 @@ import { ArtTile } from "@/components/blocks/image-tiles";
 import { FormField } from "@/components/ui/form";
 import { Entity, EntityTypeEnum } from "@/lib/types";
 import { useState } from "react";
-import { Control, useController } from "react-hook-form";
+import { Control, FieldValues, useController } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import { PlusIcon as AddIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ArtSlokamTile } from "@/components/blocks/image-tiles-slokam";
@@ -21,21 +22,22 @@ import {
   useQueryLimitAtomValue,
 } from "@/hooks/use-config";
 
-interface FormEntityRelationsProps {
+interface FormEntityRelationsProps<T extends FieldValues> {
   name: string;
   label: string;
   forTypes?: EntityTypeEnum[];
   onAddRelationClicked?: () => void;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-const FormEntityRelations = ({
+const FormEntityRelations = <T extends FieldValues>({
   name,
   label,
-  control,
+  control: typedControl,
   forTypes,
   onAddRelationClicked,
-}: FormEntityRelationsProps) => {
+}: FormEntityRelationsProps<T>) => {
+  const control = widenControl(typedControl);
   const router = useRouter();
   const { searchParamsObject: searchParams, updateSearchParams } =
     useSearchParamsUpdater();

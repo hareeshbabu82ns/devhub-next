@@ -1,4 +1,5 @@
-import { Control } from "react-hook-form";
+import { Control, FieldValues } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import {
   FormControl,
   FormDescription,
@@ -21,23 +22,24 @@ const handleMaxLengthChange = (
   }
 };
 
-interface FormInputTextAreaProps {
+interface FormInputTextAreaProps<T extends FieldValues> {
   name: string;
   label: string;
   maxLength?: number;
   description?: string;
   className?: string;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-const FormInputTextArea = ( {
+const FormInputTextArea = <T extends FieldValues>( {
   name,
-  control,
+  control: typedControl,
   label,
   description,
   className,
   maxLength,
-}: FormInputTextAreaProps ) => {
+}: FormInputTextAreaProps<T>) => {
+  const control = widenControl(typedControl);
   return (
     <FormField
       control={control}

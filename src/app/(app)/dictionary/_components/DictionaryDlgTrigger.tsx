@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { DialogProps } from "@radix-ui/react-dialog";
+import type { Dialog as DialogPrimitive } from "radix-ui";
+
+type DialogProps = DialogPrimitive.DialogProps;
 import { BookA as DictionaryIcon } from "lucide-react";
 import DictionaryView from "./DictionaryView";
 

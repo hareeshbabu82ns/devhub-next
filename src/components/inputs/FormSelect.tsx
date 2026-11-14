@@ -1,4 +1,5 @@
-import { Control } from "react-hook-form";
+import { Control, FieldValues } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import {
   FormControl,
   FormDescription,
@@ -25,21 +26,22 @@ export interface FormSelectOptions {
   [key: string]: string | boolean | undefined;
 }
 
-interface FormSelectProps {
+interface FormSelectProps<T extends FieldValues> {
   name: string;
   label: string;
   description?: string;
   options: FormSelectOptions[];
-  control: Control<any>;
+  control: Control<T>;
 }
 
-const FormSelect = ({
+const FormSelect = <T extends FieldValues>({
   name,
-  control,
+  control: typedControl,
   label,
   description,
   options,
-}: FormSelectProps) => {
+}: FormSelectProps<T>) => {
+  const control = widenControl(typedControl);
   return (
     <FormField
       control={control}

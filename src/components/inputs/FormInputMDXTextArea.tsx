@@ -1,4 +1,5 @@
-import { Control } from "react-hook-form";
+import { Control, FieldValues } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -17,21 +18,22 @@ import {
 } from "../ui/resizable";
 import { useTextSizeAtomValue } from "@/hooks/use-config";
 
-interface FormInputMDXTextAreaProps {
+interface FormInputMDXTextAreaProps<T extends FieldValues> {
   name: string;
   label?: string;
   description?: string;
   className?: string;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-const FormInputMDXTextArea = ( {
+const FormInputMDXTextArea = <T extends FieldValues>( {
   name,
-  control,
+  control: typedControl,
   label,
   description,
   className,
-}: FormInputMDXTextAreaProps ) => {
+}: FormInputMDXTextAreaProps<T>) => {
+  const control = widenControl(typedControl);
   const textSize = useTextSizeAtomValue();
   return (
     <FormField

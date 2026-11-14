@@ -1,10 +1,12 @@
 "use client";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TabsContent } from "@radix-ui/react-tabs";
+import { Tabs as TabsPrimitive } from "radix-ui";
 import SanscriptEditor from "./_components/SanscriptEditor";
 import SanscriptConvertor from "./_components/SanscriptConvertor";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import SanscriptUtils from "@/components/sanscript/sanscript-utils";
+
+const TabsContent = TabsPrimitive.Content;
 
 const SanscriptPage = () => {
   const { searchParams, updateSearchParams } = useSearchParamsUpdater();

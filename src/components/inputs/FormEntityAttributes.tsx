@@ -9,20 +9,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Control } from "react-hook-form";
+import { Control, FieldValues } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/ui/form";
 import { AttributeValueInput } from "@/lib/types";
 
-interface FormEntityAttributesProps {
+interface FormEntityAttributesProps<T extends FieldValues> {
   name: string;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-export default function FormEntityAttributes( {
+export default function FormEntityAttributes<T extends FieldValues>( {
   name,
-  control,
-}: FormEntityAttributesProps ) {
+  control: typedControl,
+}: FormEntityAttributesProps<T>) {
+  const control = widenControl(typedControl);
   return (
     <FormField
       control={control}

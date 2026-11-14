@@ -1,4 +1,5 @@
-import { Control, useFormContext } from "react-hook-form";
+import { Control, FieldValues, useFormContext } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import { FormField } from "../ui/form";
 import {
   Select,
@@ -26,10 +27,10 @@ import { Switch } from "../ui/switch";
 import { Label } from "../ui/label";
 import { isSyncScriptLanguage, syncScripts } from "@/lib/entity-text";
 
-interface FormLanguageValueListProps {
+interface FormLanguageValueListProps<T extends FieldValues> {
   name: string;
   placeholder?: string;
-  control: Control<any>;
+  control: Control<T>;
   /**
    * Offer to regenerate the other transliterable scripts from the one being
    * edited, so Sanskrit / Telugu / IAST / SLP1 / ITRANS never drift apart.
@@ -37,12 +38,13 @@ interface FormLanguageValueListProps {
   syncScripts?: boolean;
 }
 
-const FormLanguageValueList = ( {
+const FormLanguageValueList = <T extends FieldValues>( {
   name,
-  control,
+  control: typedControl,
   placeholder,
   syncScripts: offerSync = false,
-}: FormLanguageValueListProps ) => {
+}: FormLanguageValueListProps<T>) => {
+  const control = widenControl(typedControl);
   const language = useLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
   const isNarrow = useMediaQuery( "(max-width: 767px)" );

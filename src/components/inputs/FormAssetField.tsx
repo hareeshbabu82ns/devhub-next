@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Control, useController } from "react-hook-form";
+import { Control, FieldValues, useController } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import { FolderSearch, Loader2, Pause, Play, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,8 +30,8 @@ import {
 } from "@/lib/assets/shared";
 import { cn } from "@/lib/utils";
 
-interface FormAssetFieldProps {
-  control: Control<any>;
+interface FormAssetFieldProps<T extends FieldValues> {
+  control: Control<T>;
   name: string;
   label: string;
   description?: string;
@@ -111,8 +112,8 @@ function FieldPreview({ kind, value }: { kind: "image" | "audio"; value: string 
  * browse the asset library, upload a new file straight into the field, type
  * an external URL, or clear it.
  */
-export default function FormAssetField({
-  control,
+export default function FormAssetField<T extends FieldValues>({
+  control: typedControl,
   name,
   label,
   description,
@@ -120,7 +121,8 @@ export default function FormAssetField({
   uploadFolder,
   emptyValue = "",
   className,
-}: FormAssetFieldProps) {
+}: FormAssetFieldProps<T>) {
+  const control = widenControl(typedControl);
   const { field } = useController({ control, name });
   const value: string = field.value ?? "";
   const queryClient = useQueryClient();

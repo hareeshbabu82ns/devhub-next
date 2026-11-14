@@ -9,7 +9,9 @@ import {
 import { ScanSearch as AddIcon } from "lucide-react";
 import EntitySearchTiles from "./EntitySearchTiles";
 import { Entity, EntityTypeEnum } from "@/lib/types";
-import { DialogProps } from "@radix-ui/react-dialog";
+import type { Dialog as DialogPrimitive } from "radix-ui";
+
+type DialogProps = DialogPrimitive.DialogProps;
 
 interface EntitySearchDlgTriggerProps extends DialogProps {
   forTypes?: EntityTypeEnum[];

@@ -1,4 +1,5 @@
-import { Control } from "react-hook-form";
+import { Control, FieldValues } from "react-hook-form";
+import { widenControl } from "@/components/inputs/widen-control";
 import {
   FormControl,
   FormDescription,
@@ -9,19 +10,20 @@ import {
 } from "../ui/form";
 import { Checkbox } from "../ui/checkbox";
 
-interface FormCheckboxProps {
+interface FormCheckboxProps<T extends FieldValues> {
   name: string;
   label: string;
   description?: string;
-  control: Control<any>;
+  control: Control<T>;
 }
 
-const FormCheckbox = ( {
+const FormCheckbox = <T extends FieldValues>( {
   name,
-  control,
+  control: typedControl,
   label,
   description,
-}: FormCheckboxProps ) => {
+}: FormCheckboxProps<T>) => {
+  const control = widenControl(typedControl);
   return (
     <FormField
       control={control}
