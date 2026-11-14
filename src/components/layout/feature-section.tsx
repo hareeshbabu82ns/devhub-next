@@ -1,76 +1,70 @@
-import { FileText, FileUp, Search, User2Icon, Sparkles } from "lucide-react";
+import { BookOpenText, Languages, Library, Search } from "lucide-react";
+import { OrnamentDivider } from "@/components/shared/mandala";
+
+const features = [
+  {
+    title: "Stotras & Scriptures",
+    description:
+      "Browse devotional works by deity and author, chapter by chapter, verse by verse.",
+    icon: Library,
+    tone: "text-saffron bg-saffron/12",
+  },
+  {
+    title: "Multilingual Dictionaries",
+    description:
+      "Look up meanings, phonetics and origins across Sanskrit, Telugu and more.",
+    icon: BookOpenText,
+    tone: "text-kumkum bg-kumkum/10",
+  },
+  {
+    title: "Read in Your Script",
+    description:
+      "Switch any text between Devanagari, Telugu, IAST and other scripts instantly.",
+    icon: Languages,
+    tone: "text-peacock bg-peacock/12",
+  },
+  {
+    title: "Search & Bookmarks",
+    description:
+      "Find a verse by a few remembered words and keep your favourites close.",
+    icon: Search,
+    tone: "text-tulsi bg-tulsi/12",
+  },
+];
 
 export function FeaturesSection() {
-    const features = [
-        {
-            title: "Manage Devotionals",
-            description: "Organize and explore hierarchical devotional content with ease.",
-            icon: <FileUp className="size-6" />,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-        },
-        {
-            title: "Multilingual Dictionaries",
-            description: "Access phonetics, origins, and meanings across multiple languages.",
-            icon: <FileText className="size-6" />,
-            color: "text-green-500",
-            bg: "bg-green-500/10",
-        },
-        {
-            title: "Smart Search",
-            description: "Instantly find and bookmark your favorite stotras and songs.",
-            icon: <Search className="size-6" />,
-            color: "text-purple-500",
-            bg: "bg-purple-500/10",
-        },
-        {
-            title: "Premium Interface",
-            description: "Intuitive glassmorphism design for a seamless user experience.",
-            icon: <Sparkles className="size-6" />, // Changed icon for variety
-            color: "text-amber-500",
-            bg: "bg-amber-500/10",
-        },
-    ];
-
-    return (
-        <section className="bg-muted/30 py-20 border-t border-border/50 relative overflow-hidden">
-            {/* Background blobs for section */}
-            <div className="absolute top-1/2 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -z-10" />
-            <div className="absolute bottom-0 right-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl -z-10" />
-
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-16 max-w-2xl mx-auto">
-                    <h2 className="text-3xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">Key Features</h2>
-                    <p className="text-muted-foreground">
-                        Everything you need to deepen your spiritual practice, built with modern technology.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                    {features.map((feature, index) => (
-                        <FeatureCard
-                            key={index}
-                            {...feature}
-                            index={index}
-                        />
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
-}
-
-function FeatureCard({ title, description, icon, color, bg, index }: { title: string; description: string; icon: React.ReactNode; color: string; bg: string; index: number }) {
-    return (
-        <div
-            className="group relative bg-background/50 p-6 rounded-2xl shadow-sm border border-border/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 backdrop-blur-sm"
-            style={{ animationDelay: `${index * 100}ms` }}
-        >
-            <div className={`mb-4 inline-flex items-center justify-center rounded-xl p-3 ${bg} ${color} transition-transform group-hover:scale-110 duration-300`}>
-                {icon}
-            </div>
-            <h3 className="text-xl font-semibold mb-2 group-hover:text-primary transition-colors">{title}</h3>
-            <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+  return (
+    <section className="bg-rangoli border-t border-border/60 bg-muted/40 py-16 sm:py-20">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto mb-10 max-w-2xl text-center sm:mb-14">
+          <h2 className="mb-3 text-2xl font-semibold sm:text-3xl">
+            Everything for daily study and worship
+          </h2>
+          <OrnamentDivider className="mx-auto mb-4 w-40" />
+          <p className="text-muted-foreground">
+            Built for unhurried reading on a phone, a tablet or a desk.
+          </p>
         </div>
-    );
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
+          {features.map(({ title, description, icon: Icon, tone }) => (
+            <div
+              key={title}
+              className="group rounded-2xl border border-border/70 bg-card p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gold/60 hover:shadow-md"
+            >
+              <div
+                className={`mb-4 inline-flex items-center justify-center rounded-xl p-3 ${tone}`}
+              >
+                <Icon className="size-6" />
+              </div>
+              <h3 className="mb-2 text-lg font-semibold">{title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

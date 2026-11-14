@@ -16,6 +16,7 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
+    "pwa:assets": "node scripts/generate-pwa-assets.mjs",
     "dev:emails": "email dev --dir src/components/emails --port 3008",
     "release:patch": "pnpm version patch && git push && git push --tags",
     "release:minor": "pnpm version minor && git push && git push --tags",

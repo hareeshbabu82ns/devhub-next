@@ -24,15 +24,15 @@ export function BaseHeader() {
           )}
           onClick={() => router.push("/dashboard")}
         >
-          <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-data-[collapsible=icon]:size-8 group-hover:scale-105">
-            <Icons.logo className="size-6 text-white group-data-[collapsible=icon]:size-4" />
+          <div className="flex aspect-square size-10 items-center justify-center rounded-xl bg-sunrise text-primary-foreground shadow-md shadow-saffron/25 ring-1 ring-gold/40 transition-transform duration-300 group-data-[collapsible=icon]:size-8 group-hover:scale-105">
+            <Icons.logo className="size-6 text-[#fff6e0] group-data-[collapsible=icon]:size-4" />
           </div>
           <div className="flex flex-col flex-1 text-left justify-center min-w-0 group-data-[collapsible=icon]:hidden">
-            <span className="font-bold text-xl tracking-tight leading-tight text-foreground truncate">
+            <span className="font-display font-semibold text-xl tracking-tight leading-tight text-foreground truncate">
               DevHub
             </span>
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold leading-none">
-              Control Panel
+              Devotional Hub
             </span>
           </div>
         </SidebarMenuButton>

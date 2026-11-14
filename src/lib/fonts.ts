@@ -2,6 +2,7 @@ import {
   JetBrains_Mono as FontMono,
   Mandali as FontSansTelugu,
   Inter as FontSans,
+  Eczar as FontDisplay,
   // Roboto_Condensed as FontSans,
 } from "next/font/google";
 
@@ -19,4 +20,12 @@ export const fontSans = FontSans({
 export const fontMono = FontMono({
   subsets: ["latin"],
   variable: "--font-mono",
+});
+
+// Display serif for page and section titles. Designed for Latin + Devanagari,
+// so IAST diacritics and Sanskrit headings render in the same face.
+export const fontDisplay = FontDisplay({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-display",
+  display: "swap",
 });

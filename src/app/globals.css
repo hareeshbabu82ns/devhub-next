@@ -11,7 +11,16 @@
   --font-mono: var(--font-mono);
   --font-telugu: var(--font-telugu);
 
-  --radius: 0.5rem;
+  --font-display: var(--font-display);
+
+  --radius: 0.75rem;
+
+  --color-saffron: var(--saffron);
+  --color-kumkum: var(--kumkum);
+  --color-gold: var(--gold);
+  --color-lotus: var(--lotus);
+  --color-peacock: var(--peacock);
+  --color-tulsi: var(--tulsi);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -96,96 +105,186 @@ button {
   }
 }
 
+/*
+ * Reading themes
+ * --------------
+ * Three independent choices, all applied as attributes on <html>:
+ *   mode         .dark class (next-themes: light / dark / system)
+ *   data-paper   light surface:  chandan (default) | talapatra
+ *   data-board   dark surface:   chalkboard (default) | deepam
+ *   data-accent  action colour:  saffron (default) | kumkum | lotus | turmeric | tulsi | peacock
+ *
+ * Contrast is deliberately moderate for long reading: body text sits around
+ * 9-11:1 (never pure black on white or white on black), secondary text ~5:1.
+ * Surfaces only set neutrals; hover/selected tints are mixed from the accent,
+ * so every surface + accent combination stays in harmony.
+ * Default backgrounds are mirrored in src/config/pwa.json (manifest, splash).
+ */
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(222.2 84% 4.9%);
+  color-scheme: light;
+  --radius: 0.75rem;
 
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(222.2 84% 4.9%);
+  /* Chandan — sandalwood paper */
+  --background: #f7f1e5;
+  --foreground: hsl(22 30% 21%);
+  --card: hsl(42 55% 96%);
+  --muted: hsl(40 36% 88%);
+  --muted-foreground: hsl(24 16% 37%);
+  --border: hsl(37 34% 79%);
+  --input: hsl(37 34% 74%);
+  --sidebar: hsl(40 42% 90%);
+  --destructive: hsl(355 62% 44%);
+  --destructive-foreground: hsl(42 80% 96%);
 
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(222.2 84% 4.9%);
+  /* Accent: saffron */
+  --brand: hsl(20 80% 40%);
+  --brand-hover: hsl(20 82% 34%);
+  --primary-foreground: hsl(44 80% 95%);
 
-  --primary: hsl(221.2 83.2% 53.3%);
-  --primary-foreground: hsl(210 40% 98%);
+  /* Named devotional hues, for decoration and data colours */
+  --saffron: hsl(24 85% 46%);
+  --kumkum: hsl(350 62% 38%);
+  --gold: hsl(40 80% 42%);
+  --lotus: hsl(336 52% 50%);
+  --peacock: hsl(187 58% 30%);
+  --tulsi: hsl(142 36% 33%);
 
-  --secondary: hsl(210 40% 96.1%);
-  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  /* Derived — shared by every theme */
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--muted);
+  --secondary-foreground: var(--foreground);
+  --accent: color-mix(in srgb, var(--primary) 16%, var(--background));
+  --accent-foreground: var(--foreground);
+  --primary: var(--brand);
+  --primary-hover: var(--brand-hover);
+  --ring: var(--primary);
 
-  --muted: hsl(210 40% 96.1%);
-  --muted-foreground: hsl(215.4 16.3% 46.9%);
+  --chart-1: var(--saffron);
+  --chart-2: var(--peacock);
+  --chart-3: var(--kumkum);
+  --chart-4: var(--gold);
+  --chart-5: var(--tulsi);
 
-  --accent: hsl(210 40% 96.1%);
-  --accent-foreground: hsl(222.2 47.4% 11.2%);
-
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 40% 98%);
-
-  --border: hsl(214.3 31.8% 91.4%);
-  --input: hsl(214.3 31.8% 91.4%);
-  --ring: hsl(221.2 83.2% 53.3%);
-
-  --radius: 0.5rem;
-
-  --chart-1: hsl(12 76% 61%);
-  --chart-2: hsl(173 58% 39%);
-  --chart-3: hsl(197 37% 24%);
-  --chart-4: hsl(43 74% 66%);
-  --chart-5: hsl(27 87% 67%);
-
-  --sidebar: hsl(0 0% 98%);
-  --sidebar-foreground: hsl(240 5.3% 26.1%);
-  --sidebar-primary: hsl(240 5.9% 10%);
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(240 4.8% 95.9%);
-  --sidebar-accent-foreground: hsl(240 5.9% 10%);
-  --sidebar-border: hsl(220 13% 91%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: color-mix(in srgb, var(--primary) 18%, var(--sidebar));
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
 }
 
+/* Talapatra — palm-leaf manuscript, dimmer and browner than Chandan */
+:root[data-paper="talapatra"]:not(.dark) {
+  --background: hsl(39 36% 83%);
+  --foreground: hsl(26 34% 19%);
+  --card: hsl(40 40% 87%);
+  --muted: hsl(38 28% 77%);
+  --muted-foreground: hsl(26 20% 31%);
+  --border: hsl(36 26% 69%);
+  --input: hsl(36 26% 64%);
+  --sidebar: hsl(38 32% 79%);
+  /* Darker paper needs deeper ink for the accent to stay readable */
+  --primary: color-mix(in srgb, var(--brand) 80%, black);
+  --primary-hover: color-mix(in srgb, var(--brand-hover) 80%, black);
+}
+
+/* Chalkboard — green slate with chalk-coloured text (default dark) */
 .dark {
-  --background: hsl(222.2 84% 4.9%);
-  --foreground: hsl(210 40% 98%);
+  color-scheme: dark;
 
-  --card: hsl(222.2 84% 4.9%);
-  --card-foreground: hsl(210 40% 98%);
+  --background: #222f2a;
+  --foreground: hsl(48 24% 82%);
+  --card: hsl(155 15% 19.5%);
+  --muted: hsl(155 12% 23%);
+  --muted-foreground: hsl(90 9% 67%);
+  --border: hsl(155 10% 28%);
+  --input: hsl(155 10% 32%);
+  --sidebar: hsl(155 17% 13.5%);
+  --destructive: hsl(2 50% 47%);
+  --destructive-foreground: hsl(48 40% 94%);
 
-  --popover: hsl(222.2 84% 4.9%);
-  --popover-foreground: hsl(210 40% 98%);
+  /* Accent: saffron chalk */
+  --brand: hsl(30 82% 67%);
+  --brand-hover: hsl(32 86% 74%);
+  --primary-foreground: var(--background);
 
-  --primary: hsl(217.2 91.2% 59.8%);
-  --primary-foreground: hsl(222.2 47.4% 11.2%);
+  --saffron: hsl(28 86% 64%);
+  --kumkum: hsl(352 68% 72%);
+  --gold: hsl(44 78% 66%);
+  --lotus: hsl(336 66% 76%);
+  --peacock: hsl(184 46% 62%);
+  --tulsi: hsl(135 36% 64%);
+}
 
-  --secondary: hsl(217.2 32.6% 17.5%);
-  --secondary-foreground: hsl(210 40% 98%);
+/* Deepam — warm temple night lit by lamp light */
+.dark[data-board="deepam"] {
+  --background: hsl(22 20% 11%);
+  --foreground: hsl(38 30% 79%);
+  --card: hsl(22 18% 14.5%);
+  --muted: hsl(22 15% 18.5%);
+  --muted-foreground: hsl(34 15% 59%);
+  --border: hsl(24 14% 24%);
+  --input: hsl(24 14% 28%);
+  --sidebar: hsl(22 22% 8.5%);
+}
 
-  --muted: hsl(217.2 32.6% 17.5%);
-  --muted-foreground: hsl(215 20.2% 65.1%);
+/* Accents — mix with any surface */
+[data-accent="kumkum"] {
+  --brand: hsl(350 62% 37%);
+  --brand-hover: hsl(350 64% 31%);
+}
+[data-accent="lotus"] {
+  --brand: hsl(334 54% 42%);
+  --brand-hover: hsl(334 56% 36%);
+}
+[data-accent="turmeric"] {
+  --brand: hsl(37 84% 31%);
+  --brand-hover: hsl(37 86% 26%);
+}
+[data-accent="tulsi"] {
+  --brand: hsl(144 40% 29%);
+  --brand-hover: hsl(144 42% 24%);
+}
+[data-accent="peacock"] {
+  --brand: hsl(188 64% 27%);
+  --brand-hover: hsl(188 66% 22%);
+}
+.dark[data-accent="kumkum"] {
+  --brand: hsl(352 68% 73%);
+  --brand-hover: hsl(352 72% 79%);
+}
+.dark[data-accent="lotus"] {
+  --brand: hsl(334 62% 76%);
+  --brand-hover: hsl(334 66% 82%);
+}
+.dark[data-accent="turmeric"] {
+  --brand: hsl(45 78% 66%);
+  --brand-hover: hsl(45 82% 73%);
+}
+.dark[data-accent="tulsi"] {
+  --brand: hsl(135 36% 65%);
+  --brand-hover: hsl(135 40% 72%);
+}
+.dark[data-accent="peacock"] {
+  --brand: hsl(184 46% 63%);
+  --brand-hover: hsl(184 50% 70%);
+}
 
-  --accent: hsl(217.2 32.6% 17.5%);
-  --accent-foreground: hsl(210 40% 98%);
+html {
+  /* Stop iOS/Android from inflating text in landscape; keep sizing identical across devices */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  /* Firefox + modern Chromium scrollbars, matching the WebKit rules below */
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
 
-  --destructive: hsl(0 62.8% 30.6%);
-  --destructive-foreground: hsl(210 40% 98%);
-
-  --border: hsl(217.2 32.6% 17.5%);
-  --input: hsl(217.2 32.6% 17.5%);
-  --ring: hsl(212.7 26.8% 83.9%);
-
-  --chart-1: hsl(220 70% 50%);
-  --chart-2: hsl(160 60% 45%);
-  --chart-3: hsl(30 80% 55%);
-  --chart-4: hsl(280 65% 60%);
-  --chart-5: hsl(340 75% 55%);
-
-  --sidebar: hsl(240 5.9% 10%);
-  --sidebar-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-primary: hsl(224.3 76.3% 48%);
-  --sidebar-primary-foreground: hsl(0 0% 100%);
-  --sidebar-accent: hsl(240 3.7% 15.9%);
-  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-  --sidebar-border: hsl(240 3.7% 15.9%);
-  --sidebar-ring: hsl(217.2 91.2% 59.8%);
+::selection {
+  background: color-mix(in srgb, var(--gold) 35%, transparent);
 }
 
 ::-webkit-scrollbar {
@@ -194,7 +293,7 @@ button {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--muted);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -213,6 +312,15 @@ button {
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Page and section titles use the display serif; Indic scripts fall through to their own faces */
+  h1,
+  h2,
+  .font-display {
+    font-family:
+      var(--font-display), var(--font-telugu), "Shobhika", Georgia, serif;
+    letter-spacing: -0.005em;
   }
 }
 
@@ -449,6 +557,57 @@ button {
 
   .markdown-content table tr:nth-child(even) {
     background-color: var(--background);
+  }
+}
+
+/* Devotional decoration */
+@layer utilities {
+  /* Sunrise fill for brand marks and hero panels */
+  .bg-sunrise {
+    background-image: linear-gradient(
+      160deg,
+      hsl(36 96% 56%) 0%,
+      hsl(22 92% 48%) 45%,
+      hsl(350 70% 34%) 100%
+    );
+  }
+
+  /* Rangoli lattice, tinted with the theme gold. Put it on a positioned element. */
+  .bg-rangoli {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .bg-rangoli::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-color: var(--rangoli-color, var(--gold));
+    opacity: var(--rangoli-opacity, 0.14);
+    -webkit-mask-image: var(--rangoli-tile);
+    mask-image: var(--rangoli-tile);
+    -webkit-mask-size: 64px 64px;
+    mask-size: 64px 64px;
+    --rangoli-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none' stroke='black' stroke-width='1.2'%3E%3Cpath d='M32 4c6 8 6 16 0 24c-6-8-6-16 0-24zM32 60c-6-8-6-16 0-24c6 8 6 16 0 24zM4 32c8-6 16-6 24 0c-8 6-16 6-24 0zM60 32c-8 6-16 6-24 0c8-6 16-6 24 0z'/%3E%3Ccircle cx='32' cy='32' r='3'/%3E%3Ccircle cx='0' cy='0' r='5'/%3E%3Ccircle cx='64' cy='0' r='5'/%3E%3Ccircle cx='0' cy='64' r='5'/%3E%3Ccircle cx='64' cy='64' r='5'/%3E%3C/svg%3E");
+  }
+
+  .animate-mandala {
+    animation: mandala-turn 240s linear infinite;
+    transform-origin: center;
+  }
+
+  @keyframes mandala-turn {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-mandala {
+      animation: none;
+    }
   }
 }
 

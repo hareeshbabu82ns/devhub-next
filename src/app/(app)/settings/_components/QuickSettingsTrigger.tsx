@@ -3,7 +3,7 @@ import PanchangamPlaceSelector from "@/components/blocks/panchangam-place-select
 import PanchangamTimelineViewSelector from "@/components/blocks/panchangam-timeline-view-selector";
 import QueryResultsLimitSelector from "@/components/blocks/result-limit-selector";
 import TextSizeSelector from "@/components/blocks/text-size-selector";
-import ThemeModeToggle from "@/components/blocks/theme-mode-toggle";
+import ThemePicker from "@/components/blocks/theme-picker";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -47,8 +47,9 @@ export default function QuickSettingsTrigger() {
           <PanchangamPlaceSelector />
           <p className="self-center text-sm sm:text-base">Timeline View:</p>
           <PanchangamTimelineViewSelector />
-          <p className="self-center text-sm sm:text-base">App Theme:</p>
-          <ThemeModeToggle />
+        </div>
+        <div className="border-t px-2 pt-4 pb-6 sm:px-4">
+          <ThemePicker />
         </div>
       </SheetContent>
     </Sheet>
