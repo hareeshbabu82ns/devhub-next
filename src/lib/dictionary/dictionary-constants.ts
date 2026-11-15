@@ -21,6 +21,7 @@ export const LEXICON_ALL_DICT: string[] = [
   "bhs",
   // "bop",
   "bor",
+  "brown_te",
   // "bur",
   "cae",
   // "ccs",
@@ -29,6 +30,7 @@ export const LEXICON_ALL_DICT: string[] = [
   "eng2te",
   // "gra",
   "gst",
+  "gwynn_te",
   "ieg",
   "inm",
   "krm",
@@ -89,6 +91,12 @@ export const LEXICON_SAN_DICT_LIST: DictionaryName[] = [
   "wil",
   "yat",
 ];
+
+/**
+ * Telugu-English dictionaries (Telugu headwords, English meanings with
+ * Telugu quotations)
+ */
+export const LEXICON_TEL_DICT_LIST: DictionaryName[] = ["brown_te", "gwynn_te"];
 
 /**
  * Sanskrit-to-Sanskrit dictionaries
@@ -180,6 +188,8 @@ export const DICTIONARY_LANGUAGE_MAPPING: Record<
   pe: { wordLang: "SLP1", descriptionLang: "ENG" },
   pgn: { wordLang: "SLP1", descriptionLang: "ENG" },
   dhatu_pata: { wordLang: "SAN", descriptionLang: "SAN" },
+  brown_te: { wordLang: "TEL", descriptionLang: "ENG" },
+  gwynn_te: { wordLang: "GWYNN", descriptionLang: "ENG" },
   default: { wordLang: "SLP1", descriptionLang: "SLP1" },
 };
 

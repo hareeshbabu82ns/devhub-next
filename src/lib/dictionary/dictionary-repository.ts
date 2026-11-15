@@ -449,6 +449,7 @@ export class DictionaryRepository implements IDictionaryRepository {
         sortStage,
         { $skip: offset },
         { $limit: limit },
+        { $project: { searchText: 0 } },
       ],
     });
 
@@ -464,6 +465,10 @@ export class DictionaryRepository implements IDictionaryRepository {
           attributes: doc.attributes || [],
           phonetic: doc.phonetic || "",
           sourceData: doc.sourceData || null,
+          sourceKey: doc.sourceKey ?? null,
+          searchText: null,
+          processorVersion: doc.processorVersion ?? null,
+          editedAt: doc.editedAt ? new Date(doc.editedAt.$date || doc.editedAt) : null,
           createdAt: doc.createdAt
             ? new Date(doc.createdAt.$date || doc.createdAt)
             : new Date(),

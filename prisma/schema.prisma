@@ -247,7 +247,18 @@ model DictionaryWord {
   description LanguageValueType[]
   attributes  AttributeValueType[]
   phonetic    String
+  // Imported entries: a small pointer to the original row in DictRawEntries
+  // ({ key, table, lnum }). Older imports hold the whole original row here.
   sourceData  Json?                @db.Json
+  // Key of the original row in DictRawEntries (origin + sourceKey)
+  sourceKey   String?
+  // Every word of the headword and the whole meaning, in every script, for
+  // the full-text index. Never returned to readers.
+  searchText  String?
+  // Processor version that built this entry; older versions need a rebuild
+  processorVersion Int?
+  // Set when someone edits or adds the entry by hand; rebuilds keep it
+  editedAt    DateTime?
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -256,10 +267,66 @@ model DictionaryWord {
   @@index([origin, wordIndex(sort: Asc)], map: "origin_wordIndex_asc_idx")
   @@index([origin, wordIndex(sort: Desc)], map: "origin_wordIndex_desc_idx")
   @@index([origin, phonetic], map: "origin_phonetic_idx")
-  @@index([origin, word], map: "origin_word_idx")
-  // Combined full-text search index for both phonetic and word content
-  @@fulltext([phonetic, word], map: "phonetic_word_text_idx")
+  @@index([origin, sourceKey], map: "origin_sourceKey_idx")
+  // Headword lookups match word.value with anchored regexes
+  @@index([word.value], map: "word_value_idx")
+  // Full-text ("meaning") search over the whole entry
+  @@fulltext([phonetic, searchText], map: "dict_fulltext_idx")
   @@map("DictWords")
+}
+
+// One per dictionary: where its originals came from and the state of the
+// two stages (originals captured → search entries built).
+model DictionarySource {
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  origin           String    @unique
+  // Source file and table the originals were captured from
+  sourceFile       String?
+  sourceTable      String?
+  columns          String[]
+  // "rowid" or the column used as each row's key (e.g. "lnum")
+  keyColumn        String?
+  // File size + mtime at capture, to spot a changed source file
+  sourceSignature  String?
+  rawCount         Int       @default(0)
+  capturedAt       DateTime?
+  // Abbreviations, authorities, source notes from companion tables
+  extras           Json?     @db.Json
+  entryCount       Int       @default(0)
+  builtAt          DateTime?
+  builtVersion     Int?
+  lastError        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("DictSources")
+}
+
+// Original dictionary rows exactly as they were in the source, so entries can
+// be rebuilt at any time without the source file.
+model DictionaryRawEntry {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  origin     String
+  // Stable key within the dictionary (lnum where unique, else rowid)
+  key        String
+  // 1-based position in dictionary order; becomes the entry's wordIndex
+  seq        Int
+  rowid      Int?
+  // Headword as written in the source
+  headword   String
+  // The source row, every column, untouched
+  row        Json     @db.Json
+  // Hash of row, to tell changed rows on a re-capture
+  hash       String
+  // Id of the capture run that last saw this row
+  runId      String?
+  importedAt DateTime @default(now())
+
+  @@unique([origin, key], map: "raw_origin_key_uq")
+  @@index([origin, seq, key], map: "raw_origin_seq_idx")
+  @@index([origin, headword], map: "raw_origin_headword_idx")
+  @@index([origin, runId], map: "raw_origin_run_idx")
+  @@map("DictRawEntries")
 }
 
 type LanguageValueType {

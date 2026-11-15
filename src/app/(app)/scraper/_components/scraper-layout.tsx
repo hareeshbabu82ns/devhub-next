@@ -12,7 +12,7 @@ import { GenericSampleScraper } from "./scraper-generic-sample";
 import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
 import { ScraperSanskritSahitya } from "./scraper-sanskrit-sahitya";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
-import { DictionaryImportManager } from "@/components/features/dictionary/dictionary-import-manager";
+import { DictionaryManager } from "@/components/features/dictionary/dictionary-manager";
 
 // Define the navigation items
 const navItems = [
@@ -138,7 +138,7 @@ export function ScraperLayout() {
       case "mahabharatam":
         return <ScraperMahabharatam />;
       case "dictionaryUploadsSqlite":
-        return <DictionaryImportManager />;
+        return <DictionaryManager />;
       case "generic":
         return <ScraperGeneric />;
       case "generic-sample":

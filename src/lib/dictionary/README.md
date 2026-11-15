@@ -1,246 +1,91 @@
-# Dictionary Processing System
+# Dictionaries
 
-This module provides a modular, testable system for importing dictionary data from SQLite databases to MongoDB or Prisma. It separates concerns to enable easy testing without requiring database connections.
+Dictionary data moves through three stages:
 
-## Architecture
+```
+data/dict/*.sqlite ──capture──▶ DictRawEntries ──build──▶ DictWords
+source files                    originals, verbatim       search entries
+                                + DictSources (one per dictionary)
+```
 
-The system is divided into several modules:
+- **Originals** (`DictRawEntries`) hold every row of a dictionary's source
+  table exactly as it is in the file, keyed by a stable key: `lnum` where it
+  is unique (Cologne dictionaries), otherwise the SQLite `rowid` (Brown,
+  Gwynn, eng2te, eng2en, dhātupāṭha). Each row carries a hash, so capturing
+  again reports new / changed / unchanged / removed rows and only writes what
+  changed. Small companion tables (abbreviations, cited authorities, MW root
+  tables, dhātupāṭha notes) are kept on the dictionary's `DictSources` record.
+- **Search entries** (`DictWords`) are what every lookup reads: the dictionary
+  page, the popup, the Sanskrit playground nodes and the suggestion provider.
+  Each is built from one original by `buildEntryFromRaw` and records
+  `sourceKey` (its original), `processorVersion`, and `searchText` — every
+  distinct word of the headword and the *whole* meaning in every script, for
+  the full-text index (`dict_fulltext_idx`). `searchText` is never returned to
+  readers.
 
-### Core Modules
+## Running it
 
-1. **`dictionary-constants.ts`** - Constants and mappings for dictionary processing
-2. **`dictionary-processor.ts`** - Core processing logic for converting SQLite rows to dictionary documents
-3. **`dictionary-database.ts`** - Database abstraction layer with multiple implementations
-4. **`dictionary-import-orchestrator.ts`** - High-level orchestration of the import process
-5. **`sqlite-database.ts`** - SQLite database implementation
+In the app: **Scraper → Dictionaries** (admins). Each dictionary shows its
+three stages and the one next step (Capture & build, Rebuild…). Jobs run one
+batch per request from the browser, with progress, cancel and resume.
+**Inspect** looks through the originals by headword (any script), key or text,
+and compares an original with its live entry and with what a rebuild would
+make of it now. An entry's page links to its original.
 
-### Key Features
-
-- **Testable**: Core processing logic is separated from database operations
-- **Modular**: Each component has a specific responsibility
-- **Multiple Database Support**: MongoDB, Prisma, and in-memory implementations
-- **Progress Tracking**: Real-time progress reporting during imports
-- **Error Handling**: Comprehensive error handling and validation
-- **Transliteration**: Automatic Sanskrit/Telugu transliteration support
-- **Chunked Processing**: Memory-efficient bulk operations
-
-## Installation
-
-Add the required dependency for SQLite support:
+From the command line (same code):
 
 ```bash
-pnpm add better-sqlite3
-pnpm add -D @types/better-sqlite3
+pnpm dict:pipeline mw ap90          # capture, then build
+pnpm dict:pipeline all --build      # rebuild everything from stored originals
+pnpm dict:pipeline --status
+pnpm dict:pipeline --indexes        # create the search indexes
 ```
 
-## Usage Examples
+## Guarantees
 
-### Basic Single Dictionary Import
+- **Nothing live changes until a build is complete.** Entries are built under
+  `__import__<ORIGIN>`, then swapped in; the previous entries are parked under
+  `__old__<ORIGIN>` until the swap is done, so an interrupted swap can be
+  recovered. Lookups ignore every origin starting with `__`.
+- **Hand edits survive rebuilds.** Editing or adding an entry sets
+  `editedAt`; a rebuild keeps those entries (switch off in Run settings).
+- **Rebuilding never needs the source file.** Change the processing rules,
+  bump `DICTIONARY_PROCESSOR_VERSION` in `dictionary-processor.ts`, and the
+  manager flags every dictionary built by an older version.
+- **Entries from the old importer** (whole source row in `sourceData.data`)
+  can be turned into originals with *Keep originals from entries*, so they can
+  be rebuilt even without their SQLite file.
 
-```typescript
-import { importDictionaryFromSqlite } from "./dictionary-import-orchestrator";
-import { createSqliteDatabase } from "./sqlite-database";
-import { InMemoryDictionaryWordDatabase } from "./dictionary-database";
+## Backups
 
-// Create target database (use PrismaDictionaryWordDatabase in production)
-const targetDb = new InMemoryDictionaryWordDatabase();
+`/api/dictionary/export?format=…&origins=MW,AP90`
 
-// Import dictionary
-const sqliteDb = await createSqliteDatabase("./tmp/mw.sqlite");
-const result = await importDictionaryFromSqlite(sqliteDb, targetDb, "mw", {
-  chunkSize: 1000,
-  progressCallback: (progress) => {
-    console.log(`Progress: ${progress.percentage}%`);
-  },
-});
+| format      | contents                                                   | restore result                 |
+| ----------- | ---------------------------------------------------------- | ------------------------------ |
+| `originals` | every original row + source details + companion tables     | originals (then build)         |
+| `backup`    | search entries as they are now, hand edits included        | search entries (staged swap)   |
+| `csv`       | headword in every script + meaning in one language         | —                              |
 
-await sqliteDb.close();
-```
+`/api/dictionary/restore?mode=replace|merge[&only=MW]` accepts either backup
+(gzipped or plain) and tells them apart by the header line.
 
-### Multiple Dictionaries Import
+## Modules
 
-```typescript
-import { importMultipleDictionaries } from "./dictionary-import-orchestrator";
+| file                         | role                                                        |
+| ---------------------------- | ----------------------------------------------------------- |
+| `dictionary-sources.ts`      | which file/table/key/order each dictionary uses; reads rows |
+| `dictionary-processor.ts`    | original row → entry (pure); `DICTIONARY_PROCESSOR_VERSION` |
+| `dictionary-pipeline.ts`     | capture, build, swap, inspect, indexes, overview            |
+| `dictionary-backup.ts`       | search-entry backup format                                  |
+| `lookup-query.ts` / `lookup-service.ts` | reader-facing search                             |
+| `scripts/dictionary-pipeline-cli.ts` | `pnpm dict:pipeline`                                |
 
-const dictionaryPaths = {
-  mw: "./tmp/mw.sqlite",
-  ap90: "./tmp/ap90.sqlite",
-  eng2te: "./tmp/eng2te.sqlite",
-};
+## Notes on the source files
 
-const results = await importMultipleDictionaries(
-  dictionaryPaths,
-  targetDb,
-  createSqliteDatabase,
-  {
-    chunkSize: 1000,
-    progressCallback: (progress) => {
-      console.log(`${progress.dictionary}: ${progress.percentage}%`);
-    },
-  },
-);
-```
-
-### Production Usage with Prisma
-
-```typescript
-import { PrismaDictionaryWordDatabase } from "./dictionary-database";
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-const targetDb = new PrismaDictionaryWordDatabase(prisma);
-
-const result = await importDictionaryFromSqlite(sqliteDb, targetDb, "mw", {
-  deleteExisting: true,
-  chunkSize: 5000,
-  includeHtmlProcessing: true,
-});
-```
-
-## Testing
-
-The modular design enables comprehensive testing without database dependencies:
-
-```typescript
-import { processDictionaryWordRow } from "./dictionary-processor";
-import { InMemoryDictionaryWordDatabase } from "./dictionary-database";
-
-// Test processing logic
-const mockRowData = {
-  key: "test_word",
-  data: "test description",
-  lnum: 1,
-};
-
-const result = processDictionaryWordRow(
-  mockRowData,
-  "mw",
-  1,
-  mockTableMetadata,
-);
-
-expect(result.word).toHaveLength(5); // 5 language variants
-expect(result.origin).toBe("MW");
-```
-
-Run tests:
-
-```bash
-pnpm test src/lib/dictionary/__tests__/
-```
-
-## Supported Dictionaries
-
-The system supports all dictionaries from the original Python implementation:
-
-### Sanskrit Dictionaries
-
-- Monier-Williams (MW)
-- Apte (AP90)
-- Goldstücker (GST)
-- Benfey (BEN)
-- And many more...
-
-### English-Telugu Dictionaries
-
-- ENG2TEL
-
-### Sanskrit-Sanskrit Dictionaries
-
-- Dhatu Pata
-
-## Configuration
-
-Dictionary processing behavior is controlled through constants in `dictionary-constants.ts`:
-
-```typescript
-// Add new dictionary support
-export const LEXICON_ALL_DICT = [
-  // ... existing dictionaries
-  "new_dict",
-] as const;
-
-// Configure field mappings
-export const LEXICON_ALL_TABLE_WORD_FIELD_MAP = {
-  // ... existing mappings
-  new_dict: "word_field_name",
-};
-```
-
-## Performance Considerations
-
-- **Chunked Processing**: Large datasets are processed in configurable chunks
-- **Memory Management**: Avoids loading entire databases into memory
-- **Progress Tracking**: Real-time feedback for long-running operations
-- **Connection Pooling**: SQLite connections are properly managed
-
-## Error Handling
-
-The system provides comprehensive error handling:
-
-- **Validation**: Row data validation before processing
-- **Connection Errors**: Graceful handling of database connection issues
-- **Processing Errors**: Detailed error reporting with context
-- **Partial Failures**: Continue processing other dictionaries if one fails
-
-## API Reference
-
-### Core Functions
-
-#### `processDictionaryWordRow(rowData, dictName, wordIndex, tableMetadata, options?)`
-
-Process a single SQLite row into a dictionary word document.
-
-#### `importDictionaryFromSqlite(sqliteDb, targetDb, dictName, options?)`
-
-Import a complete dictionary from SQLite to target database.
-
-#### `importMultipleDictionaries(dictionaryPaths, targetDb, sqliteFactory, options?)`
-
-Import multiple dictionaries with progress tracking.
-
-### Database Implementations
-
-#### `InMemoryDictionaryWordDatabase`
-
-In-memory implementation for testing.
-
-#### `PrismaDictionaryWordDatabase`
-
-Prisma implementation for production use with existing schema.
-
-#### `MongoDictionaryWordDatabase`
-
-MongoDB implementation for direct MongoDB usage.
-
-### Options
-
-```typescript
-interface ImportOptions {
-  chunkSize?: number; // Bulk insert chunk size (default: 5000)
-  limitRows?: number; // Limit rows for testing
-  validateData?: boolean; // Enable row validation
-  deleteExisting?: boolean; // Delete existing data before import
-  includeHtmlProcessing?: boolean; // Enable HTML to markdown conversion
-  progressCallback?: (progress) => void; // Progress tracking
-}
-```
-
-## Migration from Python
-
-The JavaScript implementation maintains compatibility with the Python version while providing improved:
-
-- **Type Safety**: Full TypeScript support
-- **Testability**: Modular design enables unit testing
-- **Performance**: Optimized chunked processing
-- **Flexibility**: Multiple database backend support
-- **Error Handling**: Better error reporting and recovery
-
-## Contributing
-
-When adding new dictionary support:
-
-1. Update `dictionary-constants.ts` with new mappings
-2. Add tests in `__tests__/dictionary-processor.test.ts`
-3. Update this README with new dictionary information
-4. Ensure transliteration rules are correct for the dictionary type
+- `eng2en.sqlite` and `eng2te.sqlite` are the same file (both tables in
+  each); ENG2TEL reads table `eng2te`, ENG2ENG reads table `entries`.
+- `macdonell_san.sqlite` is another digitisation of Macdonell (MD); it is not
+  imported. `mwkeys.sqlite` (194k rows) is an MW key index and is not kept.
+- Brown and Gwynn repeat `lnum`, so they are keyed by rowid. Gwynn's
+  romanisation (aa/ii/uu/ee/oo long, w = v, c = ch, ś, S = ṣ) is converted to
+  Telugu by `gwynnToItrans`; the original spelling is kept as the `ENG` form.

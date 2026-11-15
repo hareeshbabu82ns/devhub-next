@@ -31,7 +31,12 @@ export interface LookupParams {
   offset: number;
 }
 
-export type LookupHit = DictionaryWord & {
+/** The full-text field is large and never shown; lookups leave it out */
+export type DictionaryEntry = Omit<DictionaryWord, "searchText">;
+const OMIT_SEARCH_TEXT = { searchText: true } as const;
+const PROJECT_SEARCH_TEXT_OUT = { $project: { searchText: 0 } };
+
+export type LookupHit = DictionaryEntry & {
   /** 0 exact, 1 loose exact, 2 starts with, 3 contains */
   tier?: number;
   /** full-text score, meaning searches only */
@@ -78,6 +83,9 @@ function fromRaw(doc: RawDoc): LookupHit {
     attributes: doc.attributes ?? [],
     phonetic: doc.phonetic ?? "",
     sourceData: doc.sourceData ?? null,
+    sourceKey: doc.sourceKey ?? null,
+    processorVersion: doc.processorVersion ?? null,
+    editedAt: doc.editedAt ? rawDate(doc.editedAt) : null,
     createdAt: rawDate(doc.createdAt),
     updatedAt: rawDate(doc.updatedAt),
     tier: typeof doc._tier === "number" ? doc._tier : undefined,
@@ -129,8 +137,8 @@ async function headwordLookup(
 
   const page =
     sort === "relevance"
-      ? [rankingStage(hq), sortStage, { $skip: p.offset }, { $limit: p.limit }]
-      : [sortStage, { $skip: p.offset }, { $limit: p.limit }, rankingStage(hq)];
+      ? [rankingStage(hq), sortStage, { $skip: p.offset }, { $limit: p.limit }, PROJECT_SEARCH_TEXT_OUT]
+      : [sortStage, { $skip: p.offset }, { $limit: p.limit }, rankingStage(hq), PROJECT_SEARCH_TEXT_OUT];
 
   return runFacetPipeline([
     { $match: withOrigins(headwordMatchFilter(hq), p.origins) },
@@ -163,7 +171,7 @@ async function meaningLookup(
     {
       $facet: {
         total: [{ $count: "n" }],
-        results: [sortStage, { $skip: p.offset }, { $limit: p.limit }],
+        results: [sortStage, { $skip: p.offset }, { $limit: p.limit }, PROJECT_SEARCH_TEXT_OUT],
       },
     },
   ]);
@@ -187,6 +195,7 @@ async function browseLookup(
       orderBy,
       skip: p.offset,
       take: p.limit,
+      omit: OMIT_SEARCH_TEXT,
     }),
     db.dictionaryWord.count({ where }),
   ]);
@@ -354,7 +363,7 @@ export type NeighbourEntry = Prisma.DictionaryWordGetPayload<{
 }>;
 
 export interface EntryContext {
-  entry: DictionaryWord;
+  entry: DictionaryEntry;
   before: NeighbourEntry[];
   after: NeighbourEntry[];
   /** Zero-based position within its dictionary */
@@ -368,7 +377,7 @@ export async function getEntryContext(
   span = 6,
 ): Promise<EntryContext | null> {
   if (!/^[0-9a-f]{24}$/i.test(id)) return null;
-  const entry = await db.dictionaryWord.findUnique({ where: { id } });
+  const entry = await db.dictionaryWord.findUnique({ where: { id }, omit: OMIT_SEARCH_TEXT });
   if (!entry) return null;
   const { origin, wordIndex } = entry;
   const [before, after, position, dictionaryTotal] = await Promise.all([
@@ -398,12 +407,12 @@ export async function getEntryContext(
 
 export interface EntryRelations {
   /** The same headword in other dictionaries */
-  elsewhere: DictionaryWord[];
+  elsewhere: DictionaryEntry[];
   /** Entries in the same dictionary that begin with this headword */
   beginningWith: NeighbourEntry[];
 }
 
-function headwordKey(entry: DictionaryWord): { language: string; value: string } | null {
+function headwordKey(entry: DictionaryEntry): { language: string; value: string } | null {
   const preferred =
     getDictionaryInfo(entry.origin).headword === "en"
       ? ["ENG", "ITRANS"]
@@ -417,7 +426,7 @@ function headwordKey(entry: DictionaryWord): { language: string; value: string }
 
 export async function getEntryRelations(id: string): Promise<EntryRelations> {
   if (!/^[0-9a-f]{24}$/i.test(id)) return { elsewhere: [], beginningWith: [] };
-  const entry = await db.dictionaryWord.findUnique({ where: { id } });
+  const entry = await db.dictionaryWord.findUnique({ where: { id }, omit: OMIT_SEARCH_TEXT });
   if (!entry) return { elsewhere: [], beginningWith: [] };
   const key = headwordKey(entry);
   if (!key) return { elsewhere: [], beginningWith: [] };
@@ -440,6 +449,7 @@ export async function getEntryRelations(id: string): Promise<EntryRelations> {
       },
       orderBy: [{ origin: "asc" }, { wordIndex: "asc" }],
       take: 40,
+      omit: OMIT_SEARCH_TEXT,
     }),
     db.dictionaryWord.findMany({
       where: {

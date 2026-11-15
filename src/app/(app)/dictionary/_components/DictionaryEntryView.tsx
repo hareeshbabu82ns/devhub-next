@@ -41,6 +41,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
+  DatabaseIcon,
   ListIcon,
   PencilIcon,
   SearchIcon,
@@ -329,6 +330,19 @@ export function DictionaryEntryView({ id }: { id: string }) {
                 <Button asChild variant="ghost" className="h-10">
                   <Link href={`/dictionary/${item.id}/edit`}>
                     <PencilIcon className="size-4 mr-2" /> Edit
+                  </Link>
+                </Button>
+              )}
+              {session?.user && typeof item.sourceData?.key === "string" && (
+                <Button asChild variant="ghost" className="h-10">
+                  <Link
+                    href={`/scraper?${new URLSearchParams({
+                      section: "dictionaryUploadsSqlite",
+                      inspect: item.origin,
+                      key: item.sourceData.key,
+                    })}`}
+                  >
+                    <DatabaseIcon className="size-4 mr-2" /> Original
                   </Link>
                 </Button>
               )}

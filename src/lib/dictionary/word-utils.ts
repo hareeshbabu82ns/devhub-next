@@ -660,3 +660,35 @@ export function extractMeaningfulWords(
 
   return meaningfulWords;
 }
+
+/** Markdown / HTML markers that are not part of any word */
+const MARKUP = /<[^>]+>|[*_`#>|[\](){}]/g;
+const TOKEN_SPLIT = /[^\p{L}\p{M}\p{N}]+/u;
+const MAX_SEARCH_TEXT = 400_000;
+
+/**
+ * Every distinct word of an entry — headword and the whole meaning, in every
+ * stored script — for the full-text index. Unlike the phonetic string it is
+ * not shortened, so text anywhere in a long entry can be found.
+ */
+export function buildSearchText(
+  wordArray: LanguageValueType[] = [],
+  descriptionArray: LanguageValueType[] = [],
+): string {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  let length = 0;
+  for (const item of [...wordArray, ...descriptionArray]) {
+    const value = item?.value;
+    if (!value) continue;
+    for (const raw of value.normalize("NFC").replace(MARKUP, " ").split(TOKEN_SPLIT)) {
+      const token = raw.toLowerCase();
+      if (token.length < 2 || NUMBER_PATTERN.test(token) || seen.has(token)) continue;
+      seen.add(token);
+      length += token.length + 1;
+      if (length > MAX_SEARCH_TEXT) return out.join(" ");
+      out.push(token);
+    }
+  }
+  return out.join(" ");
+}

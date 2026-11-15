@@ -20,9 +20,9 @@ import { auth } from "@/lib/auth";
 import { DictionaryName, LEXICON_ALL_DICT } from "@/lib/dictionary/dictionary-constants";
 import {
   SQLITE_DIR,
-  readSqliteInfo,
+  readSourceInfo,
   sqlitePathFor,
-} from "@/lib/dictionary/dictionary-transfer";
+} from "@/lib/dictionary/dictionary-sources";
 
 export const runtime = "nodejs";
 
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       throw new Error("This is not a SQLite database file");
     }
     // …holding this dictionary's table
-    const info = readSqliteInfo(dictionary, tmpPath);
+    const info = readSourceInfo(dictionary, tmpPath);
     if (info.error || info.rows === undefined) {
       throw new Error(info.error ?? "Cannot read the SQLite file");
     }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       success: true,
       rows: info.rows,
       size: received,
-      message: `${dictionary.toUpperCase()}: ${info.rows.toLocaleString()} rows ready to import`,
+      message: `${dictionary.toUpperCase()}: ${info.rows.toLocaleString()} rows ready to capture`,
     });
   } catch (e) {
     await unlink(tmpPath).catch(() => {});

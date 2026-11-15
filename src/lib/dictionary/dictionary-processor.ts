@@ -7,19 +7,30 @@
  */
 
 import { LanguageValueType, AttributeValueType } from "@/app/generated/prisma";
-import { generatePhoneticString } from "./word-utils";
+import { buildSearchText, generatePhoneticString } from "./word-utils";
 import {
   DictionaryName,
   LEXICON_ALL_DICT_TO_DB_MAP,
   LEXICON_ALL_TABLE_WORD_FIELD_MAP,
   LEXICON_ALL_TABLE_DESC_FIELD_MAP,
   LEXICON_SAN_DICT_LIST,
+  LEXICON_TEL_DICT_LIST,
   DICTIONARY_LANGUAGE_MAPPING,
   SANSCRIPT_LANGS,
   SANSCRIPT_LANGS_TO_DB,
 } from "./dictionary-constants";
 import sanscript from "@indic-transliteration/sanscript";
 import { convertLexiconHtmlToMarkdown, TagHandler } from "./lexicon-utils";
+
+/**
+ * Version of the rules that turn an original row into a searchable entry.
+ * Bump it whenever the output changes; entries built by an older version
+ * are flagged for a rebuild in the dictionary manager.
+ *
+ *   1  original importer
+ *   2  full-text searchText, source pointer, Telugu dictionaries
+ */
+export const DICTIONARY_PROCESSOR_VERSION = 2;
 
 /**
  * SQLite row data structure
@@ -282,6 +293,10 @@ export function processDictionaryWordRow(
   tableMetadata: TableMetadata,
   options: ProcessingOptions = {},
 ): ProcessedDictionaryWord {
+  if (LEXICON_TEL_DICT_LIST.includes(dictName)) {
+    return processTeluguRow(rowData, dictName, wordIndex, tableMetadata);
+  }
+
   // Extract word and description from row data
   const { word, description } = extractWordAndDescription(
     rowData,
@@ -496,3 +511,218 @@ const customDictionaryWordHandlers = {
   info: infoHandler,
   vlex: infoHandler,
 };
+
+// ---------------------------------------------------------------------------
+// Telugu-English dictionaries (Brown, Gwynn)
+// ---------------------------------------------------------------------------
+
+/** Script forms stored for Telugu text, in sanscript scheme names */
+const TELUGU_FORMS: Array<[string, string]> = [
+  ["TEL", "telugu"],
+  ["SAN", "devanagari"],
+  ["IAST", "iast"],
+  // keeps the short/long e and o of Telugu apart
+  ["ITRANS", "itrans_dravidian"],
+  ["SLP1", "slp1"],
+];
+
+const TELUGU_RUN = /[ఀ-౿]+(?:[\s‌‍]+[ఀ-౿]+)*/g;
+
+/** Transliterates only the Telugu runs of a text, leaving English alone */
+function transliterateTeluguRuns(text: string, scheme: string): string {
+  if (scheme === "telugu") return text;
+  return text.replace(TELUGU_RUN, (m) => convertText(m, "telugu", scheme));
+}
+
+const CONSONANT_AFTER_N = /^[bcdfghjklpqstvxzDTNLS]/;
+
+/**
+ * Gwynn's romanisation → ITRANS (Dravidian variant): aa/ii/uu/ee/oo are long
+ * vowels, e/o short, w = v, c = ch, ś = sh, S = Sh, ṛ = RRi, T/D/N/L retroflex.
+ * n before a stop and a final m are written as anusvara, as Telugu does.
+ */
+export function gwynnToItrans(input: string): string {
+  const s = input.normalize("NFC").replace(/!/g, "");
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    const two = s.slice(i, i + 2);
+    const next = s[i + 1] ?? "";
+    if (two === "aa" || two === "ii" || two === "uu") {
+      out += c.toUpperCase();
+      i++;
+    } else if (two === "ee" || two === "oo") {
+      out += c === "e" ? "E" : "O";
+      i++;
+    } else if (c === "c") {
+      if (next === "h") {
+        out += "Ch";
+        i++;
+      } else out += "ch";
+    } else if (c === "w") out += "v";
+    else if (c === "ś") out += "sh";
+    else if (c === "S") out += "Sh";
+    else if (c === "ṛ") out += "RRi";
+    else if (c === "ñ") out += "~n";
+    else if (c === "ḥ") out += "H";
+    else if (c === "n" && CONSONANT_AFTER_N.test(next) && !/[nymvwr]/.test(next)) out += "M";
+    else if (c === "m" && (next === "" || /[\s,;)\]]/.test(next)) && i > 0) out += "M";
+    else out += c;
+  }
+  return out;
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&nbsp;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** The small HTML these files use → Markdown */
+export function simpleHtmlToMarkdown(html: string): string {
+  return decodeEntities(
+    html
+      // a quotation tag glued to the previous word gets a space
+      .replace(/([^\s(["“])<(tel|tam)>/g, "$1 <$2>")
+      .replace(/<\/?(tel|tam)>/g, "")
+      .replace(/<br\s*\/?>/gi, "  \n")
+      .replace(/<p>\s*<\/p>/gi, "\n\n")
+      .replace(/<\/?p>/gi, "\n\n")
+      .replace(/<\/?(b|strong)>/gi, "**")
+      .replace(/<\/?(i|em)>/gi, "_")
+      .replace(/<[^>]+>/g, ""),
+  )
+    .replace(/\*\*\s*\*\*/g, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function processTeluguRow(
+  rowData: SqliteRowData,
+  dictName: DictionaryName,
+  wordIndex: number,
+  tableMetadata: TableMetadata,
+): ProcessedDictionaryWord {
+  const rawWord = String(rowData.key ?? "").normalize("NFC").trim();
+  const rawData = String(rowData.data ?? "");
+  const teluguWord =
+    dictName === "gwynn_te"
+      ? convertText(gwynnToItrans(rawWord), "itrans_dravidian", "telugu")
+      : rawWord;
+
+  const word: LanguageValueType[] = TELUGU_FORMS.map(([language, scheme]) => ({
+    language,
+    value: scheme === "telugu" ? teluguWord : convertText(teluguWord, "telugu", scheme),
+  }));
+  if (dictName === "gwynn_te") {
+    // Gwynn's own spelling, so it can be searched as printed
+    word.push({ language: "ENG", value: rawWord });
+  }
+
+  const markdown = simpleHtmlToMarkdown(rawData);
+  const description: LanguageValueType[] =
+    dictName === "brown_te"
+      ? TELUGU_FORMS.map(([language, scheme]) => ({
+          language,
+          value: transliterateTeluguRuns(markdown, scheme),
+        }))
+      : [{ language: "ENG", value: markdown }];
+
+  const languageSettings = getDictionaryLanguageSettings(dictName);
+  const doc: ProcessedDictionaryWord = {
+    wordIndex,
+    origin: LEXICON_ALL_DICT_TO_DB_MAP[dictName],
+    word,
+    description,
+    attributes: [],
+    phonetic: generatePhoneticString(word, description),
+    sourceData: {
+      data: rowData,
+      wordField: "key",
+      descriptionField: "data",
+      ...languageSettings,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  if (rowData.lnum !== null && rowData.lnum !== undefined) {
+    doc.wordLnum = Number(rowData.lnum);
+  }
+  return doc;
+}
+
+// ---------------------------------------------------------------------------
+// Building a search entry from a captured original row
+// ---------------------------------------------------------------------------
+
+export interface RawEntryInput {
+  key: string;
+  seq: number;
+  row: SqliteRowData;
+}
+
+export interface SourceLayoutInput {
+  table: string;
+  columns: string[];
+}
+
+/** A DictWords document built from an original row */
+export interface BuiltDictionaryEntry {
+  wordIndex: number;
+  wordLnum: number;
+  origin: string;
+  word: LanguageValueType[];
+  description: LanguageValueType[];
+  attributes: AttributeValueType[];
+  phonetic: string;
+  searchText: string;
+  sourceKey: string;
+  /** Pointer to the original row; the row itself stays in DictRawEntries */
+  sourceData: { key: string; table: string; lnum?: number };
+  processorVersion: number;
+}
+
+/**
+ * Turns one captured original row into its search entry. Pure: the same row
+ * and processor version always give the same entry.
+ */
+export function buildEntryFromRaw(
+  dictName: DictionaryName,
+  raw: RawEntryInput,
+  layout: SourceLayoutInput,
+): BuiltDictionaryEntry {
+  const meta: TableMetadata = {
+    tableName: layout.table,
+    columns: layout.columns,
+    columnPositions: Object.fromEntries(layout.columns.map((c, i) => [c, i])),
+    wordFieldName: LEXICON_ALL_TABLE_WORD_FIELD_MAP[dictName] ?? "key",
+    descFieldName: "",
+    orderFieldName: "",
+  };
+  const doc = processDictionaryWordRow(raw.row, dictName, raw.seq, meta, {
+    includeHtmlProcessing: true,
+  });
+  const lnum = raw.row.lnum;
+  return {
+    wordIndex: raw.seq,
+    wordLnum: doc.wordLnum ?? 0,
+    origin: doc.origin,
+    word: doc.word,
+    description: doc.description,
+    attributes: doc.attributes,
+    phonetic: doc.phonetic,
+    searchText: buildSearchText(doc.word, doc.description),
+    sourceKey: raw.key,
+    sourceData: {
+      key: raw.key,
+      table: layout.table,
+      ...(typeof lnum === "number" ? { lnum } : {}),
+    },
+    processorVersion: DICTIONARY_PROCESSOR_VERSION,
+  };
+}

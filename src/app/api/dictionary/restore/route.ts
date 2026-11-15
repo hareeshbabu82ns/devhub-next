@@ -1,35 +1,55 @@
 /**
- * Restore dictionaries from a backup made by /api/dictionary/export.
+ * Restore dictionaries from a file made by /api/dictionary/export.
  *
- *   POST /api/dictionary/restore?mode=replace|merge   (body: the backup file)
+ *   POST /api/dictionary/restore?mode=replace|merge[&only=MW,AP90]   (body: the file)
  *
- * replace  each dictionary in the file replaces the one in the database;
- *          the old entries stay until the whole file has loaded
- * merge    only entries whose wordIndex is not there yet are added
+ * Originals backup (format=originals):
+ *   replace  the dictionary's originals become exactly the file's rows
+ *   merge    rows in the file are added or updated; others are kept
+ *   Search entries are not touched: rebuild them afterwards.
  *
- * Gzipped (.jsonl.gz) and plain (.jsonl) files are both accepted. Streamed:
- * excluded from the proxy matcher, so it checks the session itself.
+ * Entries backup (format=backup):
+ *   replace  each dictionary in the file replaces the one in the database;
+ *            the current entries stay until the whole file has loaded
+ *   merge    only entries whose wordIndex is not there yet are added
+ *
+ * Gzipped and plain files are both accepted. Streamed: excluded from the
+ * proxy matcher, so it checks the session itself.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { Readable } from "stream";
 import { createGunzip } from "zlib";
 import { createInterface } from "readline";
+import { randomUUID } from "crypto";
+import { revalidatePath } from "next/cache";
+import { Prisma } from "@/app/generated/prisma";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
 import {
   BACKUP_TYPE,
   EntryInput,
   WriteMode,
-  clearStaging,
-  promoteStaging,
   validateBackupEntry,
-  writeEntries,
-} from "@/lib/dictionary/dictionary-transfer";
+  writeBackupEntries,
+} from "@/lib/dictionary/dictionary-backup";
+import {
+  ORIGINALS_TYPE,
+  ORIGIN_PATTERN,
+  RawWriteInput,
+  discardStaging,
+  finishBuild,
+  finishCapture,
+  validateOriginalLine,
+  writeRawRows,
+} from "@/lib/dictionary/dictionary-pipeline";
 
 export const runtime = "nodejs";
 
 const FLUSH_AT = 1000;
 const MAX_INVALID = 1000;
+
+type Kind = "originals" | "entries";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -46,7 +66,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "No file received" }, { status: 400 });
   }
   const mode: WriteMode = request.nextUrl.searchParams.get("mode") === "merge" ? "merge" : "replace";
-  // Optional: restore only these dictionaries from a file that holds more
   const only = new Set(
     (request.nextUrl.searchParams.get("only") || "")
       .split(",")
@@ -79,86 +98,161 @@ export async function POST(request: NextRequest) {
   if (gzipped) input = input.pipe(createGunzip());
   const lines = createInterface({ input, crlfDelay: Infinity });
 
+  let kind: Kind | null = null;
   const touched = new Set<string>();
-  const pending = new Map<string, EntryInput[]>();
+  const runIds = new Map<string, string>();
+  const pendingEntries = new Map<string, EntryInput[]>();
+  const pendingRaw = new Map<string, RawWriteInput[]>();
   const totals = new Map<string, { written: number; skipped: number }>();
   const errors: string[] = [];
   let invalid = 0;
   let ignored = 0;
   const ignoredOrigins = new Set<string>();
   let lineNo = 0;
-  let sawHeader = false;
+
+  const tally = (origin: string, written: number, skipped: number) => {
+    const t = totals.get(origin) ?? { written: 0, skipped: 0 };
+    t.written += written;
+    t.skipped += skipped;
+    totals.set(origin, t);
+  };
 
   const flush = async (origin: string) => {
-    const batch = pending.get(origin);
-    if (!batch?.length) return;
-    pending.set(origin, []);
-    const r = await writeEntries(origin, batch, mode);
-    const t = totals.get(origin) ?? { written: 0, skipped: 0 };
-    t.written += r.written;
-    t.skipped += r.skipped;
-    totals.set(origin, t);
+    if (kind === "entries") {
+      const batch = pendingEntries.get(origin);
+      if (!batch?.length) return;
+      pendingEntries.set(origin, []);
+      const r = await writeBackupEntries(origin, batch, mode);
+      tally(origin, r.written, r.skipped);
+    } else {
+      const batch = pendingRaw.get(origin);
+      if (!batch?.length) return;
+      pendingRaw.set(origin, []);
+      const r = await writeRawRows(origin, batch, runIds.get(origin)!);
+      tally(origin, r.added + r.changed, r.unchanged);
+    }
+  };
+
+  const reject = (problem: string) => {
+    invalid++;
+    if (errors.length < 20) errors.push(`Line ${lineNo}: ${problem}`);
+    if (invalid > MAX_INVALID) throw new Error("Too many invalid lines");
+  };
+
+  const wanted = (origin: string) => {
+    if (only.size > 0 && !only.has(origin)) {
+      ignored++;
+      ignoredOrigins.add(origin);
+      return false;
+    }
+    return true;
+  };
+
+  const touch = async (origin: string) => {
+    if (touched.has(origin)) return;
+    touched.add(origin);
+    if (kind === "entries" && mode === "replace") await discardStaging(origin);
+    if (kind === "originals") runIds.set(origin, randomUUID());
   };
 
   try {
     for await (const raw of lines) {
       lineNo++;
-      const line = raw.trim();
-      if (!line) continue;
+      const text = raw.trim();
+      if (!text) continue;
       let parsed: any;
       try {
-        parsed = JSON.parse(line);
+        parsed = JSON.parse(text);
       } catch {
-        if (!sawHeader) throw new Error("This is not a dictionary backup file");
-        invalid++;
-        if (errors.length < 20) errors.push(`Line ${lineNo}: not valid JSON`);
-        if (invalid > MAX_INVALID) throw new Error("Too many invalid lines");
+        if (!kind) throw new Error("This is not a dictionary backup file");
+        reject("not valid JSON");
         continue;
       }
-      if (!sawHeader) {
-        if (parsed?.type !== BACKUP_TYPE) {
-          throw new Error("This is not a dictionary backup file (missing header)");
+      if (!kind) {
+        if (parsed?.type === BACKUP_TYPE) kind = "entries";
+        else if (parsed?.type === ORIGINALS_TYPE) kind = "originals";
+        else throw new Error("This is not a dictionary backup file (missing header)");
+        continue;
+      }
+
+      if (kind === "originals") {
+        if (parsed?.source && typeof parsed.source === "object") {
+          const s = parsed.source;
+          if (typeof s.origin !== "string" || !ORIGIN_PATTERN.test(s.origin)) {
+            reject("bad source");
+            continue;
+          }
+          if (!wanted(s.origin)) continue;
+          await touch(s.origin);
+          const data = {
+            sourceFile: typeof s.sourceFile === "string" ? s.sourceFile : null,
+            sourceTable: typeof s.sourceTable === "string" ? s.sourceTable : null,
+            columns: Array.isArray(s.columns) ? s.columns.map(String) : [],
+            keyColumn: typeof s.keyColumn === "string" ? s.keyColumn : null,
+            extras: (s.extras ?? undefined) as Prisma.InputJsonValue | undefined,
+          };
+          await db.dictionarySource.upsert({
+            where: { origin: s.origin },
+            create: { origin: s.origin, ...data },
+            update: data,
+          });
+          continue;
         }
-        sawHeader = true;
-        continue;
+        const problem = validateOriginalLine(parsed);
+        if (problem) {
+          reject(problem);
+          continue;
+        }
+        if (!wanted(parsed.origin)) continue;
+        await touch(parsed.origin);
+        const list = pendingRaw.get(parsed.origin) ?? [];
+        list.push({
+          key: parsed.key,
+          seq: parsed.seq,
+          rowid: Number.isInteger(parsed.rowid) ? parsed.rowid : null,
+          headword: typeof parsed.headword === "string" ? parsed.headword : "",
+          row: parsed.row,
+        });
+        pendingRaw.set(parsed.origin, list);
+        if (list.length >= FLUSH_AT) await flush(parsed.origin);
+      } else {
+        const problem = validateBackupEntry(parsed);
+        if (problem) {
+          reject(problem);
+          continue;
+        }
+        if (!wanted(parsed.origin)) continue;
+        await touch(parsed.origin);
+        const list = pendingEntries.get(parsed.origin) ?? [];
+        list.push(parsed as EntryInput);
+        pendingEntries.set(parsed.origin, list);
+        if (list.length >= FLUSH_AT) await flush(parsed.origin);
       }
-      const problem = validateBackupEntry(parsed);
-      if (problem) {
-        invalid++;
-        if (errors.length < 20) errors.push(`Line ${lineNo}: ${problem}`);
-        if (invalid > MAX_INVALID) throw new Error("Too many invalid lines");
-        continue;
-      }
-      const origin: string = parsed.origin;
-      if (only.size > 0 && !only.has(origin)) {
-        ignored++;
-        ignoredOrigins.add(origin);
-        continue;
-      }
-      if (!touched.has(origin)) {
-        touched.add(origin);
-        if (mode === "replace") await clearStaging(origin);
-      }
-      const list = pending.get(origin) ?? [];
-      list.push(parsed as EntryInput);
-      pending.set(origin, list);
-      if (list.length >= FLUSH_AT) await flush(origin);
     }
-    if (!sawHeader) throw new Error("The file is empty");
+
+    if (!kind) throw new Error("The file is empty");
     if (touched.size === 0 && only.size > 0) {
       throw new Error(
-        `The backup has no entries for ${[...only].join(", ")}` +
+        `The backup has nothing for ${[...only].join(", ")}` +
           (ignoredOrigins.size ? ` (it holds ${[...ignoredOrigins].join(", ")})` : ""),
       );
     }
     for (const origin of touched) await flush(origin);
-    if (mode === "replace") {
-      for (const origin of touched) {
-        if ((totals.get(origin)?.written ?? 0) > 0) await promoteStaging(origin);
+
+    for (const origin of touched) {
+      if (kind === "originals") {
+        await finishCapture(origin, runIds.get(origin)!, {
+          complete: mode === "replace",
+          signature: null,
+        });
+      } else if (mode === "replace" && (totals.get(origin)?.written ?? 0) > 0) {
+        await finishBuild(origin, { keepEdits: false, markBuilt: false });
       }
     }
+    revalidatePath("/dictionary");
     return NextResponse.json({
       success: true,
+      kind,
       mode,
       dictionaries: [...touched].map((origin) => ({
         origin,
@@ -171,15 +265,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (e) {
     // Leave the live dictionaries as they were
-    if (mode === "replace") {
-      for (const origin of touched) await clearStaging(origin).catch(() => {});
+    if (kind === "entries" && mode === "replace") {
+      for (const origin of touched) await discardStaging(origin).catch(() => {});
     }
     console.error("Dictionary restore failed:", e);
     return NextResponse.json(
       {
         error: e instanceof Error ? e.message : "Restore failed",
         partial:
-          mode === "merge"
+          kind === "originals" || mode === "merge"
             ? [...totals].map(([origin, t]) => ({ origin, ...t }))
             : undefined,
       },

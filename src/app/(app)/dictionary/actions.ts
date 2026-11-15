@@ -16,44 +16,21 @@ import {
   validateSearchParams,
   withSearchMetrics,
 } from "./search-utils";
-import { processDictionaryWordRows } from "@/lib/dictionary/dictionary-processor";
-import {
-  DictionaryName,
-  LEXICON_ALL_DICT_TO_DB_MAP,
-} from "@/lib/dictionary/dictionary-constants";
-import {
-  reprocessDictionaryWordData,
-  prepareProcessedWordUpdates,
-  ReprocessWordData,
-  ReprocessResult,
-} from "@/lib/dictionary/reprocess-utils";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { DictionaryRepository } from "@/lib/dictionary/dictionary-repository";
 import { ServiceResponse } from "@/lib/dictionary/types";
 import { lookupDictionary } from "./lookup-actions";
-import { generatePhoneticString } from "@/lib/dictionary/word-utils";
+import {
+  buildSearchText,
+  generatePhoneticString,
+} from "@/lib/dictionary/word-utils";
+import { rebuildEntry } from "@/lib/dictionary/dictionary-pipeline";
 
 // Response types for reprocess action
 export type ReprocessWordResponse<T = unknown> =
   | { status: "success"; data: T }
   | { status: "error"; error: string };
-
-/**
- * Shared utility for updating processed words in database
- */
-async function updateProcessedWords(results: ReprocessResult[]): Promise<void> {
-  const updates = prepareProcessedWordUpdates(results);
-
-  const updatePromises = updates.map(({ id, data }) => {
-    return db.dictionaryWord.update({
-      where: { id },
-      data,
-    });
-  });
-
-  await Promise.all(updatePromises);
-}
 
 /**
  * T80: Refactored deleteDictItem action
@@ -94,11 +71,23 @@ export const updateDictItem = async (
     throw new Error("Unauthorized");
   }
 
+  // A hand edit: rebuilds keep it, and its search text must follow it
+  const change: Prisma.DictionaryWordUpdateInput = { ...data.item, editedAt: new Date() };
+  if (data.item.word || data.item.description) {
+    const current = await db.dictionaryWord.findUnique({
+      where: { id },
+      select: { word: true, description: true },
+    });
+    const word = (data.item.word ?? current?.word ?? []) as any;
+    const description = (data.item.description ?? current?.description ?? []) as any;
+    change.searchText = buildSearchText(word, description);
+  }
+
   // Direct database access for update (transaction)
   const res = await db.$transaction(async (txn) => {
     const item = await txn.dictionaryWord.update({
       where: { id },
-      data: data.item,
+      data: change,
     });
     return item ? mapDbToDictionary(item, LANGUAGE_SELECT_DEFAULT) : item;
   });
@@ -155,6 +144,12 @@ export const createDictItem = async (data: {
       (entityData.description ?? []) as any,
     );
   }
+  entityData.searchText = buildSearchText(
+    (entityData.word ?? []) as any,
+    (entityData.description ?? []) as any,
+  );
+  // Added by hand: rebuilds of the dictionary keep it
+  entityData.editedAt = new Date();
 
   const res = await db.$transaction(async (txn) => {
     const itemRes = await txn.dictionaryWord.create({ data: entityData });
@@ -246,82 +241,31 @@ export const searchDictionary = async ({
 };
 
 /**
- * Reprocess a single dictionary word using processDictionaryWordRows
+ * Rebuilds one entry from its original row (kept in DictRawEntries; entries
+ * from the old importer use the source row in their sourceData). A hand
+ * edit on the entry is replaced.
  */
 export async function reprocessSingleDictionaryWord(
   wordId: string,
 ): Promise<ReprocessWordResponse<{ updated: boolean }>> {
   try {
-    // Check authentication
     const session = await auth();
     if (!session) {
       return { status: "error", error: "Authentication required" };
     }
-
-    console.log(`Starting reprocessing for word ID: ${wordId}`);
-
-    // Fetch the dictionary word from database
-    const dictionaryWord = await db.dictionaryWord.findUnique({
-      where: { id: wordId },
-      select: {
-        id: true,
-        origin: true,
-        sourceData: true,
-      },
-    });
-
-    if (!dictionaryWord) {
+    if (!/^[0-9a-f]{24}$/i.test(wordId)) {
       return { status: "error", error: "Dictionary word not found" };
     }
-
-    // Extract origin and determine dictionary name
-    const origin = dictionaryWord.origin;
-
-    // Find the dictionary name that maps to this origin
-    const dictionaryEntry = Object.entries(LEXICON_ALL_DICT_TO_DB_MAP).find(
-      ([_, dbOrigin]) => dbOrigin === origin,
-    );
-
-    if (!dictionaryEntry) {
-      return { status: "error", error: `Unknown dictionary origin: ${origin}` };
-    }
-
-    const dictionary = dictionaryEntry[0] as DictionaryName;
-
-    console.log(
-      `Processing word from dictionary: ${dictionary} (origin: ${origin})`,
-    );
-
-    // Prepare row data for processing
-    const wordData: ReprocessWordData = {
-      id: wordId,
-      sourceData: dictionaryWord.sourceData,
-    };
-
-    // Process the single word
-    const results = await reprocessDictionaryWordData([wordData], dictionary);
-
-    if (results.length === 0) {
-      return { status: "error", error: "Failed to process word" };
-    }
-
-    // Update the word in database
-    await updateProcessedWords(results);
-
-    // Revalidate dictionary pages
+    const updated = await rebuildEntry(wordId);
     revalidatePath("/dictionary");
     revalidatePath(`/dictionary/${wordId}`);
     revalidatePath(`/dictionary/${wordId}/edit`);
-
-    console.log(`Word reprocessing completed for ID: ${wordId}`);
-
-    return {
-      status: "success",
-      data: { updated: true },
-    };
+    return { status: "success", data: { updated } };
   } catch (error) {
     console.error("Failed to reprocess dictionary word:", error);
-
-    return { status: "error", error: "Failed to reprocess dictionary word" };
+    return {
+      status: "error",
+      error: error instanceof Error ? error.message : "Failed to reprocess dictionary word",
+    };
   }
 }

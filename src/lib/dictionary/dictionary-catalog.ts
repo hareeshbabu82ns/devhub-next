@@ -9,6 +9,7 @@ export type DictionaryGroupId =
   | "san-san"
   | "eng-san"
   | "english"
+  | "tel-eng"
   | "names";
 
 export type HeadwordScript = "sa" | "en";
@@ -50,6 +51,11 @@ export const DICTIONARY_GROUPS: DictionaryGroup[] = [
     description: "English → Telugu and English → English",
   },
   {
+    id: "tel-eng",
+    label: "Telugu → English",
+    description: "Look up a Telugu word, read the meaning in English",
+  },
+  {
     id: "names",
     label: "Names & lore",
     description: "People, places, plants, epics, purāṇas and inscriptions",
@@ -83,6 +89,9 @@ export const DICTIONARY_CATALOG: DictionaryInfo[] = [
   // English
   { code: "ENG2TEL", name: "English → Telugu", short: "Eng → Tel", group: "english", headword: "en" },
   { code: "ENG2ENG", name: "English → English", short: "Eng → Eng", group: "english", headword: "en" },
+  // Telugu → English
+  { code: "BROWN_TE", name: "Brown Telugu-English", short: "Brown", group: "tel-eng", headword: "sa" },
+  { code: "GWYNN_TE", name: "Gwynn Telugu-English", short: "Gwynn", group: "tel-eng", headword: "sa" },
   // Names, places and encyclopedic
   { code: "PE", name: "Puranic Encyclopedia", short: "Puranic Encyc.", group: "names", headword: "sa" },
   { code: "PUI", name: "Purana Index", short: "Purana Index", group: "names", headword: "sa" },
