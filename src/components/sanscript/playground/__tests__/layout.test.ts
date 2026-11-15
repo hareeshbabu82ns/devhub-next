@@ -45,15 +45,15 @@ const parse = [
     analysis: [
       {
         graph: [
-          { node: { pada: "gacchati", root: "gam", tags: ["v"] } },
+          { node: { index: 2, pada: "gacchati", root: "gam", tags: ["v"] } },
           {
-            node: { pada: "rāmaḥ", root: "rāma", tags: ["m", "1"] },
-            predecessor: { pada: "gacchati", root: "gam", tags: ["v"] },
+            node: { index: 0, pada: "rāmaḥ", root: "rāma", tags: ["m", "1"] },
+            predecessor: { index: 2, pada: "gacchati", root: "gam", tags: ["v"] },
             relation: "kartā",
           },
           {
-            node: { pada: "vanam", root: "vana", tags: ["n", "2"] },
-            predecessor: { pada: "gacchati", root: "gam", tags: ["v"] },
+            node: { index: 1, pada: "vanam", root: "vana", tags: ["n", "2"] },
+            predecessor: { index: 2, pada: "gacchati", root: "gam", tags: ["v"] },
             relation: "karma",
           },
         ],
@@ -95,16 +95,16 @@ describe("result builders", () => {
     expect(data(graph.nodes[1]).root).toBe("rāma");
   });
 
-  it("keeps a word that occurs twice with different readings apart", () => {
+  it("keeps a word that occurs twice apart by its place in the sentence", () => {
     const graph = buildParseResults("t", [
       {
         analysis: [
           {
             graph: [
-              { node: { pada: "ca", root: "ca", tags: ["a"] } },
-              { node: { pada: "ca", root: "ca", tags: ["b"] } },
-              // exact repeat of the first line: dropped
-              { node: { pada: "ca", root: "ca", tags: ["a"] } },
+              { node: { index: 0, pada: "ca", root: "ca", tags: ["a"] } },
+              { node: { index: 1, pada: "ca", root: "ca", tags: ["a"] } },
+              // the first word again: dropped
+              { node: { index: 0, pada: "ca", root: "ca", tags: ["a"] } },
             ],
           },
         ],

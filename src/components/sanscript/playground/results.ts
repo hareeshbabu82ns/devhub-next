@@ -3,6 +3,7 @@ import type {
   SentenceParseGraph,
   SentenceParseNode,
   SentenceParseResult,
+  SplitPair,
   TransliterationScheme,
 } from "@/types/sanscript";
 import type { ResultKind } from "./layout";
@@ -87,6 +88,9 @@ export function buildSplitResults(
   ownerId: string,
   splits: string[][],
   scheme?: TransliterationScheme,
+  /** Heading of the split at the given position */
+  titleOf: (splitIndex: number) => string = (splitIndex) =>
+    `Split ${splitIndex + 1}`,
 ): GraphData {
   const graph: GraphData = { nodes: [], edges: [] };
   const runId = nextRunId();
@@ -99,7 +103,7 @@ export function buildSplitResults(
       graph.nodes.push(
         resultNode(parent, {
           kind: "group",
-          label: `Split ${splitIndex + 1}`,
+          label: titleOf(splitIndex),
           text: words.join(" "),
           ownerId,
           scheme,
@@ -124,50 +128,176 @@ export function buildSplitResults(
   return graph;
 }
 
-const signature = (node: SentenceParseNode) =>
-  `${node.pada}|${node.root ?? ""}|${(node.tags ?? []).join(",")}`;
+/**
+ * Two-part decompositions of one word: each pair under its own heading, the
+ * pairs whose parts are both known words marked with a tick.
+ */
+export function buildPairResults(
+  ownerId: string,
+  pairs: SplitPair[],
+  scheme?: TransliterationScheme,
+): GraphData {
+  return buildSplitResults(
+    ownerId,
+    pairs.map((pair) => [pair.left, pair.right]),
+    scheme,
+    (pairIndex) => `Pair ${pairIndex + 1}${pairs[pairIndex].valid ? " ✓" : ""}`,
+  );
+}
+
+const PARSE_STATUS_NOTES: Record<string, string> = {
+  NO_PARSE: "no parse",
+  TIMEOUT: "timed out",
+};
+
+/**
+ * A split drawn from the relations that are possible between its words,
+ * whether or not the parser found an analysis. Unlike a parse this is not a tree: every
+ * reading of a word is a node of its own, and a reading has an edge from each
+ * reading that could govern it.
+ */
+function addPossibleRelations(
+  graph: GraphData,
+  ownerId: string,
+  prefix: string,
+  title: string,
+  result: SentenceParseResult,
+  scheme?: TransliterationScheme,
+) {
+  const rows = (result.possibleRelations ?? []).filter((row) => row?.node?.pada);
+  if (rows.length === 0) return;
+
+  const idOf = (node: SentenceParseNode) =>
+    `${prefix}-${node.index ?? node.pada}-${node.root ?? ""}`;
+
+  // one node per reading, its tags those of all its rows
+  const readings = new Map<string, SansPlayData>();
+  for (const { node } of rows) {
+    const id = idOf(node);
+    const reading = readings.get(id);
+    if (reading) {
+      reading.tags = [...new Set([...(reading.tags ?? []), ...(node.tags ?? [])])];
+    } else {
+      readings.set(id, {
+        kind: "word",
+        label: node.pada,
+        index: node.index !== undefined ? node.index + 1 : undefined,
+        root: node.root || undefined,
+        tags: [...(node.tags ?? [])],
+        ownerId,
+        scheme,
+      });
+    }
+  }
+
+  // two readings can be related in more than one way: one edge names them all
+  const relations = new Map<string, { source: string; target: string; names: string[] }>();
+  for (const row of rows) {
+    if (!row.predecessor) continue;
+    const source = idOf(row.predecessor);
+    const target = idOf(row.node);
+    if (source === target || !readings.has(source)) continue;
+    const key = `${source}->${target}`;
+    if (!relations.has(key)) relations.set(key, { source, target, names: [] });
+    const names = relations.get(key)!.names;
+    if (row.relation && !names.includes(row.relation)) names.push(row.relation);
+  }
+  const governed = new Set([...relations.values()].map((r) => r.target));
+
+  graph.nodes.push(
+    resultNode(prefix, {
+      kind: "group",
+      label: title,
+      subTitle: [
+        "possible relations",
+        PARSE_STATUS_NOTES[result.status ?? ""],
+      ]
+        .filter(Boolean)
+        .join(" · "),
+      text: (result.split ?? []).join(" "),
+      ownerId,
+      scheme,
+    }),
+  );
+  graph.edges.push(link(ownerId, prefix));
+
+  readings.forEach((data, id) => {
+    graph.nodes.push(resultNode(id, data));
+    // a reading nothing could govern hangs from the heading
+    if (!governed.has(id)) graph.edges.push(link(prefix, id));
+  });
+  relations.forEach(({ source, target, names }) =>
+    graph.edges.push(link(source, target, names.join(" / ") || undefined)),
+  );
+}
+
+/** Why a parse came back without results, if it did */
+export function parseEmptyMessage(
+  results: SentenceParseResult[],
+  relations = false,
+): string {
+  if (relations) return "No possible relations found for this sentence";
+  return results.some((result) => result.status === "TIMEOUT")
+    ? "The parser ran out of time on this sentence"
+    : "No parse found for this sentence";
+}
 
 /**
  * Sentence parses as dependency trees: the main word of the sentence first,
  * each dependent to its right, the edge naming the relation between them.
  * Every parse is its own tree; several parses each get a heading.
+ *
+ * With `relations`, each split is instead drawn from the relations that are
+ * possible between its words, which exist even for a split without a parse.
  */
 export function buildParseResults(
   ownerId: string,
   results: SentenceParseResult[],
   scheme?: TransliterationScheme,
+  { relations = false }: { relations?: boolean } = {},
 ): GraphData {
   const graph: GraphData = { nodes: [], edges: [] };
   const runId = nextRunId();
 
-  const parses: { title: string; items: SentenceParseGraph[] }[] = [];
+  if (relations) {
+    results.forEach((result, resultIndex) =>
+      addPossibleRelations(
+        graph,
+        ownerId,
+        `${runId}-s${resultIndex}`,
+        results.length > 1 ? `Split ${resultIndex + 1} · Relations` : "Relations",
+        result,
+        scheme,
+      ),
+    );
+    return graph;
+  }
+
+  const parses: { title: string; cost?: number; items: SentenceParseGraph[] }[] =
+    [];
   results.forEach((result, resultIndex) => {
     result.analysis?.forEach((analysis, analysisIndex) => {
       if (!analysis?.graph?.length) return;
       const parse = `Parse ${analysisIndex + 1}`;
       parses.push({
         title: results.length > 1 ? `Split ${resultIndex + 1} · ${parse}` : parse,
+        cost: analysis.cost,
         items: analysis.graph,
       });
     });
   });
 
-  parses.forEach(({ title, items }, parseIndex) => {
+  parses.forEach(({ title, cost, items }, parseIndex) => {
     const prefix = `${runId}-${parseIndex}`;
 
-    // the service can list the same relation twice
-    const seen = new Set<string>();
-    const unique = items.filter((item) => {
-      if (!item?.node?.pada) return false;
-      const key = [
-        signature(item.node),
-        item.predecessor ? signature(item.predecessor) : "",
-        item.relation ?? "",
-      ].join("||");
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    // an analysis has one entry per word, told apart by its place in the split
+    const words = new Map<number, SentenceParseGraph>();
+    items.forEach((item, itemIndex) => {
+      if (!item?.node?.pada) return;
+      const position = item.node.index ?? itemIndex;
+      if (!words.has(position)) words.set(position, item);
     });
+    const idOf = (position: number) => `${prefix}-${position}`;
 
     let top = ownerId;
     if (parses.length > 1) {
@@ -176,7 +306,8 @@ export function buildParseResults(
         resultNode(top, {
           kind: "group",
           label: title,
-          text: unique.map((item) => item.node.pada).join(" "),
+          subTitle: cost !== undefined ? `cost ${cost}` : undefined,
+          text: [...words.values()].map((item) => item.node.pada).join(" "),
           ownerId,
           scheme,
         }),
@@ -184,23 +315,13 @@ export function buildParseResults(
       graph.edges.push(link(ownerId, top));
     }
 
-    // A predecessor is given by value, so find its node by what it says;
-    // the word alone is the fallback when the readings differ.
-    const bySignature = new Map<string, string>();
-    const byPada = new Map<string, string>();
-    unique.forEach((item, itemIndex) => {
-      const id = `${prefix}-${itemIndex}`;
-      if (!bySignature.has(signature(item.node))) bySignature.set(signature(item.node), id);
-      if (!byPada.has(item.node.pada)) byPada.set(item.node.pada, id);
-    });
-
-    unique.forEach((item, itemIndex) => {
-      const id = `${prefix}-${itemIndex}`;
-      const found = item.predecessor
-        ? (bySignature.get(signature(item.predecessor)) ??
-          byPada.get(item.predecessor.pada))
-        : undefined;
-      const parent = found && found !== id ? found : undefined;
+    words.forEach((item, position) => {
+      const id = idOf(position);
+      const head = item.predecessor?.index;
+      const parent =
+        head !== undefined && head !== position && words.has(head)
+          ? idOf(head)
+          : undefined;
       const relation = parent ? item.relation || undefined : undefined;
 
       graph.nodes.push(

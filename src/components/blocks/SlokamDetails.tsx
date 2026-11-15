@@ -20,6 +20,7 @@ import {
 } from "@/hooks/use-config";
 import { Entity } from "@/lib/types";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
 import { Button } from "../ui/button";
 import EntityAnnotations from "./EntityAnnotations";
@@ -27,8 +28,16 @@ import EntityPlaygroundTrigger from "./EntityPlaygroundTrigger";
 
 interface CompParams extends React.HTMLAttributes<HTMLDivElement> {
   slokamId: string;
+  onEditClicked?: (entity: Entity) => void;
+  onDeleteClicked?: (entity: Entity) => void;
 }
-const SlokamDetails = ({ slokamId, className }: CompParams) => {
+const SlokamDetails = ({
+  slokamId,
+  className,
+  onEditClicked,
+  onDeleteClicked,
+}: CompParams) => {
+  const router = useRouter();
   const language = useLanguageAtomValue();
   const defaultMeaningLanguage = useMeaningLanguageAtomValue();
   const textSize = useTextSizeAtomValue();
@@ -97,6 +106,16 @@ const SlokamDetails = ({ slokamId, className }: CompParams) => {
             model={slokamTile}
             onBookmarkClicked={(model) =>
               onBookmarkClicked(mapTileModelToEntity(model))
+            }
+            onEditClicked={
+              onEditClicked
+                ? (model) => onEditClicked(mapTileModelToEntity(model))
+                : (model) => router.push(`/entities/${model.id}/edit`)
+            }
+            onDeleteClicked={
+              onDeleteClicked
+                ? (model) => onDeleteClicked(mapTileModelToEntity(model))
+                : undefined
             }
             className="border-none p-0 hover:bg-transparent"
           />

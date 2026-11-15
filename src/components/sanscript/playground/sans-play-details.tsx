@@ -1,5 +1,6 @@
 "use client";
 
+import type { Edge } from "@xyflow/react";
 import Markdown from "react-markdown";
 import { CheckIcon, CopyIcon, XIcon } from "lucide-react";
 
@@ -65,17 +66,27 @@ export default function SansPlayDetails({
     return other?.type === "sansPlay" ? (other.data as SansPlayData) : undefined;
   };
 
-  const parent = edges
+  const relationOf = (edge: Edge) =>
+    (edge.data as { label?: string } | undefined)?.label;
+  type Related = { id: string; data: SansPlayData; relation?: string };
+  /** The word at the other end of an edge, with the relation the edge names */
+  const related = (edge: Edge, otherId: string): Related[] => {
+    const other = labelOf(otherId);
+    return other?.kind === "word"
+      ? [{ id: otherId, data: other, relation: relationOf(edge) }]
+      : [];
+  };
+
+  // usually one; a word drawn with its possible relations can have several
+  const parents = edges
     .filter((edge) => edge.target === id)
-    .map((edge) => labelOf(edge.source))
-    .find((other) => other?.kind === "word");
+    .flatMap((edge) => related(edge, edge.source))
+    .map((parent) => ({ ...parent, relation: parent.relation ?? data.relation }));
   const dependents = edges
     .filter((edge) => edge.source === id)
-    .map((edge) => ({ id: edge.target, data: labelOf(edge.target) }))
-    .filter(
-      (child): child is { id: string; data: SansPlayData } =>
-        child.data?.kind === "word" && child.data.ownerId === data.ownerId,
-    );
+    .flatMap((edge) => related(edge, edge.target))
+    .filter((child) => child.data.ownerId === data.ownerId)
+    .map((child) => ({ ...child, relation: child.relation ?? child.data.relation }));
 
   return (
     <aside
@@ -119,13 +130,31 @@ export default function SansPlayDetails({
         </Button>
       </header>
 
-      {parent && (
-        <Section title="Relation">
-          <p className="text-sm">
-            <span className="font-medium">{data.relation || "related"}</span>
-            <span className="text-muted-foreground"> of </span>
-            {parent.label}
-          </p>
+      {parents.length > 0 && (
+        <Section title={parents.length > 1 ? "Possible relations" : "Relation"}>
+          <ul className="space-y-1 text-sm">
+            {parents.map((parent) => (
+              <li key={parent.id}>
+                <span className="font-medium">
+                  {parent.relation || "related"}
+                </span>
+                <span className="text-muted-foreground"> of </span>
+                <button
+                  type="button"
+                  className="text-left underline-offset-2 hover:underline"
+                  onClick={() => selectNode(parent.id)}
+                >
+                  {parent.data.label}
+                  {parents.length > 1 && parent.data.root && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      √ {parent.data.root}
+                    </span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
         </Section>
       )}
 
@@ -153,10 +182,10 @@ export default function SansPlayDetails({
                 >
                   {child.data.label}
                 </button>
-                {child.data.relation && (
+                {child.relation && (
                   <span className="text-muted-foreground">
                     {" "}
-                    · {child.data.relation}
+                    · {child.relation}
                   </span>
                 )}
               </li>

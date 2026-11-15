@@ -27,13 +27,18 @@ import {
 } from "@/types/sanscript";
 import SansPlayDeletableEdge from "./sans-play-deletable-edge";
 import SansPlayDetails from "./sans-play-details";
+import SansPlayDevhubDictionaryNode from "./sans-play-devhub-dictionary-node";
+import SansPlayDhatuNode from "./sans-play-dhatu-node";
 import SansPlayDictionaryNode from "./sans-play-dictionary-node";
 import SansPlayEdge from "./sans-play-edge";
 import SansPlayJoinerNode from "./sans-play-joiner-node";
+import SansPlayMeterNode from "./sans-play-meter-node";
 import SansPlayNode from "./sans-play-node";
 import SansPlayParserNode from "./sans-play-parser-node";
 import SansPlayPhoneticNode from "./sans-play-phonetic-node";
+import SansPlayPratyaharaNode from "./sans-play-pratyahara-node";
 import SansPlaySegmenterNode from "./sans-play-segmenter-node";
+import SansPlaySplitPairsNode from "./sans-play-split-pairs-node";
 import SansPlaySplitterNode from "./sans-play-splitter-node";
 import useStore, { RFState, selectLayoutReady } from "./sans-play-store";
 import { PlayTool, TOOLS, toolbarSchemes } from "./sans-play-tools";
@@ -63,12 +68,17 @@ const nodeTypes = {
   sansPlay: SansPlayNode,
   sentenceParse: SansPlayParserNode,
   sandhiSplit: SansPlaySplitterNode,
+  splitPairs: SansPlaySplitPairsNode,
   sandhiJoin: SansPlayJoinerNode,
+  dhatu: SansPlayDhatuNode,
+  pratyahara: SansPlayPratyaharaNode,
+  meter: SansPlayMeterNode,
   wordTagger: SansPlayWordTaggerNode,
   transliterate: SansPlayTransliterateNode,
   segmenter: SansPlaySegmenterNode,
   phoneticSearch: SansPlayPhoneticNode,
   dictionary: SansPlayDictionaryNode,
+  devhubDictionary: SansPlayDevhubDictionaryNode,
   textInput: TextInputNode,
 };
 

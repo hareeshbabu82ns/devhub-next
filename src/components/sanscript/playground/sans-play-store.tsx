@@ -31,16 +31,26 @@ import { defaultTransliterateNodeData } from "./sans-play-transliterate-node";
 import { defaultSegmenterNodeData } from "./sans-play-segmenter-node";
 import { defaultPhoneticNodeData } from "./sans-play-phonetic-node";
 import { defaultDictionaryNodeData } from "./sans-play-dictionary-node";
+import { defaultDevhubDictionaryNodeData } from "./sans-play-devhub-dictionary-node";
+import { defaultSplitPairsNodeData } from "./sans-play-split-pairs-node";
+import { defaultDhatuNodeData } from "./sans-play-dhatu-node";
+import { defaultPratyaharaNodeData } from "./sans-play-pratyahara-node";
+import { defaultMeterNodeData } from "./sans-play-meter-node";
 
 export type NodeType =
   | "sentenceParse"
   | "sandhiSplit"
+  | "splitPairs"
+  | "dhatu"
+  | "pratyahara"
+  | "meter"
   | "sandhiJoin"
   | "wordTagger"
   | "transliterate"
   | "segmenter"
   | "phoneticSearch"
   | "dictionary"
+  | "devhubDictionary"
   | "textInput"
   | "sansPlay";
 
@@ -59,6 +69,10 @@ export interface TypedNodeParams {
 const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
   parser: { type: "sentenceParse", defaultData: defaultParserNodeData },
   splitter: { type: "sandhiSplit", defaultData: defaultSplitterNodeData },
+  splitPairs: { type: "splitPairs", defaultData: defaultSplitPairsNodeData },
+  dhatu: { type: "dhatu", defaultData: defaultDhatuNodeData },
+  pratyahara: { type: "pratyahara", defaultData: defaultPratyaharaNodeData },
+  meter: { type: "meter", defaultData: defaultMeterNodeData },
   joiner: { type: "sandhiJoin", defaultData: defaultJoinerNodeData },
   wordTagger: { type: "wordTagger", defaultData: defaultWordTaggerNodeData },
   transliterate: {
@@ -71,6 +85,10 @@ const nodeTypeConfigs: Record<string, NodeTypeConfig> = {
     defaultData: defaultPhoneticNodeData,
   },
   dictionary: { type: "dictionary", defaultData: defaultDictionaryNodeData },
+  devhubDictionary: {
+    type: "devhubDictionary",
+    defaultData: defaultDevhubDictionaryNodeData,
+  },
   textInput: { type: "textInput", defaultData: { text: "" } },
 };
 

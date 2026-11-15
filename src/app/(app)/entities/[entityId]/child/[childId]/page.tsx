@@ -13,10 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  deleteEntity,
   fetchEntitySiblings,
   fetchReadingNeighbours,
+  readEntity,
 } from "../../../actions";
 import type { ReadingRef } from "@/lib/db/entity-flow";
 import { entityChildTypes } from "@/lib/entity-types";
@@ -32,6 +34,20 @@ import Loader from "@/components/utils/loader";
 import SimpleAlert from "@/components/utils/SimpleAlert";
 import { useKeyboardNavigation, useAnimatedSwipe, KEYS } from "@/hooks";
 import { QUERY_STALE_TIME_LONG } from "@/lib/constants";
+import { useLanguageAtomValue } from "@/hooks/use-config";
+import { useInvalidateEntities } from "@/hooks/use-entity-invalidation";
+import { useCopyToClipboard } from "usehooks-ts";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Page = () => {
   const params = useParams();
@@ -48,6 +64,18 @@ const Page = () => {
   const [navigationDirection, setNavigationDirection] = useState<
     "left" | "right" | null
   >(null);
+
+  const language = useLanguageAtomValue();
+  const invalidateEntities = useInvalidateEntities();
+  const [, copyToClipboard] = useCopyToClipboard();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const { data: currentEntity } = useQuery({
+    queryKey: ["entity", currentSlokamId, language],
+    queryFn: () => readEntity(currentSlokamId, language),
+    enabled: !!currentSlokamId,
+    staleTime: QUERY_STALE_TIME_LONG,
+  });
 
   // Fetch siblings only once
   const {
@@ -154,6 +182,36 @@ const Page = () => {
     [updateUrl],
   );
 
+  const { mutate: deleteVerseFn, isPending: deleteLoading } = useMutation({
+    mutationFn: (id: string) => deleteEntity(id, true),
+    onSuccess: async () => {
+      toast.success("Verse deleted");
+      await invalidateEntities();
+      setDeleteConfirmOpen(false);
+      if (navigationInfo.next) {
+        handleNext();
+      } else if (navigationInfo.prev) {
+        handlePrevious();
+      } else {
+        router.push(`/entities/${entityId}`);
+      }
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Could not delete verse");
+    },
+  });
+
+  const handleCopyText = useCallback(() => {
+    if (currentEntity?.text) {
+      copyToClipboard(currentEntity.text);
+      toast.info("Copied to clipboard");
+    }
+  }, [copyToClipboard, currentEntity?.text]);
+
+  const handleEditVerse = useCallback(() => {
+    router.push(`/entities/${currentSlokamId}/edit`);
+  }, [router, currentSlokamId]);
+
   // Sync with URL parameters when they change externally
   useEffect(() => {
     setCurrentSlokamId(childId);
@@ -255,13 +313,45 @@ const Page = () => {
         <EntityNavigationView entityId={currentSlokamId} />
       </div>
       {/* Header Right Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <AskAITrigger
           key={currentSlokamId}
           scopeId={currentSlokamId}
           scopeLabel="this verse"
         />
         <EntityAudioButton entityId={currentSlokamId} parentId={entityId} />
+        <Button
+          onClick={handleCopyText}
+          type="button"
+          variant="outline"
+          size="icon"
+          title="Copy text"
+          aria-label="Copy text"
+          disabled={!currentEntity?.text}
+        >
+          <Icons.clipboard className="size-4" />
+        </Button>
+        <Button
+          onClick={handleEditVerse}
+          type="button"
+          variant="outline"
+          size="icon"
+          title="Edit verse"
+          aria-label="Edit verse"
+        >
+          <Icons.edit className="size-4" />
+        </Button>
+        <Button
+          onClick={() => setDeleteConfirmOpen(true)}
+          type="button"
+          variant="outline"
+          size="icon"
+          title="Delete verse"
+          aria-label="Delete verse"
+          className="text-destructive hover:text-destructive"
+        >
+          <Icons.trash className="size-4" />
+        </Button>
         {/* Navigation buttons and dropdown */}
         <Button
           onClick={handlePrevious}
@@ -361,9 +451,45 @@ const Page = () => {
           className={`swipe-container flex-1 ${swipeAnimation} ${entranceAnimationClass}`}
           style={swipeContainerStyle}
         >
-          <SlokamDetails slokamId={currentSlokamId} />
+          <SlokamDetails
+            slokamId={currentSlokamId}
+            onEditClicked={handleEditVerse}
+            onDeleteClicked={() => setDeleteConfirmOpen(true)}
+          />
         </div>
       </div>
+
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this verse?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It is removed together with everything inside it. The items after
+              it are renumbered. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {currentEntity?.text && (
+            <p className="line-clamp-3 text-sm text-muted-foreground">
+              {currentEntity.text}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteLoading}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteVerseFn(currentSlokamId);
+              }}
+            >
+              {deleteLoading ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent, type ReactNode } from "react";
 import Markdown from "react-markdown";
-import { ExternalLinkIcon } from "lucide-react";
+import { CheckIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -20,21 +21,30 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import {
+  useDhatuLookup,
   useLanguageTags,
+  useMaheshvaraSutras,
   usePhoneticWordSearch,
+  usePratyahara,
   usePreSegmentedSplits,
   useSandhiJoins,
+  useSandhiSplitPairs,
   useSandhiSplits,
   useSanscriptDictionaryBrowse,
   useSanscriptDictionarySearch,
   useSanscriptUtilsVersion,
   useSentenceParse,
   useServiceTransliterate,
+  useVerseMeter,
 } from "@/hooks/use-sanskrit-utils";
 import {
   SANSCRIPT_DICTIONARIES,
+  SANSCRIPT_LEXICON_LABELS,
+  SANSCRIPT_LEXICONS,
   SanscriptDictionary,
   SanscriptDictionaryResults,
+  SanscriptLexicon,
+  SentenceParseGraph,
   TRANSLITERATION_SCHEME_LABELS,
   TRANSLITERATION_SCHEMES,
   TransliterationScheme,
@@ -46,10 +56,14 @@ import { splitWordsToJoin } from "./playground/sans-play-joiner-node";
 const TABS = [
   { value: "playground", label: "Playground" },
   { value: "splits", label: "Sandhi Splits" },
+  { value: "pairs", label: "Split Pairs" },
   { value: "joins", label: "Sandhi Joins" },
   { value: "tags", label: "Word Tags" },
   { value: "parse", label: "Sentence Parse" },
   { value: "segment", label: "Segment" },
+  { value: "dhatu", label: "Dhatu" },
+  { value: "pratyahara", label: "Pratyahara" },
+  { value: "meter", label: "Meter" },
   { value: "transliterate", label: "Transliterate" },
   { value: "phonetic", label: "Phonetic Search" },
   { value: "dictionary", label: "Dictionary" },
@@ -63,7 +77,7 @@ export default function SanscriptUtils() {
   return (
     <div className="flex-1 flex flex-col gap-4 flex-grow p-1 min-w-0">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        {/* one scrollable row: ten tabs do not fit a phone as a grid */}
+        {/* one scrollable row: this many tabs do not fit a phone as a grid */}
         <div className="mb-4 overflow-x-auto">
           <TabsList className="inline-flex w-max">
             {TABS.map((tab) => (
@@ -86,6 +100,9 @@ export default function SanscriptUtils() {
         <TabsContent value="splits">
           <SandhiSplitsTab />
         </TabsContent>
+        <TabsContent value="pairs">
+          <SplitPairsTab />
+        </TabsContent>
         <TabsContent value="joins">
           <SandhiJoinsTab />
         </TabsContent>
@@ -97,6 +114,15 @@ export default function SanscriptUtils() {
         </TabsContent>
         <TabsContent value="segment">
           <SegmentTab />
+        </TabsContent>
+        <TabsContent value="dhatu">
+          <DhatuTab />
+        </TabsContent>
+        <TabsContent value="pratyahara">
+          <PratyaharaTab />
+        </TabsContent>
+        <TabsContent value="meter">
+          <MeterTab />
         </TabsContent>
         <TabsContent value="transliterate">
           <TransliterateTab />
@@ -245,15 +271,17 @@ function LimitField({
   value,
   onChange,
   max = 10,
+  label = "Result limit",
 }: {
   id: string;
   value: number;
   onChange: (value: number) => void;
   max?: number;
+  label?: string;
 }) {
   return (
     <div className="grid gap-2">
-      <Label htmlFor={id}>Result limit</Label>
+      <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
         type="number"
@@ -296,7 +324,22 @@ function CheckField({
 }
 
 const STRICT_HINT =
-  "Strict input / output handling: rejects text the parser cannot read exactly";
+  "Take the text exactly as typed instead of normalising it (punctuation, digits, final visarga / anusvara); word forms then keep a final s / r instead of a visarga";
+
+/** Small button that copies a longer piece of text, e.g. Graphviz source */
+function CopyButton({ text, children }: { text: string; children: ReactNode }) {
+  const { isCopied, copyToClipboard } = useCopyToClipboard();
+  return (
+    <button
+      type="button"
+      onClick={() => copyToClipboard(text)}
+      className="inline-flex items-center gap-1 text-sm underline underline-offset-2"
+    >
+      {isCopied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+      {children}
+    </button>
+  );
+}
 
 function SubmitRow({
   isLoading,
@@ -428,6 +471,99 @@ function SandhiSplitsTab() {
   );
 }
 
+function SplitPairsTab() {
+  const [text, setText] = useState("");
+  const schemes = useSchemes(TransliterationScheme.DEVANAGARI);
+  const [position, setPosition] = useState("");
+  const [validOnly, setValidOnly] = useState(false);
+  const [strictIO, setStrictIO] = useState(false);
+  const mutation = useSandhiSplitPairs();
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setDone(false);
+    mutation.splitPairs(
+      {
+        text,
+        schemeFrom: schemes.schemeFrom,
+        schemeTo: schemes.schemeTo,
+        position: position === "" ? undefined : Number(position),
+        validOnly,
+        strictIO,
+      },
+      { onSuccess: () => setDone(true) },
+    );
+  };
+
+  return (
+    <ToolCard
+      title="Split Pairs"
+      description="Every way the sandhi rules can cut one word in two. The parts need not be real words; the pairs that are both known words are marked."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <TextField
+          id="pairs-text"
+          label="Sanskrit word"
+          value={text}
+          onChange={setText}
+          placeholder="तस्मिन्निति"
+        />
+        <SchemeFields id="pairs" schemes={schemes} />
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
+          <div className="grid gap-2">
+            <Label htmlFor="pairs-position">Cut at letter</Label>
+            <Input
+              id="pairs-position"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={position}
+              onChange={(e) => setPosition(e.target.value)}
+              placeholder="every position"
+              title="0-based, counted in SLP1 letters. Empty: cut at every position"
+            />
+          </div>
+          <CheckField
+            id="pairs-valid"
+            label="Known words only"
+            checked={validOnly}
+            onChange={setValidOnly}
+            hint="Only pairs whose two parts are both words the lexicon knows"
+          />
+          <CheckField
+            id="pairs-strict"
+            label="Strict"
+            checked={strictIO}
+            onChange={setStrictIO}
+            hint={STRICT_HINT}
+          />
+        </div>
+        <SubmitRow
+          isLoading={mutation.isLoading}
+          label="Find pairs"
+          error={mutation.error}
+        />
+      </form>
+      <Results show={done} empty={mutation.pairs.length === 0}>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {mutation.pairs.map((pair, index) => (
+            <ResultLine key={index} text={`${pair.left} ${pair.right}`}>
+              {pair.left} + {pair.right}
+              {pair.valid && (
+                <Badge variant="outline" className="ml-2">
+                  known words
+                </Badge>
+              )}
+            </ResultLine>
+          ))}
+        </div>
+      </Results>
+    </ToolCard>
+  );
+}
+
 function SandhiJoinsTab() {
   const [text, setText] = useState("");
   const schemes = useSchemes();
@@ -454,7 +590,7 @@ function SandhiJoinsTab() {
   return (
     <ToolCard
       title="Sandhi Joins"
-      description="Join words the way sandhi rules combine them."
+      description="Join words the way sandhi rules combine them. Every form the rules allow is listed, fully joined ones first; not all of them are in real use."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextField
@@ -505,6 +641,7 @@ function LanguageTagsTab() {
   const [text, setText] = useState("");
   const schemes = useSchemes();
   const [strictIO, setStrictIO] = useState(false);
+  const [lexicon, setLexicon] = useState<SanscriptLexicon>("COMBINED");
   const mutation = useLanguageTags();
   const [done, setDone] = useState(false);
 
@@ -517,6 +654,7 @@ function LanguageTagsTab() {
         schemeFrom: schemes.schemeFrom,
         schemeTo: schemes.schemeTo,
         strictIO,
+        lexicon,
       },
       { onSuccess: () => setDone(true) },
     );
@@ -525,24 +663,44 @@ function LanguageTagsTab() {
   return (
     <ToolCard
       title="Word Tags"
-      description="Every grammatical reading of a single inflected word."
+      description="Every grammatical reading of an inflected word, or of each word of a text separated by spaces."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextField
           id="tags-text"
-          label="Sanskrit word"
+          label="Sanskrit word or words"
           value={text}
           onChange={setText}
           placeholder="niratam"
         />
         <SchemeFields id="tags" schemes={schemes} />
-        <CheckField
-          id="tags-strict"
-          label="Strict"
-          checked={strictIO}
-          onChange={setStrictIO}
-          hint={STRICT_HINT}
-        />
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <Label htmlFor="tags-lexicon">Lexicon</Label>
+            <Select
+              value={lexicon}
+              onValueChange={(val) => setLexicon(val as SanscriptLexicon)}
+            >
+              <SelectTrigger id="tags-lexicon" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SANSCRIPT_LEXICONS.map((item) => (
+                  <SelectItem key={item} value={item}>
+                    {SANSCRIPT_LEXICON_LABELS[item]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <CheckField
+            id="tags-strict"
+            label="Strict"
+            checked={strictIO}
+            onChange={setStrictIO}
+            hint={STRICT_HINT}
+          />
+        </div>
         <SubmitRow
           isLoading={mutation.isLoading}
           label="Get tags"
@@ -552,7 +710,14 @@ function LanguageTagsTab() {
       <Results show={done} empty={mutation.tags.length === 0}>
         {mutation.tags.map((tag, index) => (
           <div key={index} className="space-y-2 rounded-md bg-muted p-3">
-            <div className="font-medium">{tag.word}</div>
+            <div className="font-medium">
+              {tag.form && tag.form !== tag.word && (
+                <span className="font-normal text-muted-foreground">
+                  {tag.form} ←{" "}
+                </span>
+              )}
+              {tag.word}
+            </div>
             <TagList tags={tag.tags} />
           </div>
         ))}
@@ -576,12 +741,47 @@ function DiagramLink({ href, children }: { href: string; children: ReactNode }) 
   );
 }
 
+const PARSE_STATUS_LABELS = {
+  OK: "",
+  NO_PARSE: "no parse",
+  TIMEOUT: "timed out",
+} as const;
+
+/** Stands for "no diagram scheme of its own" in the select */
+const OUTPUT_SCHEME = "OUTPUT";
+
+/** A word of a parse with one of its readings */
+function ParseWord({ item }: { item: SentenceParseGraph }) {
+  return (
+    <div className="space-y-1 rounded-md border bg-background p-3">
+      <div className="font-medium">
+        {item.node.pada}
+        {item.node.root && (
+          <span className="ml-2 font-normal text-muted-foreground">
+            √ {item.node.root}
+          </span>
+        )}
+      </div>
+      <TagList tags={item.node.tags} />
+      {item.predecessor && (
+        <div className="text-sm text-muted-foreground">
+          {item.relation || "related"} → {item.predecessor.pada}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SentenceParseTab() {
   const [text, setText] = useState("");
   const schemes = useSchemes();
   const [limit, setLimit] = useState(2);
+  const [parseLimit, setParseLimit] = useState(2);
   const [preSegmented, setPreSegmented] = useState(false);
+  const [minCostOnly, setMinCostOnly] = useState(false);
+  const [unknownRootsTransitive, setUnknownRootsTransitive] = useState(false);
   const [strictIO, setStrictIO] = useState(false);
+  const [diagramScheme, setDiagramScheme] = useState<string>(OUTPUT_SCHEME);
   const mutation = useSentenceParse();
   const [done, setDone] = useState(false);
 
@@ -594,17 +794,22 @@ function SentenceParseTab() {
         schemeFrom: schemes.schemeFrom,
         schemeTo: schemes.schemeTo,
         limit,
+        parseLimit,
         preSegmented,
+        minCostOnly,
+        unknownRootsTransitive,
         strictIO,
+        diagrams: true,
+        diagramScheme:
+          diagramScheme === OUTPUT_SCHEME
+            ? undefined
+            : (diagramScheme as TransliterationScheme),
       },
       { onSuccess: () => setDone(true) },
     );
   };
 
   const results = mutation.parseResults;
-  const hasAnalysis = results.some((r) =>
-    r.analysis?.some((a) => a?.graph?.length),
-  );
 
   return (
     <ToolCard
@@ -620,14 +825,57 @@ function SentenceParseTab() {
           placeholder="vāgvidāṃ varam"
         />
         <SchemeFields id="parse" schemes={schemes} />
-        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
-          <LimitField id="parse-limit" value={limit} onChange={setLimit} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <LimitField
+            id="parse-limit"
+            label="Splits to analyse"
+            value={limit}
+            onChange={setLimit}
+          />
+          <LimitField
+            id="parse-parse-limit"
+            label="Parses per split"
+            value={parseLimit}
+            onChange={setParseLimit}
+          />
+          <div className="grid gap-2">
+            <Label htmlFor="parse-diagram-scheme">Diagram script</Label>
+            <Select value={diagramScheme} onValueChange={setDiagramScheme}>
+              <SelectTrigger id="parse-diagram-scheme" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={OUTPUT_SCHEME}>Same as output</SelectItem>
+                {TRANSLITERATION_SCHEMES.map((scheme) => (
+                  <SelectItem key={scheme} value={scheme}>
+                    {TRANSLITERATION_SCHEME_LABELS[scheme]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           <CheckField
             id="parse-presegmented"
             label="Already segmented"
             checked={preSegmented}
             onChange={setPreSegmented}
             hint="The words are already split and separated by spaces"
+          />
+          <CheckField
+            id="parse-min-cost"
+            label="Best parses only"
+            checked={minCostOnly}
+            onChange={setMinCostOnly}
+            hint="Per split, only the analyses that tie for the lowest cost"
+          />
+          <CheckField
+            id="parse-unknown-roots"
+            label="Unlisted Roots"
+            checked={unknownRootsTransitive}
+            onChange={setUnknownRootsTransitive}
+            hint="A verb whose root the dhatupatha does not list is taken as able to have an object (karma)"
           />
           <CheckField
             id="parse-strict"
@@ -643,15 +891,30 @@ function SentenceParseTab() {
           error={mutation.error}
         />
       </form>
-      <Results show={done} empty={!hasAnalysis}>
+      <Results show={done} empty={results.length === 0}>
         {results.map((result, resultIndex) => (
           <div key={resultIndex} className="space-y-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              <h4 className="font-medium">Split {resultIndex + 1}</h4>
+              <h4 className="font-medium">
+                Split {resultIndex + 1}
+                {result.split && result.split.length > 0 && (
+                  <span className="ml-2 font-normal">
+                    {result.split.join(" + ")}
+                  </span>
+                )}
+              </h4>
+              {result.status && result.status !== "OK" && (
+                <Badge variant="destructive">
+                  {PARSE_STATUS_LABELS[result.status]}
+                </Badge>
+              )}
               {result.splitDotURL && (
                 <DiagramLink href={result.splitDotURL}>
-                  Split diagram
+                  Possible relations diagram
                 </DiagramLink>
+              )}
+              {result.splitDot && (
+                <CopyButton text={result.splitDot}>DOT</CopyButton>
               )}
             </div>
             {result.analysis?.map(
@@ -664,39 +927,44 @@ function SentenceParseTab() {
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                       <h5 className="font-medium">
                         Parse {analysisIndex + 1}
+                        {analysis.cost !== undefined && (
+                          <span
+                            className="ml-2 text-sm font-normal text-muted-foreground"
+                            title="Lower is better; analyses with shorter relations cost less"
+                          >
+                            cost {analysis.cost}
+                          </span>
+                        )}
                       </h5>
-                      {result.parseDotURLs?.[analysisIndex] && (
-                        <DiagramLink href={result.parseDotURLs[analysisIndex]}>
-                          Diagram
-                        </DiagramLink>
+                      {analysis.dotURL && (
+                        <DiagramLink href={analysis.dotURL}>Diagram</DiagramLink>
+                      )}
+                      {analysis.dot && (
+                        <CopyButton text={analysis.dot}>DOT</CopyButton>
+                      )}
+                      {analysis.conll && (
+                        <CopyButton text={analysis.conll}>CoNLL</CopyButton>
                       )}
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {analysis.graph.map((item, itemIndex) => (
-                        <div
-                          key={itemIndex}
-                          className="space-y-1 rounded-md border bg-background p-3"
-                        >
-                          <div className="font-medium">
-                            {item.node.pada}
-                            {item.node.root && (
-                              <span className="ml-2 font-normal text-muted-foreground">
-                                √ {item.node.root}
-                              </span>
-                            )}
-                          </div>
-                          <TagList tags={item.node.tags} />
-                          {item.predecessor && (
-                            <div className="text-sm text-muted-foreground">
-                              {item.relation || "related"} →{" "}
-                              {item.predecessor.pada}
-                            </div>
-                          )}
-                        </div>
+                        <ParseWord key={itemIndex} item={item} />
                       ))}
                     </div>
                   </div>
                 ),
+            )}
+            {result.possibleRelations && result.possibleRelations.length > 0 && (
+              <details className="rounded-md bg-muted p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Every possible relation ({result.possibleRelations.length})
+                </summary>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {result.possibleRelations.map((item, itemIndex) => (
+                    <ParseWord key={itemIndex} item={item} />
+                  ))}
+                </div>
+              </details>
             )}
           </div>
         ))}
@@ -729,7 +997,7 @@ function SegmentTab() {
   return (
     <ToolCard
       title="Segment"
-      description="For a sentence whose words are already separated by spaces: returns each word in its standalone form."
+      description="For a sentence whose words are already separated by spaces: returns each word in its standalone form. A word that is not known as it stands is itself sandhi-split."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <TextField
@@ -757,6 +1025,227 @@ function SegmentTab() {
         <ResultLine text={mutation.segments.join(" ")}>
           {mutation.segments.join(" · ")}
         </ResultLine>
+      </Results>
+    </ToolCard>
+  );
+}
+
+function DhatuTab() {
+  const [text, setText] = useState("");
+  const schemes = useSchemes();
+  const mutation = useDhatuLookup();
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setDone(false);
+    mutation.lookup(
+      {
+        dhatu: text.trim(),
+        schemeFrom: schemes.schemeFrom,
+        schemeTo: schemes.schemeTo,
+      },
+      { onSuccess: () => setDone(true) },
+    );
+  };
+
+  return (
+    <ToolCard
+      title="Dhatu"
+      description="Look a verbal root up in the dhatupatha: its meaning, class, pada and whether it takes an object. Give it bare (gam), with its markers, or as Word Tags names it."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <TextField
+          id="dhatu-text"
+          label="Verbal root"
+          value={text}
+          onChange={setText}
+          placeholder="gam"
+        />
+        <SchemeFields id="dhatu" schemes={schemes} />
+        <SubmitRow
+          isLoading={mutation.isLoading}
+          label="Look up"
+          error={mutation.error}
+        />
+      </form>
+      <Results show={done} empty={mutation.dhatus.length === 0}>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {mutation.dhatus.map((dhatu, index) => (
+            <article key={index} className="space-y-2 rounded-md bg-muted p-3">
+              <div className="font-medium">
+                {dhatu.dhatu}
+                <span className="ml-2 font-normal text-muted-foreground">
+                  {dhatu.mulaDhatu}
+                </span>
+              </div>
+              <div className="text-sm">{dhatu.artha}</div>
+              <TagList
+                tags={[
+                  dhatu.gana,
+                  dhatu.pada,
+                  dhatu.karmakatva,
+                  ...(dhatu.dvikarmaka ? ["dvikarmaka"] : []),
+                  dhatu.ittva,
+                ].filter(Boolean)}
+              />
+              <div className="text-sm text-muted-foreground">
+                Present: <span className="text-foreground">{dhatu.rupa}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </Results>
+    </ToolCard>
+  );
+}
+
+function PratyaharaTab() {
+  const [text, setText] = useState("");
+  const schemes = useSchemes();
+  const [longForm, setLongForm] = useState(true);
+  const [withLongVowels, setWithLongVowels] = useState(false);
+  const mutation = usePratyahara();
+  const sutras = useMaheshvaraSutras(schemes.schemeTo);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    mutation.expand({
+      name: text.trim(),
+      schemeFrom: schemes.schemeFrom,
+      schemeTo: schemes.schemeTo,
+      longForm,
+      withLongVowels,
+    });
+  };
+
+  const pratyahara = mutation.pratyahara;
+
+  return (
+    <ToolCard
+      title="Pratyahara"
+      description="The sounds a pratyahara such as ac, hal or jaś stands for, read off the Maheshvara sutras."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <TextField
+          id="pratyahara-text"
+          label="Pratyahara"
+          value={text}
+          onChange={setText}
+          placeholder="ac"
+        />
+        <SchemeFields id="pratyahara" schemes={schemes} />
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <CheckField
+            id="pratyahara-long-form"
+            label="Long form"
+            checked={longForm}
+            onChange={setLongForm}
+            hint="aṇ and iṇ can end at the first or the second ṇ of the sutras; on takes the second"
+          />
+          <CheckField
+            id="pratyahara-long-vowels"
+            label="With long vowels"
+            checked={withLongVowels}
+            onChange={setWithLongVowels}
+            hint="Include the long vowels alongside the short ones"
+          />
+        </div>
+        <SubmitRow
+          isLoading={mutation.isLoading}
+          label="Expand"
+          error={mutation.error}
+        />
+      </form>
+      <Results show={!!pratyahara} empty={!pratyahara?.varnas.length}>
+        <ResultLine text={pratyahara?.varnas.join(" ") ?? ""}>
+          <span className="font-medium">{pratyahara?.name}</span>
+          <span className="ml-2 text-sm text-muted-foreground">
+            {pratyahara?.varnas.length} sounds
+          </span>
+          <span className="mt-2 flex flex-wrap gap-1">
+            {pratyahara?.varnas.map((varna) => (
+              <Badge key={varna} variant="outline" className="text-base">
+                {varna}
+              </Badge>
+            ))}
+          </span>
+        </ResultLine>
+      </Results>
+      {sutras.data && sutras.data.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-lg font-medium">Maheshvara sutras</h3>
+          <ol className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
+            {sutras.data.map((sutra, index) => (
+              <li key={index} className="rounded-md bg-muted p-2 text-sm">
+                <span className="mr-2 text-xs tabular-nums text-muted-foreground">
+                  {index + 1}
+                </span>
+                {sutra}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </ToolCard>
+  );
+}
+
+function MeterTab() {
+  const [text, setText] = useState("");
+  const schemes = useSchemes(TransliterationScheme.DEVANAGARI);
+  const mutation = useVerseMeter();
+  const [done, setDone] = useState(false);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setDone(false);
+    mutation.scan(
+      { text, schemeFrom: schemes.schemeFrom, schemeTo: schemes.schemeTo },
+      { onSuccess: () => setDone(true) },
+    );
+  };
+
+  return (
+    <ToolCard
+      title="Meter"
+      description="Syllable weights of each line of a verse: G for guru (heavy), L for laghu (light). Lines end at a line break or a danda."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid gap-2">
+          <Label htmlFor="meter-text">Verse</Label>
+          <Textarea
+            id="meter-text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={"धर्मक्षेत्रे कुरुक्षेत्रे समवेता युयुत्सवः ।\nमामकाः पाण्डवाश्चैव किमकुर्वत सञ्जय ॥"}
+            rows={4}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            required
+          />
+        </div>
+        <SchemeFields id="meter" schemes={schemes} />
+        <SubmitRow
+          isLoading={mutation.isLoading}
+          label="Scan"
+          error={mutation.error}
+        />
+      </form>
+      <Results show={done} empty={mutation.lines.length === 0}>
+        {mutation.lines.map((line, index) => (
+          <ResultLine key={index} text={line.pattern}>
+            <span className="block">{line.text}</span>
+            <span className="mt-1 block break-all font-mono text-sm tracking-widest">
+              {line.pattern}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {line.syllables} syllables
+            </span>
+          </ResultLine>
+        ))}
       </Results>
     </ToolCard>
   );

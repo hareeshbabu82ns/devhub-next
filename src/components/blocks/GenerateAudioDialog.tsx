@@ -61,6 +61,7 @@ interface GenerateAudioDialogProps {
   /** The verse, as shown in the dialog header. */
   title: string;
   subtitle?: string;
+  onGenerated?: (audioUrl: string) => void;
 }
 
 /** What was used last, so a chapter can be recorded verse after verse. */
@@ -100,6 +101,7 @@ export default function GenerateAudioDialog({
   entityId,
   title,
   subtitle,
+  onGenerated,
 }: GenerateAudioDialogProps) {
   const id = useId();
   const appLanguage = useLanguageAtomValue();
@@ -195,6 +197,7 @@ export default function GenerateAudioDialog({
         voices: { ...old.voices, [language]: voice },
       }));
       toast.success("Audio generated");
+      onGenerated?.(url);
       // the verse has (new) audio: lists must pick that up
       invalidateEntities();
     },

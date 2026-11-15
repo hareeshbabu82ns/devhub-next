@@ -26,6 +26,7 @@ import {
   ChevronLeft as BackIcon,
   RefreshCcw as RefreshIcon,
   CopyPlus as SaveAndNewIcon,
+  AudioLines,
 } from "lucide-react";
 import { EntityTypeEnum } from "@/lib/types";
 import FormInputMDXTextArea from "@/components/inputs/FormInputMDXTextArea";
@@ -36,6 +37,9 @@ import { useRouter } from "next/navigation";
 import FormEntityAttributes from "@/components/inputs/FormEntityAttributes";
 import FormAssetField from "@/components/inputs/FormAssetField";
 import { useLanguageAtomValue } from "@/hooks/use-config";
+import GenerateAudioDialog from "@/components/blocks/GenerateAudioDialog";
+import DeleteAudioDialog from "@/components/blocks/DeleteAudioDialog";
+import { trackTitle } from "@/lib/audio/queue";
 
 export interface EntityExtraProps {
   childrenCount: number;
@@ -85,11 +89,32 @@ export default function EntityForm({
     formState: { errors, isDirty, dirtyFields },
   } = form;
 
-  const [imageThumbnailValue, typeValue, text] = form.watch([
+  const [imageThumbnailValue, typeValue, text, audioValue, orderValue] = form.watch([
     "imageThumbnail",
     "type",
     "text",
+    "audio",
+    "order",
   ]);
+
+  const [audioDialogOpen, setAudioDialogOpen] = useState(false);
+  const [confirmDeleteAudio, setConfirmDeleteAudio] = useState(false);
+
+  const textTitle =
+    text && text.length > 0
+      ? text.find((t) => t.language === language)?.value || text[0]?.value || ""
+      : "";
+  const audioNumber =
+    orderValue !== undefined && orderValue !== null
+      ? `${typeof orderValue === "number" ? orderValue + 1 : orderValue}`
+      : "";
+  const audioTitle = trackTitle(
+    textTitle,
+    `${typeValue ?? "Entity"} ${audioNumber}`.trim(),
+  );
+  const audioSubtitle = audioNumber
+    ? `${typeValue ?? "Entity"} ${audioNumber}`.trim()
+    : (typeValue ?? "Entity");
 
   // Saving refetches the entity; show the saved state without remounting the
   // form (which would lose the open tab and scroll position).
@@ -193,13 +218,40 @@ export default function EntityForm({
       />
 
       {/* Audio */}
-      <FormAssetField
-        control={form.control}
-        name="audio"
-        label="Audio"
-        kind="audio"
-        uploadFolder="entities/audio"
-      />
+      <div className="flex flex-col gap-2">
+        <FormAssetField
+          control={form.control}
+          name="audio"
+          label="Audio"
+          kind="audio"
+          uploadFolder="entities/audio"
+        />
+        {entityId && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAudioDialogOpen(true)}
+            >
+              <AudioLines className="size-4 mr-2" />
+              {audioValue ? "Modify & Regenerate Audio…" : "Generate Audio…"}
+            </Button>
+            {audioValue && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => setConfirmDeleteAudio(true)}
+              >
+                <DeleteIcon className="size-4 mr-2" />
+                Delete Audio
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
       {/* Bookmarked */}
       <FormCheckbox
         control={form.control}
@@ -404,6 +456,29 @@ export default function EntityForm({
           </TabsContent>
         </Tabs>
         {actionButtons}
+        {audioDialogOpen && entityId && (
+          <GenerateAudioDialog
+            open
+            onOpenChange={setAudioDialogOpen}
+            entityId={entityId}
+            title={audioTitle}
+            subtitle={audioSubtitle}
+            onGenerated={(newAudioUrl) => {
+              form.setValue("audio", newAudioUrl, { shouldDirty: true });
+            }}
+          />
+        )}
+        {confirmDeleteAudio && entityId && (
+          <DeleteAudioDialog
+            open={confirmDeleteAudio}
+            onOpenChange={setConfirmDeleteAudio}
+            entityId={entityId}
+            audioUrl={audioValue || undefined}
+            onDeleted={() => {
+              form.setValue("audio", "", { shouldDirty: true });
+            }}
+          />
+        )}
       </form>
     </Form>
   );

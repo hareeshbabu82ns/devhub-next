@@ -90,20 +90,31 @@ export function SchemePair({ id, data }: { id: string; data: SansPlayToolData })
   );
 }
 
+/** What "Strict" does, for the tooltip of every tool that offers it */
+export const STRICT_HINT =
+  "Take the text exactly as typed instead of normalising it (punctuation, digits, final visarga / anusvara); word forms then keep a final s / r instead of a visarga";
+
 export function LimitSlider({
   id,
   limit,
   max = 10,
+  field = "limit",
+  label = "Results",
+  title,
 }: {
   id: string;
   limit: number;
   max?: number;
+  /** Field of the node's data the slider edits */
+  field?: string;
+  label?: string;
+  title?: string;
 }) {
   const { updateNodeData } = useReactFlow();
   return (
-    <label className="flex flex-1 items-center gap-2 text-sm">
+    <label className="flex flex-1 items-center gap-2 text-sm" title={title}>
       <span className="w-16 shrink-0 text-muted-foreground">
-        Results {limit}
+        {label} {limit}
       </span>
       <Input
         type="range"
@@ -111,7 +122,9 @@ export function LimitSlider({
         max={max}
         value={limit}
         className="nodrag px-0"
-        onChange={(e) => updateNodeData(id, { limit: Number(e.target.value) })}
+        onChange={(e) =>
+          updateNodeData(id, { [field]: Number(e.target.value) })
+        }
       />
     </label>
   );

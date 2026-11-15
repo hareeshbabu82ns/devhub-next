@@ -102,7 +102,7 @@ function SansPlayDictionaryNode({
   return (
     <SansPlayToolNode
       id={id}
-      title="Dictionary"
+      title="Service Dictionary"
       icon={<BookOpenIcon />}
       text={data.text}
       placeholder="word to look up..."

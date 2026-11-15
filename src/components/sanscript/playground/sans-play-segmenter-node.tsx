@@ -8,6 +8,7 @@ import { usePreSegmentedSplits } from "@/hooks/use-sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import {
   NodeCheckbox,
+  STRICT_HINT,
   SansPlayToolData,
   SansPlayToolNode,
   SchemePair,
@@ -74,7 +75,7 @@ function SansPlaySegmenterNode({
         field="strictIO"
         checked={!!data.strictIO}
         label="Strict"
-        title="Strict input / output handling: rejects text the parser cannot read exactly"
+        title={STRICT_HINT}
       />
     </SansPlayToolNode>
   );

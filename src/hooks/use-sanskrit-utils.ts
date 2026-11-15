@@ -2,16 +2,21 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  dhatuLookup,
   languageTags,
+  maheshvaraSutras,
   phoneticWordSearch,
+  pratyaharaVarnas,
   preSegmentedSplits,
   sandhiJoins,
+  sandhiSplitPairs,
   sandhiSplits,
   sanscriptDictionaryBrowse,
   sanscriptDictionarySearch,
   sanscriptUtilsVersion,
   sentenceParse,
   transliterateText,
+  verseMeter,
 } from "@/app/actions/sanskrit-utils";
 import { TransliterationScheme } from "@/types/sanscript";
 import { QUERY_STALE_TIME_SHORT } from "@/lib/constants";
@@ -27,6 +32,23 @@ export function useSandhiSplits() {
   return {
     split: mutation.mutate,
     splits: mutation.data || [],
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for the two-part sandhi decompositions of a single word
+ */
+export function useSandhiSplitPairs() {
+  const mutation = useMutation({
+    mutationFn: sandhiSplitPairs,
+  });
+
+  return {
+    splitPairs: mutation.mutate,
+    pairs: mutation.data || [],
     isLoading: mutation.isPending,
     error: mutation.error,
     reset: mutation.reset,
@@ -99,6 +121,69 @@ export function usePreSegmentedSplits() {
     error: mutation.error,
     reset: mutation.reset,
   };
+}
+
+/**
+ * Custom hook for looking a verbal root up in the dhatupatha
+ */
+export function useDhatuLookup() {
+  const mutation = useMutation({
+    mutationFn: dhatuLookup,
+  });
+
+  return {
+    lookup: mutation.mutate,
+    dhatus: mutation.data || [],
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for the sounds a pratyahara stands for
+ */
+export function usePratyahara() {
+  const mutation = useMutation({
+    mutationFn: pratyaharaVarnas,
+  });
+
+  return {
+    expand: mutation.mutate,
+    pratyahara: mutation.data,
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * Custom hook for the guru / laghu pattern of each line of a verse
+ */
+export function useVerseMeter() {
+  const mutation = useMutation({
+    mutationFn: verseMeter,
+  });
+
+  return {
+    scan: mutation.mutate,
+    lines: mutation.data || [],
+    isLoading: mutation.isPending,
+    error: mutation.error,
+    reset: mutation.reset,
+  };
+}
+
+/**
+ * The fourteen Maheshvara sutras in the given script
+ */
+export function useMaheshvaraSutras(schemeTo: TransliterationScheme) {
+  return useQuery({
+    queryKey: ["maheshvaraSutras", schemeTo],
+    queryFn: () => maheshvaraSutras({ schemeTo }),
+    staleTime: Infinity,
+    retry: false,
+  });
 }
 
 /**

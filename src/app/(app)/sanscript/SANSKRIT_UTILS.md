@@ -46,27 +46,59 @@ export enum TransliterationScheme {
 
 ```typescript
 export type LanguageTag = {
-  word: string;
+  form?: string; // the word as it was looked up
+  word: string; // the stem or root the form comes from
   tags: string[];
 };
 
+export type SplitPair = { left: string; right: string; valid: boolean };
+
 export type SentenceParseNode = {
+  index?: number; // 0-based position of the word in the split
   pada: string;
-  root: string;
+  root?: string | null;
   tags: string[];
 };
 
 export type SentenceParseGraph = {
   node: SentenceParseNode;
+  predecessor?: SentenceParseNode | null;
+  relation?: string | null; // sambandha
 };
 
 export type SentenceParseAnalysis = {
-  graph: SentenceParseGraph[];
+  graph: SentenceParseGraph[]; // one entry per word
+  cost?: number; // lower is better
+  dot?: string; // Graphviz source
+  dotURL?: string; // rendered image of `dot`
+  conll?: string; // tab-separated rows, one per word
 };
 
 export type SentenceParseResult = {
-  analysis: SentenceParseAnalysis[];
+  split?: string[];
+  status?: "OK" | "NO_PARSE" | "TIMEOUT";
+  analysis: SentenceParseAnalysis[]; // lowest cost first
+  possibleRelations?: SentenceParseGraph[]; // the service's `analysisSplitDot`
+  splitDot?: string;
+  splitDotURL?: string;
 };
+
+export type Dhatu = {
+  dhatu: string;
+  mulaDhatu: string;
+  artha: string;
+  gana: string;
+  karmakatva: string;
+  sakarmaka: boolean;
+  dvikarmaka: boolean;
+  ittva: string;
+  pada: string;
+  rupa: string;
+};
+
+export type Pratyahara = { name: string; varnas: string[] };
+
+export type MeterLine = { text: string; syllables: number; pattern: string };
 ```
 
 ### Functions
@@ -131,13 +163,16 @@ const joins = await sandhiJoins({
 
 #### languageTags
 
-Gets grammatical analysis of Sanskrit words.
+Gets grammatical analysis of a Sanskrit word, or of each word of a
+space-separated text. A word the lexicon does not know yields no entries.
 
 ```typescript
 async function languageTags(params: {
   text: string;
   schemeFrom: TransliterationScheme;
   schemeTo: TransliterationScheme;
+  strictIO?: boolean;
+  lexicon?: "COMBINED" | "INRIA" | "SANSKRIT_DATA"; // service default: COMBINED
 }): Promise<LanguageTag[]>;
 ```
 
@@ -156,6 +191,7 @@ const tags = await languageTags({
 });
 
 // Result: [{
+//   form: "నిరతమ్",
 //   word: "నిరత",
 //   tags: ["ఏకవచనమ్", "ద్వితీయావిభక్తిః", "పుంల్లిఙ్గమ్"]
 // }]
@@ -170,8 +206,13 @@ async function sentenceParse(params: {
   text: string;
   schemeFrom: TransliterationScheme;
   schemeTo: TransliterationScheme;
-  limit?: number;
-  preSegmented?: boolean;
+  strictIO?: boolean;
+  limit?: number; // sandhi splits to analyse, 1-100 (default 2)
+  preSegmented?: boolean; // the text is already split into words
+  parseLimit?: number; // analyses per split, 1-100 (default 2)
+  minCostOnly?: boolean; // per split, only the analyses tying for the lowest cost
+  unknownRootsTransitive?: boolean; // verbs whose root the dhatupatha lacks may take a karma
+  diagramScheme?: TransliterationScheme; // script of dot / dotURL labels (default: schemeTo)
 }): Promise<SentenceParseResult[]>;
 ```
 
@@ -191,7 +232,8 @@ const parseResults = await sentenceParse({
   preSegmented: false,
 });
 
-// Result: Complex nested structure with grammatical analysis
+// Result: one entry per split: its words (`split`), `status`, the analyses
+// (`cost`, `graph`, `dot`, `dotURL`, `conll`) and `possibleRelations`
 ```
 
 #### Other functions
@@ -199,22 +241,32 @@ const parseResults = await sentenceParse({
 | Function | Service query | Returns |
 | --- | --- | --- |
 | `sanscriptUtilsVersion()` | `version` | service version; doubles as a connectivity check |
-| `preSegmentedSplits({ text, schemeFrom, schemeTo, limit?, strictIO? })` | `presegmented` | `string[]` |
+| `sandhiSplitPairs({ text, schemeFrom, schemeTo, position?, validOnly?, strictIO? })` | `splitPairs` | `{ left, right, valid }[]`: two-part cuts of one word |
+| `preSegmentedSplits({ text, schemeFrom, schemeTo, strictIO? })` | `presegmented` | `string[]` |
+| `dhatuLookup({ dhatu, schemeFrom, schemeTo })` | `dhatus` | `Dhatu[]`: dhatupatha entries of a root |
+| `pratyaharaVarnas({ name, schemeFrom, schemeTo, longForm?, withLongVowels? })` | `pratyahara` | `{ name, varnas }`; fails for a name that is not a pratyahara |
+| `maheshvaraSutras({ schemeTo })` | `maheshvaraSutras` | `string[]`: the fourteen sutras |
+| `verseMeter({ text, schemeFrom, schemeTo })` | `meter` | `{ text, syllables, pattern }[]`, one per line (G guru, L laghu) |
 | `transliterateText({ text, schemeFrom, schemeTo })` | `transliterate` | `string` |
 | `phoneticWordSearch({ search, searchScheme?, outputScheme?, startsWith?, endsWith?, caseInsensitive?, limit?, offset? })` | `phoneticWordSearch` | `{ total, results: { key, word }[] }` |
 | `sanscriptDictionarySearch({ search, searchScheme?, outputScheme?, origin?, searchOnlyKeys?, startsWith?, endsWith?, fuzzySearch?, caseInsensitive?, limit?, offset? })` | `dictionarySearch` | `{ total, results }` |
 | `sanscriptDictionaryBrowse({ origin, outputScheme?, limit?, offset? })` | `dictionaryBrowse` | `{ total, results }` |
 | `sanscriptDictionaryItem({ id, outputScheme? })` | `dictionarySearchById` | one dictionary entry |
 
-`sandhiSplits`, `sandhiJoins`, `languageTags`, `sentenceParse` and
-`preSegmentedSplits` also accept `strictIO`. Leave it unset (or `false`) unless
-you need it: in strict mode the service rejects inputs it cannot read exactly,
-and fails with an error rather than an empty result.
+`sandhiSplits`, `sandhiSplitPairs`, `sandhiJoins`, `languageTags`,
+`sentenceParse` and `preSegmentedSplits` also accept `strictIO`. Unset (or
+`false`) the service normalises the input: punctuation and digits are dropped
+and a final visarga / anusvara is read the way the lexicon spells it. With
+`strictIO: true` the text is taken as typed and word forms in the output keep
+a final `s` / `r` instead of a visarga.
 
-`sentenceParse` results carry `splitDot` / `parseDots` (Graphviz source) and
-`splitDotURL` / `parseDotURLs`. The URLs point at image-charts.com and contain
-the sentence, so the UI shows them as links to open rather than loading them
-automatically.
+`sentenceParse` results carry `splitDot` (every relation possible between the
+words of the split) and, per analysis, `dot`: Graphviz source, with
+`splitDotURL` / `dotURL` as rendered images. The URLs point at
+image-charts.com and contain the sentence, so the UI shows them as links to
+open rather than loading them automatically. A split the parser could not
+analyse has `status` `NO_PARSE` or `TIMEOUT` and no analyses, but still its
+`possibleRelations`.
 
 The service's dictionary mutations (create / update / delete) are deliberately
 not exposed.
@@ -228,10 +280,15 @@ The package includes React hooks in `src/hooks/use-sanskrit-utils.ts` for easy i
 These hooks wrap the server actions with TanStack Query's mutation functionality.
 
 - `useSandhiSplits()`
+- `useSandhiSplitPairs()`
 - `useSandhiJoins()`
 - `useLanguageTags()`
 - `useSentenceParse()`
 - `usePreSegmentedSplits()`
+- `useDhatuLookup()`
+- `usePratyahara()`
+- `useVerseMeter()`
+- `useMaheshvaraSutras(schemeTo)` (query)
 - `useServiceTransliterate()`
 - `usePhoneticWordSearch()`
 - `useSanscriptDictionarySearch()`

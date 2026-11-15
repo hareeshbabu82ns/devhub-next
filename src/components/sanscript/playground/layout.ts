@@ -34,7 +34,8 @@ export const RESULT_WIDTH = {
 export type ResultKind = keyof typeof RESULT_WIDTH;
 
 const TOOL_SIZE: Size = { width: 300, height: 240 };
-const TEXT_INPUT_SIZE: Size = { width: 200, height: 40 };
+/** Header, three lines of text and padding; it grows with its content */
+const TEXT_INPUT_SIZE: Size = { width: 260, height: 136 };
 
 const lines = (text: string | undefined, perLine: number) =>
   Math.max(1, Math.ceil((text?.length ?? 0) / perLine));
