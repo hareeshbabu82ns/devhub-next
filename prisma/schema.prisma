@@ -36,6 +36,10 @@ model User {
   createdAt DateTime? @default(now())
   updatedAt DateTime? @updatedAt
 
+  // AI model used when none is picked for a request; null = the app default
+  aiProviderId String?
+  aiModel      String?
+
   Playlist    Playlist[]
   SavedSearch SavedSearch[]
   AiChat      AiChat[]
@@ -441,6 +445,71 @@ model RagBuild {
 
 //********** AI Knowledge Index (RAG) End **********//
 
+//********** AI Providers Begin **********//
+
+// A chat model endpoint the app can send AI requests to. Any number can be
+// configured (Settings › AI); the one used is picked per request, falling
+// back to the user's and then the app's default.
+model AiProvider {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  // openai (any OpenAI-compatible /chat/completions endpoint) | anthropic
+  kind         String
+  // empty for anthropic = the official endpoint
+  baseUrl      String   @default("")
+  // encrypted with TOTP_ENCRYPTION_KEY; never sent to the browser
+  apiKey       String?
+  // model names offered in the picker, as the provider knows them
+  models       String[] @default([])
+  defaultModel String   @default("")
+  enabled      Boolean  @default(true)
+  order        Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("AiProviders")
+}
+
+// One run of "fill with AI" over a book or chapter: meanings, word-by-word
+// meanings and web-researched explanations written verse by verse. Progress
+// lives here so any browser can follow it, like RagBuild.
+model AiFillJob {
+  id         String  @id @default(auto()) @map("_id") @db.ObjectId
+  scopeId    String  @db.ObjectId
+  scopeTitle String  @default("")
+  userId     String  @db.ObjectId
+  // queued | running | done | failed | cancelled
+  status     String
+  meaning    Boolean @default(false)
+  words      Boolean @default(false)
+  schools    Boolean @default(false)
+  // replace what is already there instead of filling only the gaps
+  overwrite  Boolean @default(false)
+  // language the meanings and explanations are written in
+  language   String
+  providerId String
+  model      String
+  total      Int     @default(0)
+  done       Int     @default(0)
+  filled     Int     @default(0)
+  skipped    Int     @default(0)
+  failed     Int     @default(0)
+  message    String? @default("")
+  error      String?
+  cancel     Boolean @default(false)
+
+  startedAt   DateTime  @default(now())
+  heartbeatAt DateTime  @default(now())
+  finishedAt  DateTime?
+
+  @@index([scopeId, startedAt(sort: Desc)])
+  @@index([status, heartbeatAt])
+  @@map("AiFillJobs")
+}
+
+//********** AI Providers End **********//
+
 //********** Playlist Begin **********//
 model Playlist {
   id        String         @id @default(auto()) @map("_id") @db.ObjectId
@@ -484,6 +553,18 @@ model AppSettings {
   restrictSignup       Boolean  @default(false)
   allowedSignupEmails  String[] @default([])
   allowedSignupDomains String[] @default([])
+
+  // AI model used when a user has not chosen one ("env" = the provider set
+  // through AI_BASE_URL / AI_MODEL)
+  aiProviderId    String?
+  aiModel         String?
+  // Web search behind "search the web for explanations":
+  // duckduckgo | tavily | brave | searxng
+  webSearchEngine String?
+  // SearXNG instance
+  webSearchUrl    String?
+  // encrypted, like AiProvider.apiKey
+  webSearchApiKey String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

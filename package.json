@@ -28,6 +28,7 @@
     "dict:setup": "bash src/lib/dictionary/scripts/setup.sh"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@auth/prisma-adapter": "^2.11.3",
     "@dagrejs/dagre": "^1.1.8",
     "@hookform/resolvers": "^7.0.6",

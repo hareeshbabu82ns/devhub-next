@@ -30,6 +30,7 @@ import {
   listAnnotations,
   saveAnnotation,
 } from "@/app/(app)/entities/annotation-actions";
+import { AiFillTrigger } from "@/components/features/ai/AiFillDialog";
 
 const languageLabel = (code: string) =>
   LANGUAGES_DDLB.find((l) => l.value === code)?.label ?? code;
@@ -46,7 +47,17 @@ type Draft = {
  * Commentaries and personal thoughts on an entity, each in its own language.
  * Any number can be added; a language filter narrows what is shown.
  */
-export default function EntityAnnotations({ entityId }: { entityId: string }) {
+export default function EntityAnnotations({
+  entityId,
+  aiFill,
+}: {
+  entityId: string;
+  /**
+   * Offer "Fill with AI" here: for a verse its meaning, word-by-word meaning
+   * and the schools' explanations; for a book or chapter the explanations.
+   */
+  aiFill?: { isVerse: boolean; label?: string };
+}) {
   const queryClient = useQueryClient();
   const textSize = useTextSizeAtomValue();
   const defaultLanguage = useMeaningLanguageAtomValue() || "ENG";
@@ -230,6 +241,11 @@ export default function EntityAnnotations({ entityId }: { entityId: string }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {aiFill && (
+        <div className="flex justify-end">
+          <AiFillTrigger entityId={entityId} {...aiFill} />
+        </div>
+      )}
       {languages.length > 1 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">Show</span>

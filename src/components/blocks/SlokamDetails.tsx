@@ -146,7 +146,7 @@ const SlokamDetails = ({
       </div>
 
       {/* Commentaries & thoughts, each in its own language */}
-      <EntityAnnotations entityId={slokamId} />
+      <EntityAnnotations entityId={slokamId} aiFill={{ isVerse: true }} />
 
       {/* Notes & Attributes */}
       <div className="grid grid-cols-1 @5xl/slokamDetails:grid-cols-2 gap-4 pt-6">

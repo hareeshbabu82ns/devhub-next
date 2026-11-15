@@ -39,6 +39,7 @@ import {
 } from "@/hooks/use-config";
 import { useInvalidateEntities } from "@/hooks/use-entity-invalidation";
 import { moveEntity, readEntity, updateEntityContent } from "../actions";
+import { AiFillTrigger } from "@/components/features/ai/AiFillDialog";
 
 interface EntityQuickEditProps {
   entityId: string;
@@ -261,6 +262,14 @@ function QuickEditForm({
       <div className="flex flex-col gap-1.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Label htmlFor="quick-edit-meaning">Meaning</Label>
+          <AiFillTrigger
+            entityId={entity.id}
+            currentText={text}
+            onApplyMeaning={(language, value) => {
+              setMeaningLanguage(language);
+              setMeaning(value);
+            }}
+          />
           <LanguageSelect
             label="Meaning language"
             value={meaningLanguage}

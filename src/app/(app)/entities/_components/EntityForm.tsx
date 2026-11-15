@@ -27,7 +27,15 @@ import {
   RefreshCcw as RefreshIcon,
   CopyPlus as SaveAndNewIcon,
   AudioLines,
+  MessageSquareText as CommentaryIcon,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { EntityTypeEnum } from "@/lib/types";
 import FormInputMDXTextArea from "@/components/inputs/FormInputMDXTextArea";
 import { DeleteConfirmDlgTrigger } from "@/components/blocks/DeleteConfirmDlgTrigger";
@@ -40,6 +48,10 @@ import { useLanguageAtomValue } from "@/hooks/use-config";
 import GenerateAudioDialog from "@/components/blocks/GenerateAudioDialog";
 import DeleteAudioDialog from "@/components/blocks/DeleteAudioDialog";
 import { trackTitle } from "@/lib/audio/queue";
+import { entityChildTypes } from "@/lib/entity-types";
+import { setLanguageValue } from "@/lib/entity-text";
+import EntityAnnotations from "@/components/blocks/EntityAnnotations";
+import { AiFillTrigger } from "@/components/features/ai/AiFillDialog";
 
 export interface EntityExtraProps {
   childrenCount: number;
@@ -99,6 +111,7 @@ export default function EntityForm({
 
   const [audioDialogOpen, setAudioDialogOpen] = useState(false);
   const [confirmDeleteAudio, setConfirmDeleteAudio] = useState(false);
+  const [annotationsOpen, setAnnotationsOpen] = useState(false);
 
   const textTitle =
     text && text.length > 0
@@ -185,9 +198,16 @@ export default function EntityForm({
     onFormSubmit?.(changeData, { addAnother });
   }
 
+  const isVerse = entityChildTypes(typeValue ?? "").length === 0;
+  // the verse as it stands in the editor, saved or not
+  const editorText =
+    text?.find((t) => t.language === "SAN")?.value ||
+    text?.find((t) => t.value)?.value ||
+    "";
+
   // always visible, whichever tab is open
   const typeAndOrder = (
-    <div className="grid grid-cols-[minmax(0,1fr)_7rem] sm:grid-cols-[minmax(0,20rem)_8rem] gap-3">
+    <div className="grid grid-cols-[minmax(0,1fr)_7rem] sm:grid-cols-[minmax(0,20rem)_8rem_minmax(0,1fr)] gap-3">
       <FormSelect
         control={form.control}
         name="type"
@@ -201,6 +221,37 @@ export default function EntityForm({
         type="number"
         placeholder={entityId ? "0" : "auto"}
       />
+      {entityId && (
+        <div className="col-span-2 flex flex-wrap items-end gap-2 sm:col-span-1 sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            className="h-10"
+            onClick={() => setAnnotationsOpen(true)}
+          >
+            <CommentaryIcon className="size-4" />
+            Commentaries
+          </Button>
+          <AiFillTrigger
+            size="default"
+            entityId={entityId}
+            isVerse={isVerse}
+            label={textTitle.slice(0, 60) || undefined}
+            currentText={isVerse ? editorText : undefined}
+            onApplyMeaning={(meaningLanguage, value) =>
+              form.setValue(
+                "meaning",
+                setLanguageValue(
+                  form.getValues("meaning") ?? [],
+                  meaningLanguage,
+                  value,
+                ) as z.infer<typeof EntityFormSchema>["meaning"],
+                { shouldDirty: true },
+              )
+            }
+          />
+        </div>
+      )}
     </div>
   );
 
@@ -467,6 +518,24 @@ export default function EntityForm({
               form.setValue("audio", newAudioUrl, { shouldDirty: true });
             }}
           />
+        )}
+        {entityId && (
+          <Dialog open={annotationsOpen} onOpenChange={setAnnotationsOpen}>
+            <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Commentaries and notes</DialogTitle>
+                <DialogDescription>
+                  Commentaries, word-by-word meaning and your own thoughts.
+                  Each is saved on its own, not with the editor&apos;s Save.
+                </DialogDescription>
+              </DialogHeader>
+              {/* React events cross the portal: keep the note editor's
+                  submit from also submitting the entity form */}
+              <div onSubmit={(e) => e.stopPropagation()}>
+                <EntityAnnotations entityId={entityId} />
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
         {confirmDeleteAudio && entityId && (
           <DeleteAudioDialog

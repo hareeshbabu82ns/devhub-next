@@ -13,6 +13,13 @@ export const ANNOTATION_KINDS = [
     private: false,
   },
   {
+    code: "WORD_MEANING",
+    label: "Word by word",
+    plural: "Word-by-word meaning",
+    titleLabel: "Source (optional)",
+    private: false,
+  },
+  {
     code: "THOUGHT",
     label: "Thought",
     plural: "My thoughts",

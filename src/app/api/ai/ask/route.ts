@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { AI_NOT_CONFIGURED, getAiConfig } from "@/lib/ai/config";
+import { AI_NOT_CONFIGURED } from "@/lib/ai/config";
+import { aiConfigured, resolveAiConfig } from "@/lib/ai/providers";
 import { AskEvent, AskSource, askLibrary, previousSources } from "@/lib/ai/ask";
 import type { PreviousSources } from "@/lib/ai/retrieval";
 import { AiChatTurn, chatHistory, chatTitleFrom } from "@/lib/ai/chats";
@@ -15,6 +16,14 @@ const AskSchema = z.object({
   scopeId: objectId.nullable().optional(),
   /** continue this saved chat; omit to start a new one */
   chatId: objectId.nullable().optional(),
+  /** provider and model to answer with; omit for the default */
+  model: z
+    .object({
+      providerId: z.string().min(1).max(64),
+      model: z.string().min(1).max(200),
+    })
+    .nullable()
+    .optional(),
 });
 
 /**
@@ -27,7 +36,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return NextResponse.json({
-    configured: !!getAiConfig(),
+    configured: await aiConfigured(),
     speech: speechStatus(),
   });
 }
@@ -44,13 +53,21 @@ export async function POST(request: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const config = getAiConfig();
-  if (!config) {
-    return NextResponse.json({ error: AI_NOT_CONFIGURED }, { status: 503 });
-  }
   const parsed = AskSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+  let config: Awaited<ReturnType<typeof resolveAiConfig>>;
+  try {
+    config = await resolveAiConfig(parsed.data.model, userId);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Invalid model" },
+      { status: 400 },
+    );
+  }
+  if (!config) {
+    return NextResponse.json({ error: AI_NOT_CONFIGURED }, { status: 503 });
   }
   const { question } = parsed.data;
 

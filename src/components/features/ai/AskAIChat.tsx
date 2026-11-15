@@ -29,6 +29,8 @@ import AskAIVoiceSettings from "./AskAIVoiceSettings";
 import { useSpeechSettings } from "./use-speech-settings";
 import { useReadAloud } from "./use-read-aloud";
 import { useDictation } from "./use-dictation";
+import AiModelPicker, { AiNotConfigured } from "./AiModelPicker";
+import { useAiModels } from "./use-ai-models";
 
 /** Remembers the open chat per scope so a reload brings it back. */
 const activeChatKey = (scopeId: string | null) =>
@@ -93,8 +95,8 @@ interface AskAIChatProps {
 }
 
 /**
- * Question-and-answer over the library through the configured
- * OpenAI-compatible model. Answers cite the passages they were built from.
+ * Question-and-answer over the library through the model picked above the
+ * question box (the default from Settings › AI unless changed). Answers cite the passages they were built from.
  */
 export default function AskAIChat({
   scopeId = null,
@@ -128,7 +130,6 @@ export default function AskAIChat({
     queryFn: async () => {
       const res = await fetch("/api/ai/ask");
       return (await res.json()) as {
-        configured?: boolean;
         speech?: {
           transcribe: boolean;
           speak: boolean;
@@ -137,6 +138,7 @@ export default function AskAIChat({
     },
     staleTime: 5 * 60 * 1000,
   });
+  const ai = useAiModels();
   const speechServers = status?.speech ?? { transcribe: false, speak: false };
 
   const [speechSettings, updateSpeechSettings] = useSpeechSettings();
@@ -236,7 +238,12 @@ export default function AskAIChat({
       const response = await fetch("/api/ai/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, scopeId, chatId }),
+        body: JSON.stringify({
+          question: q,
+          scopeId,
+          chatId,
+          model: ai.selection,
+        }),
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
@@ -291,7 +298,7 @@ export default function AskAIChat({
   };
   askRef.current = ask;
 
-  const notConfigured = status?.configured === false;
+  const notConfigured = ai.configured === false;
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col gap-3", className)}>
@@ -347,14 +354,7 @@ export default function AskAIChat({
         </Button>
       </div>
 
-      {notConfigured && (
-        <p className="rounded-md border p-3 text-sm" role="alert">
-          No AI model is connected yet. Set <code>AI_BASE_URL</code> and{" "}
-          <code>AI_MODEL</code> (plus <code>AI_API_KEY</code> if your provider
-          needs one) in the server environment and restart the app. Any
-          OpenAI-compatible endpoint works.
-        </p>
-      )}
+      {notConfigured && <AiNotConfigured />}
 
       {view === "history" ? (
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -529,6 +529,12 @@ export default function AskAIChat({
         <p className="-mb-1 text-xs text-muted-foreground">{reader.notice}</p>
       )}
 
+      {!notConfigured && (
+        <AiModelPicker
+          className="-mb-1 h-9 w-full text-xs sm:w-72 sm:self-end"
+          disabled={busy}
+        />
+      )}
       <form
         className="flex items-end gap-2"
         onSubmit={(e) => {

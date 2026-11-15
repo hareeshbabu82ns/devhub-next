@@ -1,7 +1,13 @@
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { entityChildTypes } from "@/lib/entity-types";
-import { AiConfig, AI_NOT_CONFIGURED, getAiConfig } from "../config";
+import {
+  AiConfig,
+  AiSelection,
+  AI_NOT_CONFIGURED,
+  ENV_PROVIDER_ID,
+} from "../config";
+import { resolveAiConfig } from "../providers";
 import {
   childIds,
   CONTAINER_TYPES,
@@ -755,18 +761,22 @@ export async function startRagBuild(
   scopeId: string | null,
   options: RagBuildOptions,
   userId: string,
+  /** model that reads the verses for the graph; omit for the default */
+  selection?: AiSelection | null,
 ): Promise<string> {
   if (!options.embeddings && !options.graph) {
     throw new Error("Choose what to build");
   }
   const embed = getEmbedConfig();
-  const chat = getAiConfig();
+  const chat = options.graph ? await resolveAiConfig(selection, userId) : null;
   // reading 100,000 verses is a lot of work: a smaller, faster model can be
-  // given to the builder alone
-  const ai = chat && {
-    ...chat,
-    model: process.env.AI_RAG_MODEL?.trim() || chat.model,
-  };
+  // given to the builder alone (AI_RAG_MODEL, when the environment's
+  // provider is used and no model was picked for this build)
+  const ragModel = process.env.AI_RAG_MODEL?.trim();
+  const ai =
+    chat && !selection && chat.providerId === ENV_PROVIDER_ID && ragModel
+      ? { ...chat, model: ragModel }
+      : chat;
   if (options.embeddings && !embed) throw new Error(EMBED_NOT_CONFIGURED);
   if (options.graph && !ai) throw new Error(AI_NOT_CONFIGURED);
 

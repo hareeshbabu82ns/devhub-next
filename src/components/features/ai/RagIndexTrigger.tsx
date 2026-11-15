@@ -26,6 +26,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { RagBuildInfo, RagStatus } from "@/lib/ai/rag/types";
+import AiModelPicker from "./AiModelPicker";
+import { useAiModels } from "./use-ai-models";
 
 export const ragStatusKey = (scopeId: string | null) => [
   "ragStatus",
@@ -88,6 +90,7 @@ export function RagIndexPanel({
   const [force, setForce] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const wasRunning = useRef(false);
+  const ai = useAiModels();
 
   const { data: status, error } = useQuery({
     queryKey: ragStatusKey(scopeId),
@@ -119,7 +122,16 @@ export function RagIndexPanel({
 
   const start = useMutation({
     mutationFn: () =>
-      post({ action: "start", scopeId, embeddings, graph, force }),
+      post({
+        action: "start",
+        scopeId,
+        embeddings,
+        graph,
+        force,
+        // unless a model is picked here, the default is used (and the
+        // environment's provider keeps its AI_RAG_MODEL)
+        model: graph && ai.picked ? ai.selection : null,
+      }),
     onSuccess: refresh,
     onError: (e) => toast.error(e.message),
   });
@@ -250,10 +262,18 @@ export function RagIndexPanel({
                 <span className="block text-muted-foreground">
                   {can.graph
                     ? "The AI reads every verse and records the characters, concepts, places and states of mind in it. Powers the Universe view and connected answers. Slow: a long book can take hours, so build chapter by chapter where it matters."
-                    : "Needs a chat model: set AI_BASE_URL and AI_MODEL on the server."}
+                    : "Needs a chat model: add a provider in Settings › AI."}
                 </span>
               </span>
             </label>
+            {can.graph && graph && (
+              <div className="flex flex-col gap-1 pl-7">
+                <span className="text-muted-foreground">
+                  Read by (a small, fast model is enough):
+                </span>
+                <AiModelPicker className="w-full sm:w-72" />
+              </div>
+            )}
             <label className="flex items-start gap-3">
               <Checkbox
                 className="mt-0.5"

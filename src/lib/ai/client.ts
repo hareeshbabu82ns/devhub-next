@@ -1,4 +1,5 @@
 import { AiConfig } from "./config";
+import { anthropicComplete, anthropicStream } from "./anthropic";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";
@@ -39,9 +40,15 @@ export async function chatComplete(
   config: AiConfig,
   messages: ChatMessage[],
   signal?: AbortSignal,
-  /** extra request fields, e.g. `{ temperature: 0.1 }` */
+  /**
+   * extra request fields for OpenAI-compatible servers, e.g.
+   * `{ temperature: 0.1 }`; Claude takes none of them
+   */
   options: Record<string, unknown> = {},
 ): Promise<string> {
+  if (config.kind === "anthropic") {
+    return anthropicComplete(config, messages, signal);
+  }
   const response = await post(
     config,
     { messages, stream: false, ...options },
@@ -57,6 +64,10 @@ export async function* chatStream(
   messages: ChatMessage[],
   signal?: AbortSignal,
 ): AsyncGenerator<string> {
+  if (config.kind === "anthropic") {
+    yield* anthropicStream(config, messages, signal);
+    return;
+  }
   const response = await post(config, { messages, stream: true }, signal);
   if (!response.body) throw new Error("AI server returned no content");
 
@@ -83,4 +94,35 @@ export async function* chatStream(
       }
     }
   }
+}
+
+/** Model names an OpenAI-compatible server offers (`GET /models`). */
+export async function listModels(
+  config: Pick<AiConfig, "baseUrl" | "apiKey">,
+): Promise<string[]> {
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseUrl}/models`, {
+      headers: config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {},
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch {
+    throw new Error(`Could not reach the AI server at ${config.baseUrl}`);
+  }
+  if (!response.ok) throw await failure(response);
+  const json = await response.json().catch(() => null);
+  const list: unknown[] = Array.isArray(json?.data)
+    ? json.data
+    : Array.isArray(json?.models)
+      ? json.models
+      : [];
+  return list
+    .map((m) =>
+      typeof m === "string"
+        ? m
+        : String((m as { id?: unknown; name?: unknown })?.id ?? (m as { name?: unknown })?.name ?? ""),
+    )
+    .map((id) => id.replace(/^models\//, ""))
+    .filter(Boolean)
+    .sort();
 }

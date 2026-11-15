@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { getAiConfig } from "@/lib/ai/config";
+import { aiConfigured } from "@/lib/ai/providers";
 import { getEmbedConfig } from "@/lib/ai/rag/embeddings";
 import {
   cancelRagBuild,
@@ -22,6 +22,14 @@ const ActionSchema = z.discriminatedUnion("action", [
     embeddings: z.boolean(),
     graph: z.boolean(),
     force: z.boolean().optional(),
+    /** provider and model that read the verses for the knowledge graph */
+    model: z
+      .object({
+        providerId: z.string().min(1).max(64),
+        model: z.string().min(1).max(200),
+      })
+      .nullable()
+      .optional(),
   }),
   z.object({ action: z.literal("cancel"), buildId: objectId }),
   z.object({
@@ -68,9 +76,10 @@ export async function GET(request: NextRequest) {
   }
   try {
     const id = scopeId?.data ?? null;
-    const [coverage, running, last] = await Promise.all([
+    const [coverage, running, graph, last] = await Promise.all([
       ragCoverage(id),
       liveBuild(),
+      aiConfigured(),
       db.ragBuild.findFirst({
         where: { scopeId: id },
         orderBy: { startedAt: "desc" },
@@ -80,7 +89,7 @@ export async function GET(request: NextRequest) {
       coverage,
       running: running ? buildInfo(running) : null,
       last: last ? buildInfo(last) : null,
-      can: { embeddings: !!getEmbedConfig(), graph: !!getAiConfig() },
+      can: { embeddings: !!getEmbedConfig(), graph },
     };
     return NextResponse.json(status);
   } catch (error) {
@@ -114,6 +123,7 @@ export async function POST(request: NextRequest) {
           force: body.force ?? false,
         },
         userId,
+        body.model,
       );
       return NextResponse.json({ buildId });
     }

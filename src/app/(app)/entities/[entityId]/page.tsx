@@ -5,6 +5,7 @@ import Link from "next/link";
 import EntitySearchTiles from "../_components/EntitySearchTiles";
 import AskAITrigger from "@/components/features/ai/AskAITrigger";
 import RagIndexTrigger from "@/components/features/ai/RagIndexTrigger";
+import AiFillJobTrigger from "@/components/features/ai/AiFillJobTrigger";
 import { Orbit } from "lucide-react";
 import EntityQuickAdd from "../_components/EntityQuickAdd";
 import EntityQuickEdit from "../_components/EntityQuickEdit";
@@ -155,6 +156,9 @@ const Page = () => {
         </Link>
       </Button>
       <RagIndexTrigger scopeId={entityId} scopeLabel={entity.text} />
+      {canAddChildren && (
+        <AiFillJobTrigger scopeId={entityId} scopeLabel={entity.text} />
+      )}
       <Button
         size="icon"
         type="button"

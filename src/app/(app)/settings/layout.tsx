@@ -45,6 +45,15 @@ const SettingsPage = ({
             General
           </Link>
           <Link
+            href={`${pathPrefix}ai`}
+            className={cn(
+              "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+              isActivePath("ai") ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"
+            )}
+          >
+            AI
+          </Link>
+          <Link
             href={`${pathPrefix}security`}
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
