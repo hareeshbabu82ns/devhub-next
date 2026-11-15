@@ -1,18 +1,23 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
+import nextTypescript from "eslint-config-next/typescript";
 
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...nextCoreWebVitals,
+  ...nextTypescript,
   {
-    ignores: ["src/app/generated/**/*", ".next/**/*", "node_modules/**/*"],
+    ignores: [
+      "src/app/generated/**/*",
+      ".next/**/*",
+      "node_modules/**/*",
+      "coverage/**/*",
+      "test-transliteration.js",
+    ],
+  },
+  {
+    files: ["*.js", "*.cjs", "*.mjs"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
   },
   {
     files: ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
@@ -26,6 +31,11 @@ const eslintConfig = [
           caughtErrorsIgnorePattern: "^_",
         },
       ],
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
 ];

@@ -245,7 +245,7 @@ export function NavMain({ items }: { items: NavItemProps[] }) {
                   )}>
                     {item.icon}
                   </div>
-                  {isCollapsed ? <span className="sr-only">{item.title}</span> : <span className={cn(
+                  {isCollapsed ? <span className="">{item.title}</span> : <span className={cn(
                     "transition-all duration-300 font-medium",
                     item.isActive && "font-semibold"
                   )}>

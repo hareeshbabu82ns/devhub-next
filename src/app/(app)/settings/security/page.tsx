@@ -519,7 +519,7 @@ export default function SecuritySettingsPage() {
                   onClick={() => setRegenerateCodesDialog(false)}
                   className="w-full"
                 >
-                  I've Saved My Codes
+                  I&apos;ve Saved My Codes
                 </Button>
               </DialogFooter>
             </>

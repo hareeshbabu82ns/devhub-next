@@ -35,7 +35,7 @@ export function HeroSection() {
 
         <p className="mb-8 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg md:text-xl">
           A quiet home for stotras, scriptures and the words that explain them
-          — in the script you read, with dictionaries, audio and the day's
+          — in the script you read, with dictionaries, audio and the day&apos;s
           panchangam close at hand.
         </p>
 

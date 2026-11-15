@@ -1,11 +1,12 @@
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
+import bundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from "next";
+import packageJson from "./package.json";
+
+const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.NODE_ENV === "development",
 });
 
-const packageJson = require("./package.json");
-
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   env: {
@@ -49,4 +50,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+export default withBundleAnalyzer(nextConfig);

@@ -361,7 +361,7 @@ export function DictionaryPopupWidget() {
 
           {!isLoading && !error && searchQuery && results.length === 0 && (
             <div className="text-center py-8 text-muted-foreground">
-              No results found for "{searchQuery}"
+              No results found for &quot;{searchQuery}&quot;
             </div>
           )}
 

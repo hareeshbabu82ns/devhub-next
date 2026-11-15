@@ -144,7 +144,7 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
             <Alert>
               <Icons.help className="h-4 w-4" />
               <AlertDescription>
-                You'll need an authenticator app like Google Authenticator,
+                You&apos;ll need an authenticator app like Google Authenticator,
                 Authy, or 1Password to scan the QR code.
               </AlertDescription>
             </Alert>
@@ -188,7 +188,7 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
 
                 <div className="w-full text-center">
                   <p className="text-xs text-muted-foreground mb-2">
-                    Can't scan? Enter this code manually:
+                    Can&apos;t scan? Enter this code manually:
                   </p>
                   <code className="text-xs bg-muted px-2 py-1 rounded font-mono break-all">
                     {secret}
@@ -251,7 +251,7 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
               <Icons.warning className="h-4 w-4" />
               <AlertDescription>
                 Each backup code can only be used once. Keep them secure and
-                don't share them with anyone.
+                don&apos;t share them with anyone.
               </AlertDescription>
             </Alert>
 
@@ -275,7 +275,7 @@ export function TOTPSetupFlow({ onComplete }: TOTPSetupFlowProps) {
               Copy Codes
             </Button>
             <Button onClick={handleComplete} className="w-full">
-              I've Saved My Codes
+              I&apos;ve Saved My Codes
             </Button>
           </DialogFooter>
         </>

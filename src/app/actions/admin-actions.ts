@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -81,7 +82,7 @@ const updateSettingsSchema = z.object({
 
 export async function updateAppSettings(
   data: z.infer<typeof updateSettingsSchema>,
-): Promise<AdminActionResponse<{}>> {
+): Promise<AdminActionResponse<Record<string, never>>> {
   try {
     await requireAdmin();
 
@@ -185,12 +186,11 @@ const resetUserPasswordSchema = z.object({
 
 export async function adminResetUserPassword(
   data: z.infer<typeof resetUserPasswordSchema>,
-): Promise<AdminActionResponse<{}>> {
+): Promise<AdminActionResponse<Record<string, never>>> {
   try {
     await requireAdmin();
 
     const validated = resetUserPasswordSchema.parse(data);
-    const bcrypt = require("bcryptjs");
 
     const user = await db.user.findUnique({
       where: { id: validated.userId },
@@ -234,7 +234,7 @@ export async function adminResetUserPassword(
  */
 export async function adminDisableUserTOTP(
   userId: string,
-): Promise<AdminActionResponse<{}>> {
+): Promise<AdminActionResponse<Record<string, never>>> {
   try {
     await requireAdmin();
 
@@ -282,7 +282,7 @@ const updateUserRoleSchema = z.object({
 
 export async function adminUpdateUserRole(
   data: z.infer<typeof updateUserRoleSchema>,
-): Promise<AdminActionResponse<{}>> {
+): Promise<AdminActionResponse<Record<string, never>>> {
   try {
     const currentAdmin = await requireAdmin();
 
@@ -335,7 +335,7 @@ export async function adminUpdateUserRole(
  */
 export async function adminDeleteUser(
   userId: string,
-): Promise<AdminActionResponse<{}>> {
+): Promise<AdminActionResponse<Record<string, never>>> {
   try {
     const currentAdmin = await requireAdmin();
 

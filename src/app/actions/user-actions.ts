@@ -1,6 +1,7 @@
 "use server";
 
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -91,7 +92,7 @@ const updateProfileSchema = z.object({
 
 export async function updateUserProfile(
   data: z.infer<typeof updateProfileSchema>,
-): Promise<UserActionResponse<{}>> {
+): Promise<UserActionResponse<Record<string, never>>> {
   try {
     const currentUser = await getCurrentUser();
 
@@ -162,10 +163,9 @@ const createPasswordSchema = z
 
 export async function createPassword(
   data: z.infer<typeof createPasswordSchema>,
-): Promise<UserActionResponse<{}>> {
+): Promise<UserActionResponse<Record<string, never>>> {
   try {
     const currentUser = await getCurrentUser();
-    const bcrypt = require("bcryptjs");
 
     const validated = createPasswordSchema.parse(data);
 
@@ -237,10 +237,9 @@ const changePasswordSchema = z
 
 export async function changePassword(
   data: z.infer<typeof changePasswordSchema>,
-): Promise<UserActionResponse<{}>> {
+): Promise<UserActionResponse<Record<string, never>>> {
   try {
     const currentUser = await getCurrentUser();
-    const bcrypt = require("bcryptjs");
 
     const validated = changePasswordSchema.parse(data);
 
@@ -354,10 +353,9 @@ const disableTOTPSchema = z.object({
 
 export async function userDisableTOTP(
   data: z.infer<typeof disableTOTPSchema>,
-): Promise<UserActionResponse<{}>> {
+): Promise<UserActionResponse<Record<string, never>>> {
   try {
     const currentUser = await getCurrentUser();
-    const bcrypt = require("bcryptjs");
 
     const validated = disableTOTPSchema.parse(data);
 
@@ -440,7 +438,6 @@ export async function regenerateBackupCodes(
 ): Promise<UserActionResponse<{ backupCodes: string[] }>> {
   try {
     const currentUser = await getCurrentUser();
-    const bcrypt = require("bcryptjs");
 
     const validated = regenerateBackupCodesSchema.parse(data);
 

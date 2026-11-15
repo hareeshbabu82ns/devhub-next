@@ -123,6 +123,7 @@ export class DictionaryRepository implements IDictionaryRepository {
       this.db = prismaClient;
     } else {
       // Lazy load to avoid initialization issues
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const { db } = require("@/lib/db");
       this.db = db;
     }

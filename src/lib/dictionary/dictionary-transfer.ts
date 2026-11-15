@@ -79,8 +79,8 @@ function openSqlite(path: string, dict: DictionaryName) {
 }
 
 export function readSqliteInfo(dict: DictionaryName, path = sqlitePathFor(dict)): SqliteInfo {
-  if (!existsSync(path)) return { exists: false };
-  const st = statSync(path);
+  if (!existsSync(/*turbopackIgnore: true*/ path)) return { exists: false };
+  const st = statSync(/*turbopackIgnore: true*/ path);
   try {
     const { sqlite, table } = openSqlite(path, dict);
     try {

@@ -137,7 +137,7 @@ const VerseDataSchema = z
     ch: z.union([ChandasSchema, z.null()]).optional(), // chandas information - can be null
     xx: z.array(z.array(z.array(WordAnalysisSchema))).optional(), // word analysis
   })
-  .catchall(z.string().optional()); // Allow any additional string fields for custom meanings
+  .catchall(z.unknown()); // Allow any additional fields for custom meanings
 
 const CustomFieldSchema = z.object({
   name: z.string(), // display name for the field
