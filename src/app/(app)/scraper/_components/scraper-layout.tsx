@@ -11,20 +11,27 @@ import { ScraperGeneric } from "./scraper-generic";
 import { GenericSampleScraper } from "./scraper-generic-sample";
 import { ScraperSthotranidhi } from "./scraper-sthotra-nidhi";
 import { ScraperSanskritSahitya } from "./scraper-sanskrit-sahitya";
+import { ScraperSacredTexts } from "./scraper-sacred-texts";
 import { useSearchParamsUpdater } from "@/hooks/use-search-params-updater";
 import { DictionaryManager } from "@/components/features/dictionary/dictionary-manager";
 
 // Define the navigation items
 const navItems = [
   {
+    id: "sacred-texts",
+    label: "Sacred Texts: books & chapters",
+    group: "Sacred Texts",
+    status: "available",
+  },
+  {
     id: "ramayanam",
-    label: "Ramayanam",
+    label: "Ramayanam (legacy)",
     group: "Sacred Texts",
     status: "available",
   },
   {
     id: "mahabharatam",
-    label: "Mahabharatam",
+    label: "Mahabharatam (legacy)",
     group: "Sacred Texts",
     status: "available",
   },
@@ -133,6 +140,8 @@ export function ScraperLayout() {
   // Render the active content based on the selected section
   const renderContent = () => {
     switch (activeSection) {
+      case "sacred-texts":
+        return <ScraperSacredTexts />;
       case "ramayanam":
         return <ScraperRamayanam />;
       case "mahabharatam":

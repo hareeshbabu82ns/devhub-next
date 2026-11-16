@@ -14,9 +14,9 @@ const customJestConfig = {
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
 
   // Module name mapping for path aliases
-  // moduleNameMapping: {
-  //   "^@/(.*)$": "<rootDir>/src/$1",
-  // },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/src/$1",
+  },
 
   // Test file patterns
   testMatch: [
