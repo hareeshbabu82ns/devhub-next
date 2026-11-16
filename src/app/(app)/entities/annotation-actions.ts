@@ -94,7 +94,16 @@ export async function saveAnnotation(input: {
       }
       const updated = await db.entityAnnotation.update({
         where: { id: input.id },
-        data: { language: input.language, title, text },
+        // an edited import is the editor's now: importer rebuilds keep it
+        // and do not add a fresh copy of it
+        data: {
+          language: input.language,
+          title,
+          text,
+          ...(existing.source && !existing.source.startsWith("edited:")
+            ? { source: `edited:${existing.source}` }
+            : {}),
+        },
       });
       return { status: "success", data: toAnnotation(updated, userId) };
     }

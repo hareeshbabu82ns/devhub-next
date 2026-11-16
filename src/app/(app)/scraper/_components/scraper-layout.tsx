@@ -49,7 +49,7 @@ const navItems = [
   },
   {
     id: "sanskrit-sahitya",
-    label: "Sanskrit Sahitya Import",
+    label: "Sanskrit Sahitya: capture & build",
     group: "Others",
     status: "available",
   },

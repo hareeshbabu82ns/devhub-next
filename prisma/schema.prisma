@@ -175,6 +175,10 @@ model EntityAnnotation {
   order    Int     @default(0)
   // who wrote it; private kinds (thoughts) are only shown to this user
   userId   String? @db.ObjectId
+  // Set when an importer wrote it (e.g. "sanskritsahitya:mn"); a rebuild
+  // replaces only its own annotations. Editing one by hand makes it
+  // "edited:sanskritsahitya:mn", which a rebuild keeps and does not re-add.
+  source   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -220,6 +224,85 @@ model EntityType {
 
   @@map("EntityTypes")
 }
+
+//********** Sanskrit Sahitya Begin **********//
+// Works from data/sanskritsahitya-com-data move through two stages, like
+// the dictionaries:  source JSON ──capture──▶ SahityaRawRecords ──build──▶ Entities
+// See src/lib/sahitya/README.md.
+
+// One per work (a folder of the data repository): where its originals came
+// from and the state of the two stages.
+model SahityaSource {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  // folder / file base name, e.g. "ramayanam" (also the sanskritsahitya.org path)
+  work            String    @unique
+  title           String
+  // source files in reading order, relative to the data directory
+  files           String[]
+  // size + mtime of every file at capture, to spot changed sources
+  sourceSignature String?
+  // git commit of the data repository at capture, when it is a checkout
+  sourceRevision  String?
+  // everything in the source except the data rows (title, custom, terms,
+  // books, chapters and any keys added later), untouched
+  header          Json?     @db.Json
+  // { field: count } over all data rows at the last capture
+  fieldStats      Json?     @db.Json
+  rawCount        Int       @default(0)
+  capturedAt      DateTime?
+  // build options (entityType, parentId, bookmarkAll) used last time
+  options         Json?     @db.Json
+  rootEntityId    String?   @db.ObjectId
+  entityCount     Int       @default(0)
+  builtAt         DateTime?
+  builtVersion    Int?
+  lastError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("SahityaSources")
+}
+
+// Every book, chapter and data row of a work exactly as it is in the source,
+// so entities can be rebuilt at any time without the source files.
+model SahityaRawRecord {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  work        String
+  // stable key within the work: "b:1", "c:1.2", "v:1.2:17", "t:1.2:17:1"
+  key         String
+  // "book" | "chapter" | "row"
+  kind        String
+  // reading order across the whole work (books, then chapters, then rows)
+  seq         Int
+  // chapter number of a row, or the number of a book / chapter
+  ref         String?
+  // source file the row came from
+  file        String?
+  // the source object, every key, untouched
+  row         Json     @db.Json
+  // hash of row, to tell changed rows on a re-capture
+  hash        String
+  // capture run that last saw this record
+  runId       String?
+  // no longer in the source; its entity is removed by the next build
+  removed     Boolean  @default(false)
+  // build plan: parent record key ("" = the work's root) and position under it
+  parentKey   String?
+  pos         Int?
+  // entity built from this record, and a hash of what was written to it
+  // (a different hash on the entity now means it was edited by hand)
+  entityId    String?  @db.ObjectId
+  builtHash   String?
+  builtVersion Int?
+  importedAt  DateTime @default(now())
+
+  @@unique([work, key], map: "sahitya_raw_work_key_uq")
+  @@index([work, seq], map: "sahitya_raw_work_seq_idx")
+  @@index([work, runId], map: "sahitya_raw_work_run_idx")
+  @@index([entityId], map: "sahitya_raw_entity_idx")
+  @@map("SahityaRawRecords")
+}
+//********** Sanskrit Sahitya End **********//
 
 //********** Entities End **********//
 

@@ -1,33 +1,47 @@
+/**
+ * Sanskrit Sahitya manager (Scraper → Sanskrit Sahitya)
+ *
+ * Every work in data/sanskritsahitya-com-data moves through two stages:
+ *
+ *   Source JSON ──capture──▶ Originals ──build──▶ Entities (+ annotations)
+ *
+ * Capturing keeps every book, chapter and verse untouched in the database,
+ * so the entities can be rebuilt any time (new processing rules, new fields
+ * in the source) without the files, and a re-capture reports exactly what
+ * changed upstream. Building updates entities in place, so bookmarks, notes,
+ * audio and your own annotations stay; entities edited by hand are kept.
+ * See src/lib/sahitya/README.md.
+ */
+
 "use client";
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import {
-  Loader2,
-  Upload,
-  Eye,
-  FileText,
-  Database,
-  ChevronRight,
-  ChevronDown,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  EyeIcon,
+  HammerIcon,
+  Loader2Icon,
+  MoreHorizontalIcon,
+  PlayIcon,
+  RefreshCwIcon,
+  SquareIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
+  XIcon,
 } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
-import {
-  parseSanskritSahityaFile,
-  importSanskritSahityaData,
-  readSanskritSahityaJsonFile,
-} from "@/app/actions/sanskrit-sahitya-import-actions";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -35,911 +49,747 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ENTITY_TYPES_DDLB, ENTITY_TYPES_PARENTS } from "@/lib/constants";
 import EntitySearchDlgTrigger from "@/app/(app)/entities/_components/EntitySearchDlgTrigger";
+import type { BuildBatchResult, WorkRow } from "@/lib/sahitya/sahitya-pipeline";
+import type { RowKeyState } from "@/lib/sahitya/sahitya-format";
+import {
+  beginSahityaBuild,
+  beginSahityaCapture,
+  buildSahityaBatch,
+  captureSahityaFile,
+  deleteLegacySahityaImport,
+  deleteSahityaEntities,
+  deleteSahityaOriginals,
+  finishSahityaBuild,
+  finishSahityaCapture,
+  getSahityaOverview,
+  previewSahityaWork,
+} from "@/app/actions/sahitya-pipeline-actions";
 
-// Types for the parsed data
-interface LanguageValue {
-  language: string;
-  value: string;
-}
-
-interface ParsedEntity {
-  type: string;
-  text: LanguageValue[];
-  meaning: LanguageValue[];
-  order: number;
-  bookmarked: boolean;
-  attributes: Array<{ key: string; value: string }>;
-  notes: string;
-}
-
-interface ParsedHierarchy {
-  root: ParsedEntity;
-  books: ParsedEntity[];
-  chapters: ParsedEntity[];
-  verses: ParsedEntity[];
-  metadata: {
-    totalEntities: number;
-    rootTitle: string;
-    bookCount: number;
-    chapterCount: number;
-    verseCount: number;
-    hasHierarchicalBooks: boolean;
-  };
-}
-
-interface FileItem {
-  path: string;
-  name: string;
-}
-
-// Available Sanskrit Sahitya files from data/sanskritsahitya-com-data
-const AVAILABLE_FILES: FileItem[] = [
-  { path: "amarushatakam/amarushatakam.json", name: "Amarushatakam" },
-  { path: "bhattikavyam/bhattikavyam.json", name: "Bhattikavyam" },
-  {
-    path: "kadambarisangraha/kadambarisangraha.json",
-    name: "Kadambari Sangraha",
-  },
-  { path: "kiratarjuniyam/kiratarjuniyam.json", name: "Kiratarjuniyam" },
-  { path: "kumarasambhavam/kumarasambhavam.json", name: "Kumarasambhavam" },
-  { path: "mahabharatam/mahabharatam1.json", name: "Mahabharatam" },
-  { path: "meghadutam/meghadutam.json", name: "Meghadutam" },
-  {
-    path: "naishadhiyacaritam/naishadhiyacaritam.json",
-    name: "Naishadhiyacaritam",
-  },
-  {
-    path: "natyashastram/natyashastram.json",
-    name: "Natyashastram",
-  },
-  { path: "pancatantram/pancatantram.json", name: "Pancatantram" },
-  { path: "raghuvansham/raghuvansham.json", name: "Raghuvansham" },
-  { path: "ramayanam/ramayanam1.json", name: "Ramayanam" },
-  { path: "rtusamharam/rtusamharam.json", name: "Rtusamharam" },
-  { path: "shakuntalam/shakuntalam.json", name: "Shakuntalam" },
-  { path: "shatakatrayam/shatakatrayam.json", name: "Shatakatrayam" },
-  { path: "shishupalavadham/shishupalavadham.json", name: "Shishupalavadham" },
-  { path: "shringaraprakash/shringaraprakash.json", name: "Shringaraprakash" },
-  {
-    path: "srimadbhagavadgita/srimadbhagavadgita.json",
-    name: "Srimad Bhagavad Gita",
-  },
-];
-
-type WizardStep =
-  | "SELECT_FILE"
-  | "PREVIEW_JSON"
-  | "PREVIEW_ENTITIES"
-  | "IMPORT_TO_DB";
-
-const STEP_LABELS = {
-  SELECT_FILE: "Select File",
-  PREVIEW_JSON: "Preview JSON",
-  PREVIEW_ENTITIES: "Preview Entities",
-  IMPORT_TO_DB: "Import to Database",
+type Res<T> = { status: "success"; data: T } | { status: "error"; error: string };
+const unwrap = <T,>(r: Res<T>): T => {
+  if (r.status === "error") throw new Error(r.error);
+  return r.data;
 };
 
+const ago = (iso: string | null) =>
+  iso ? formatDistanceToNow(new Date(iso), { addSuffix: true }) : "";
+
+interface BuildSettings {
+  entityType: string;
+  parentId: string | null;
+  bookmarkAll: boolean;
+  overwriteEdited: boolean;
+  batchSize: number;
+}
+
+interface Job {
+  work: string;
+  step: "capture" | "build";
+  label: string;
+  done: number;
+  total: number;
+  log: string[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Runner                                                              */
+/* ------------------------------------------------------------------ */
+
+function useRunner(onFinished: () => void) {
+  const [job, setJob] = useState<Job | null>(null);
+  const stop = useRef(false);
+
+  const update = (patch: Partial<Job>, line?: string) =>
+    setJob((j) => (j ? { ...j, ...patch, log: line ? [...j.log, line] : j.log } : j));
+
+  async function capture(work: string) {
+    setJob({ work, step: "capture", label: "Reading source files", done: 0, total: 1, log: [] });
+    const begin = unwrap(await beginSahityaCapture(work));
+    update({ total: begin.files.length });
+    let state: RowKeyState | undefined;
+    const sum = { added: 0, changed: 0, unchanged: 0 };
+    for (let i = 0; i < begin.files.length; i++) {
+      if (stop.current) throw new Error("Stopped");
+      update({ label: `Capturing ${begin.files[i]}` });
+      const r = unwrap(
+        await captureSahityaFile({ work, runId: begin.runId, fileIndex: i, state }),
+      );
+      state = r.state;
+      sum.added += r.added;
+      sum.changed += r.changed;
+      sum.unchanged += r.unchanged;
+      update(
+        { done: i + 1 },
+        `${r.file}: ${r.rows} rows — ${r.added} new, ${r.changed} changed, ${r.unchanged} same`,
+      );
+    }
+    const fin = unwrap(
+      await finishSahityaCapture({ work, runId: begin.runId, signature: begin.signature }),
+    );
+    update(
+      { label: "Captured" },
+      `Originals: ${fin.total} (${sum.added} new, ${sum.changed} changed, ${fin.removed} no longer in the source)`,
+    );
+  }
+
+  async function build(work: string, s: BuildSettings) {
+    setJob({ work, step: "build", label: "Preparing", done: 0, total: 1, log: [] });
+    const begin = unwrap(
+      await beginSahityaBuild({
+        work,
+        entityType: s.entityType,
+        parentId: s.parentId,
+        bookmarkAll: s.bookmarkAll,
+      }),
+    );
+    update(
+      { total: begin.total, label: "Building entities" },
+      `${begin.rootCreated ? "Created" : "Updated"} the work's entity; ${begin.total} originals to build`,
+    );
+    let afterSeq: number | null = null;
+    let done = 0;
+    const sum = { created: 0, updated: 0, unchanged: 0, kept: 0, annotations: 0 };
+    for (;;) {
+      if (stop.current) throw new Error("Stopped (run the build again to finish it)");
+      const r: BuildBatchResult = unwrap(
+        await buildSahityaBatch({
+          work,
+          afterSeq,
+          size: s.batchSize,
+          overwriteEdited: s.overwriteEdited,
+        }),
+      );
+      if (r.done === 0) break;
+      done += r.done;
+      afterSeq = r.lastSeq;
+      for (const k of Object.keys(sum) as (keyof typeof sum)[]) sum[k] += r[k];
+      update({ done });
+    }
+    update({ label: "Linking chapters and verses" });
+    const fin = unwrap(await finishSahityaBuild({ work }));
+    update(
+      { label: "Built", done: begin.total },
+      `${sum.created} created, ${sum.updated} updated, ${sum.unchanged} unchanged, ${sum.kept} kept (edited by hand), ${sum.annotations} annotations; ${fin.removedEntities} removed`,
+    );
+  }
+
+  async function run(fn: () => Promise<void>) {
+    stop.current = false;
+    try {
+      await fn();
+      toast.success("Done");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setJob((j) => (j ? { ...j, label: "Failed", log: [...j.log, msg] } : j));
+      toast.error(msg);
+    } finally {
+      onFinished();
+    }
+  }
+
+  return {
+    job,
+    busy: !!job && !["Built", "Captured", "Failed"].includes(job.label),
+    clear: () => setJob(null),
+    stop: () => (stop.current = true),
+    capture: (work: string) => run(() => capture(work)),
+    build: (work: string, s: BuildSettings) => run(() => build(work, s)),
+    captureAndBuild: (work: string, s: BuildSettings) =>
+      run(async () => {
+        await capture(work);
+        await build(work, s);
+      }),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Manager                                                             */
+/* ------------------------------------------------------------------ */
+
 export function ScraperSanskritSahitya() {
-  const [currentStep, setCurrentStep] = useState<WizardStep>("SELECT_FILE");
-  const [selectedFile, setSelectedFile] = useState("");
-  const [rawJsonData, setRawJsonData] = useState<any>(null);
-  const [parsedData, setParsedData] = useState<ParsedHierarchy | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [dlgOpen, setDlgOpen] = useState(false);
-  const [importOptions, setImportOptions] = useState({
-    deleteExisting: false,
-    bookmarkAll: false,
-    defaultLanguage: "SAN",
-    meaningLanguage: "ENG",
-    entityType: "KAVYAM",
-    parentId: "",
-    maxRecords: undefined as number | undefined, // For testing: limit number of verses to process
+  const queryClient = useQueryClient();
+  const { data, isLoading, error, isFetching, refetch } = useQuery({
+    queryKey: ["sahitya-overview"],
+    queryFn: async () => unwrap(await getSahityaOverview()),
   });
+  const runner = useRunner(() => queryClient.invalidateQueries({ queryKey: ["sahitya-overview"] }));
+  const [settingsFor, setSettingsFor] = useState<{ row: WorkRow; mode: "build" | "both" } | null>(null);
+  const [previewFor, setPreviewFor] = useState<WorkRow | null>(null);
+  const [showReference, setShowReference] = useState(false);
 
-  // Step navigation functions
-  const goToStep = (step: WizardStep) => {
-    setCurrentStep(step);
-  };
+  const rows = (data?.rows ?? []).filter((r) => showReference || r.kind === "work");
+  const isAdmin = !!data?.isAdmin;
 
-  const nextStep = () => {
-    const steps: WizardStep[] = [
-      "SELECT_FILE",
-      "PREVIEW_JSON",
-      "PREVIEW_ENTITIES",
-      "IMPORT_TO_DB",
-    ];
-    const currentIndex = steps.indexOf(currentStep);
-    if (currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1]);
-    }
-  };
-
-  const prevStep = () => {
-    const steps: WizardStep[] = [
-      "SELECT_FILE",
-      "PREVIEW_JSON",
-      "PREVIEW_ENTITIES",
-      "IMPORT_TO_DB",
-    ];
-    const currentIndex = steps.indexOf(currentStep);
-    if (currentIndex > 0) {
-      setCurrentStep(steps[currentIndex - 1]);
-    }
-  };
-
-  // File selection and JSON preview
-  const handleFileSelection = async () => {
-    if (!selectedFile) {
-      toast({
-        title: "File Required",
-        description: "Please select a file to preview",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
+  const confirmRun = async (message: string, fn: () => Promise<Res<number>>) => {
+    if (!window.confirm(message)) return;
     try {
-      // Construct the full path for the Sanskrit Sahitya data
-      const fullPath = `data/sanskritsahitya-com-data/${selectedFile}`;
-
-      // Use server action to read the raw JSON for preview
-      const result = await readSanskritSahityaJsonFile(fullPath);
-
-      if (result.status === "success") {
-        setRawJsonData(result.data);
-        nextStep();
-      } else {
-        toast({
-          title: "Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error loading file:", error);
-      toast({
-        title: "Error",
-        description: `Failed to load file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+      const n = unwrap(await fn());
+      toast.success(`Removed ${n}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
+    queryClient.invalidateQueries({ queryKey: ["sahitya-overview"] });
   };
-
-  // Parse JSON to entity format
-  const handleParseToEntities = async () => {
-    if (!selectedFile) return;
-
-    setIsLoading(true);
-    try {
-      // Construct the full path for the Sanskrit Sahitya data
-      const fullPath = `data/sanskritsahitya-com-data/${selectedFile}`;
-
-      const result = await parseSanskritSahityaFile(fullPath, {
-        defaultLanguage: importOptions.defaultLanguage,
-        meaningLanguage: importOptions.meaningLanguage,
-        bookmarkAll: importOptions.bookmarkAll,
-        entityType: importOptions.entityType,
-        parentId: importOptions.parentId,
-        maxRecords: importOptions.maxRecords,
-      });
-
-      if (result.status === "success") {
-        setParsedData(result.data);
-        nextStep();
-      } else {
-        toast({
-          title: "Parsing Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error parsing file:", error);
-      toast({
-        title: "Error",
-        description: `Failed to parse file: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Import to database
-  const handleImportToDatabase = async () => {
-    if (!selectedFile) return;
-
-    setIsLoading(true);
-    try {
-      const result = await importSanskritSahityaData({
-        filePath: `data/sanskritsahitya-com-data/${selectedFile}`,
-        options: importOptions,
-      });
-
-      if (result.status === "success") {
-        toast({
-          title: "Success",
-          description: `Successfully imported ${result.data.entitiesCreated} entities for "${result.data.bookTitle}"`,
-        });
-        // Reset to first step for next import
-        setCurrentStep("SELECT_FILE");
-        setSelectedFile("");
-        setRawJsonData(null);
-        setParsedData(null);
-      } else {
-        toast({
-          title: "Import Error",
-          description: result.error,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error importing data:", error);
-      toast({
-        title: "Error",
-        description: `Failed to import data: ${error instanceof Error ? error.message : "Unknown error"}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Progress indicator
-  const renderProgressIndicator = () => {
-    const steps: WizardStep[] = [
-      "SELECT_FILE",
-      "PREVIEW_JSON",
-      "PREVIEW_ENTITIES",
-      "IMPORT_TO_DB",
-    ];
-    const currentIndex = steps.indexOf(currentStep);
-
-    return (
-      <div className="flex items-center space-x-2 mb-6">
-        {steps.map((step, index) => (
-          <React.Fragment key={step}>
-            <div
-              className={`flex items-center space-x-2 cursor-pointer p-2 rounded-lg transition-colors ${
-                index <= currentIndex
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-              onClick={() => index <= currentIndex && goToStep(step)}
-            >
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  index <= currentIndex
-                    ? "bg-primary-foreground text-primary"
-                    : "bg-muted-foreground text-muted"
-                }`}
-              >
-                {index + 1}
-              </div>
-              <span className="text-sm font-medium">{STEP_LABELS[step]}</span>
-            </div>
-            {index < steps.length - 1 && (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  };
-
-  // Step 1: File Selection
-  const renderFileSelection = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Select Sanskrit Sahitya JSON File
-        </CardTitle>
-        <CardDescription>
-          Choose a Sanskrit literature JSON file from the available collection
-          to import. ({AVAILABLE_FILES.length} files available)
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="file-select">Available Files:</Label>
-          <Select value={selectedFile} onValueChange={setSelectedFile}>
-            <SelectTrigger id="file-select">
-              <SelectValue placeholder="Select a Sanskrit literature file..." />
-            </SelectTrigger>
-            <SelectContent>
-              {AVAILABLE_FILES.map((file: FileItem) => (
-                <SelectItem key={file.path} value={file.path}>
-                  {file.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="max-records">
-            Max Records (Testing)
-            <span className="text-muted-foreground ml-2">
-              Leave empty to process all records
-            </span>
-          </Label>
-          <Input
-            id="max-records"
-            type="number"
-            placeholder="e.g., 10"
-            min={1}
-            value={importOptions.maxRecords || ""}
-            onChange={(e) => {
-              const value = e.target.value
-                ? parseInt(e.target.value, 10)
-                : undefined;
-              setImportOptions((prev) => ({
-                ...prev,
-                maxRecords: value,
-              }));
-            }}
-          />
-          <p className="text-xs text-muted-foreground">
-            For testing purposes, you can limit the number of verses to process.
-            This helps with large files like Mahabharatam or Ramayanam.
-          </p>
-        </div>
-
-        <div className="flex justify-end">
-          <Button
-            onClick={handleFileSelection}
-            disabled={!selectedFile || isLoading}
-            className="flex items-center gap-2"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-            {isLoading ? "Loading..." : "Preview JSON"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // Step 2: JSON Preview
-  const renderJsonPreview = () => {
-    if (!rawJsonData) return null;
-
-    const { title, data, books, chapters } = rawJsonData;
-    const firstFewRecords = data.slice(0, 5); // Show first 5 records
-    const totalRecords = data.length;
-
-    // Check if this appears to be a split file by looking at the file name
-    const isSplitFile = selectedFile.match(/\d+\.json$/);
-    const baseFileName = selectedFile.replace(/\d+\.json$/, "");
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            JSON Preview: {title}
-          </CardTitle>
-          <CardDescription>
-            Showing first {firstFewRecords.length} of {totalRecords} records
-            from the JSON file
-            {isSplitFile ? " (combined from multiple split files)" : ""}.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isSplitFile && (
-            <Alert>
-              <AlertDescription>
-                <strong>Split File Detected:</strong> This work is split across
-                multiple files ({baseFileName}1.json, {baseFileName}2.json,
-                etc.). All files have been automatically combined, showing{" "}
-                {totalRecords} total verses from all parts.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <Badge variant="secondary">Title</Badge>
-              <p className="mt-1 font-medium">{title}</p>
-            </div>
-            <div>
-              <Badge variant="secondary">Total Records</Badge>
-              <p className="mt-1 font-medium">{totalRecords} verses</p>
-            </div>
-            {isSplitFile && (
-              <div>
-                <Badge variant="secondary">File Type</Badge>
-                <p className="mt-1 font-medium">Split File (Combined)</p>
-              </div>
-            )}
-          </div>
-
-          {(books?.length > 0 || chapters?.length > 0) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              {books?.length > 0 && (
-                <div>
-                  <Badge variant="outline">Books</Badge>
-                  <p className="mt-1">{books.length} books available</p>
-                </div>
-              )}
-              {chapters?.length > 0 && (
-                <div>
-                  <Badge variant="outline">Chapters</Badge>
-                  <p className="mt-1">{chapters.length} chapters available</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          <Separator />
-
-          <div className="space-y-3">
-            <h4 className="font-medium">Sample Records:</h4>
-            {firstFewRecords.map((record: any, index: number) => (
-              <Collapsible key={index}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 bg-muted rounded-lg hover:bg-muted/80">
-                  <span className="font-medium">
-                    Verse {record.n} (Index: {record.i})
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="p-3 border rounded-lg mt-2 bg-background">
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <Badge variant="outline">Sanskrit Text</Badge>
-                      <p className="mt-1 text-lg">{record.v || record.t}</p>
-                    </div>
-                    {record.vd && (
-                      <div>
-                        <Badge variant="outline">Commentary</Badge>
-                        <p className="mt-1 text-sm text-muted-foreground line-clamp-3">
-                          {record.vd.substring(0, 200)}...
-                        </p>
-                      </div>
-                    )}
-                    {record.ch && (
-                      <div>
-                        <Badge variant="outline">Meter</Badge>
-                        <p className="mt-1">{record.ch.n}</p>
-                      </div>
-                    )}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
-          </div>
-
-          {totalRecords > 5 && (
-            <Alert>
-              <AlertDescription>
-                Only showing first 5 records. The complete file contains{" "}
-                {totalRecords} verses.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={prevStep}>
-              Back
-            </Button>
-            <Button onClick={handleParseToEntities} disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Eye className="w-4 h-4 mr-2" />
-              )}
-              {isLoading ? "Parsing..." : "Preview Entities"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Step 3: Entity Preview
-  const renderEntityPreview = () => {
-    if (!parsedData) return null;
-
-    const { root, books, chapters, verses } = parsedData;
-    const sampleVerses = verses.slice(0, 3); // Show first 3 verses
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="w-5 h-5" />
-            Entity Preview
-          </CardTitle>
-          <CardDescription>
-            Preview how the data will look after conversion to DevHub entity
-            format.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Import Options */}
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <h4 className="font-medium mb-3">Import Options</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="entity-type">Entity Type</Label>
-                <Select
-                  value={importOptions.entityType}
-                  onValueChange={(value) =>
-                    setImportOptions((prev) => ({
-                      ...prev,
-                      entityType: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger id="entity-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENTITY_TYPES_DDLB.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="parent-id">Parent Entity</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="parent-id"
-                    placeholder="Enter parent entity ID"
-                    value={importOptions.parentId}
-                    onChange={(e) =>
-                      setImportOptions((prev) => ({
-                        ...prev,
-                        parentId: e.target.value,
-                      }))
-                    }
-                  />
-                  <EntitySearchDlgTrigger
-                    open={dlgOpen}
-                    forTypes={
-                      ENTITY_TYPES_PARENTS[
-                        importOptions.entityType as keyof typeof ENTITY_TYPES_PARENTS
-                      ] || []
-                    }
-                    onOpenChange={(open) => setDlgOpen(open)}
-                    onClick={(entity) => {
-                      setImportOptions((prev) => ({
-                        ...prev,
-                        parentId: entity.id,
-                      }));
-                      setDlgOpen(false);
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="default-lang">Default Language</Label>
-                <Select
-                  value={importOptions.defaultLanguage}
-                  onValueChange={(value) =>
-                    setImportOptions((prev) => ({
-                      ...prev,
-                      defaultLanguage: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger id="default-lang">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SAN">Sanskrit (SAN)</SelectItem>
-                    <SelectItem value="HIN">Hindi (HIN)</SelectItem>
-                    <SelectItem value="ENG">English (ENG)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="meaning-lang">Meaning Language</Label>
-                <Select
-                  value={importOptions.meaningLanguage}
-                  onValueChange={(value) =>
-                    setImportOptions((prev) => ({
-                      ...prev,
-                      meaningLanguage: value,
-                    }))
-                  }
-                >
-                  <SelectTrigger id="meaning-lang">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ENG">English (ENG)</SelectItem>
-                    <SelectItem value="HIN">Hindi (HIN)</SelectItem>
-                    <SelectItem value="SAN">Sanskrit (SAN)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="bookmark-all"
-                  checked={importOptions.bookmarkAll}
-                  onCheckedChange={(checked) =>
-                    setImportOptions((prev) => ({
-                      ...prev,
-                      bookmarkAll: checked,
-                    }))
-                  }
-                />
-                <Label htmlFor="bookmark-all">Bookmark all entities</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="delete-existing"
-                  checked={importOptions.deleteExisting}
-                  onCheckedChange={(checked) =>
-                    setImportOptions((prev) => ({
-                      ...prev,
-                      deleteExisting: checked,
-                    }))
-                  }
-                />
-                <Label htmlFor="delete-existing">Delete existing data</Label>
-              </div>
-            </div>
-          </div>
-
-          {/* Entity Structure Preview */}
-          <div className="space-y-4">
-            <h4 className="font-medium">Entity Structure:</h4>
-
-            {/* Book Entity */}
-            <div className="p-3 border rounded-lg">
-              <Badge className="mb-2">Root Entity</Badge>
-              <div className="text-sm space-y-1">
-                <p>
-                  <strong>Type:</strong> {root.type}
-                </p>
-                <p>
-                  <strong>Text:</strong> {root.text[0]?.value}
-                </p>
-                <p>
-                  <strong>Bookmarked:</strong> {root.bookmarked ? "Yes" : "No"}
-                </p>
-              </div>
-            </div>
-
-            {/* Book Entities */}
-            {books.length > 0 && (
-              <div className="space-y-2">
-                <Badge className="mb-2">Book Entities ({books.length})</Badge>
-                {books.slice(0, 3).map((book, index) => (
-                  <div key={index} className="p-2 border rounded-lg">
-                    <div className="text-sm space-y-1">
-                      <p>
-                        <strong>Type:</strong> {book.type}
-                      </p>
-                      <p>
-                        <strong>Text:</strong> {book.text[0]?.value}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-                {books.length > 3 && (
-                  <p className="text-sm text-gray-500">
-                    ... and {books.length - 3} more books
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Chapter Entities */}
-            {chapters.length > 0 && (
-              <div className="p-3 border rounded-lg">
-                <Badge variant="secondary" className="mb-2">
-                  Chapter Entities ({chapters.length})
-                </Badge>
-                <div className="text-sm">
-                  <p>
-                    Chapter entities will be created as needed based on the
-                    content structure.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Sample Verse Entities */}
-            <div className="space-y-2">
-              <Badge variant="outline">
-                Sample Verse Entities (showing {sampleVerses.length} of{" "}
-                {verses.length})
-              </Badge>
-              {sampleVerses.map((verse, index) => (
-                <div
-                  key={index}
-                  className="p-3 border rounded-lg bg-background"
-                >
-                  <div className="text-sm space-y-2">
-                    <div className="flex justify-between items-start">
-                      <span>
-                        <strong>Order:</strong> {verse.order}
-                      </span>
-                      <Badge
-                        variant={verse.bookmarked ? "default" : "outline"}
-                        className="text-xs"
-                      >
-                        {verse.bookmarked ? "Bookmarked" : "Not bookmarked"}
-                      </Badge>
-                    </div>
-                    <div>
-                      <strong>Text ({verse.text[0]?.language}):</strong>
-                      <p className="mt-1 text-lg">{verse.text[0]?.value}</p>
-                    </div>
-                    {verse.meaning.length > 0 && (
-                      <div>
-                        <strong>Meaning ({verse.meaning[0]?.language}):</strong>
-                        <p className="mt-1 text-muted-foreground">
-                          {verse.meaning[0]?.value.substring(0, 100)}...
-                        </p>
-                      </div>
-                    )}
-                    {verse.attributes.length > 0 && (
-                      <div>
-                        <strong>Attributes:</strong>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {verse.attributes.map((attr, i) => (
-                            <Badge
-                              key={i}
-                              variant="outline"
-                              className="text-xs"
-                            >
-                              {attr.key}: {attr.value}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Alert>
-            <AlertDescription>
-              {parsedData.metadata.hasHierarchicalBooks && (
-                <>
-                  Total entities to be created: 1 root + {books.length} books +{" "}
-                  {chapters.length} chapters + {verses.length} verses ={" "}
-                  {parsedData.metadata.totalEntities} entities
-                </>
-              )}
-              {!parsedData.metadata.hasHierarchicalBooks && (
-                <>
-                  Total entities to be created: 1 root + {chapters.length}{" "}
-                  chapters + {verses.length} verses ={" "}
-                  {parsedData.metadata.totalEntities} entities
-                </>
-              )}
-              {selectedFile.match(/\d+\.json$/) && (
-                <>
-                  <br />
-                  <strong>Note:</strong> This data was combined from multiple
-                  split files to create {verses.length} total verses.
-                </>
-              )}
-            </AlertDescription>
-          </Alert>
-
-          <div className="flex justify-between">
-            <Button variant="outline" onClick={prevStep}>
-              Back
-            </Button>
-            <Button onClick={() => nextStep()}>Proceed to Import</Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Step 4: Database Import
-  const renderDatabaseImport = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="w-5 h-5" />
-          Import to Database
-        </CardTitle>
-        <CardDescription>
-          Final step: Import the parsed entities to the DevHub database.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {parsedData && (
-          <div className="p-4 border rounded-lg bg-muted/50">
-            <h4 className="font-medium mb-2">Import Summary</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <Badge variant="secondary">Book</Badge>
-                <p className="mt-1">{parsedData.root.text[0]?.value}</p>
-              </div>
-              <div>
-                <Badge variant="secondary">Total Entities</Badge>
-                <p className="mt-1">
-                  {1 + parsedData.chapters.length + parsedData.verses.length}
-                </p>
-              </div>
-              <div>
-                <Badge variant="secondary">Chapters</Badge>
-                <p className="mt-1">{parsedData.chapters.length}</p>
-              </div>
-              <div>
-                <Badge variant="secondary">Verses</Badge>
-                <p className="mt-1">{parsedData.verses.length}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <Alert>
-          <AlertDescription>
-            {importOptions.deleteExisting
-              ? "⚠️ Warning: This will delete existing data with the same book title before importing."
-              : "ℹ️ This will add new entities to the database alongside existing data."}
-          </AlertDescription>
-        </Alert>
-
-        <div className="flex justify-between">
-          <Button variant="outline" onClick={prevStep}>
-            Back
-          </Button>
-          <Button
-            onClick={handleImportToDatabase}
-            disabled={isLoading}
-            className="flex items-center gap-2"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            {isLoading ? "Importing..." : "Import to Database"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
 
   return (
-    <div className="space-y-6 flex-1 overflow-auto">
-      <div className="prose">
-        <h3>Sanskrit Sahitya Import</h3>
-        <p className="text-muted-foreground">
-          Import Sanskrit literature data from sanskritsahitya.com JSON format
-          into DevHub entities. This tool provides a step-by-step process to
-          preview and import the data.
-        </p>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-semibold">Sanskrit Sahitya</h2>
+          <p className="text-sm text-muted-foreground max-w-3xl">
+            Works from <code>data/sanskritsahitya-com-data</code>. <b>Capture</b> stores every
+            book, chapter and verse as it is in the source; <b>Build</b> turns them into
+            entities (translations as meaning; commentaries, anvaya, padaccheda and word
+            analysis as annotations). Rebuilding updates entities in place and keeps your
+            bookmarks, notes and annotations. Processor v{data?.processorVersion ?? "…"}.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Switch id="ss-ref" checked={showReference} onCheckedChange={setShowReference} />
+            <Label htmlFor="ss-ref" className="text-sm">Reference data</Label>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCwIcon className={isFetching ? "size-4 animate-spin" : "size-4"} /> Refresh
+          </Button>
+        </div>
       </div>
 
-      {renderProgressIndicator()}
+      {runner.job && (
+        <JobPanel job={runner.job} busy={runner.busy} onStop={runner.stop} onClose={runner.clear} />
+      )}
 
-      {currentStep === "SELECT_FILE" && renderFileSelection()}
-      {currentStep === "PREVIEW_JSON" && renderJsonPreview()}
-      {currentStep === "PREVIEW_ENTITIES" && renderEntityPreview()}
-      {currentStep === "IMPORT_TO_DB" && renderDatabaseImport()}
+      {error && <p className="text-sm text-destructive">{String((error as Error).message)}</p>}
+      {isLoading && <Skeleton className="h-64 w-full" />}
+
+      <div className="divide-y rounded-md border">
+        {rows.map((row) => (
+          <WorkRowView
+            key={row.work}
+            row={row}
+            isAdmin={isAdmin}
+            busy={runner.busy}
+            processorVersion={data?.processorVersion ?? 0}
+            onPreview={() => setPreviewFor(row)}
+            onCapture={() => runner.capture(row.work)}
+            onBuild={() => setSettingsFor({ row, mode: "build" })}
+            onCaptureAndBuild={() => setSettingsFor({ row, mode: "both" })}
+            onDeleteEntities={() =>
+              confirmRun(
+                `Delete the ${row.entityCount} entities built for ${row.work}, with every note, annotation and playground on them? The originals stay, so it can be built again.`,
+                () => deleteSahityaEntities(row.work),
+              )
+            }
+            onDeleteOriginals={() =>
+              confirmRun(`Delete the stored originals of ${row.work}?`, () =>
+                deleteSahityaOriginals(row.work),
+              )
+            }
+            onDeleteLegacy={(id) =>
+              confirmRun(
+                `Delete the earlier import of ${row.title} (entity ${id}) and everything under it, including any notes or annotations added to it?`,
+                () => deleteLegacySahityaImport(id),
+              )
+            }
+          />
+        ))}
+      </div>
+
+      {settingsFor && (
+        <BuildSettingsDialog
+          row={settingsFor.row}
+          mode={settingsFor.mode}
+          onClose={() => setSettingsFor(null)}
+          onRun={(s) => {
+            const { row, mode } = settingsFor;
+            setSettingsFor(null);
+            if (mode === "both") runner.captureAndBuild(row.work, s);
+            else runner.build(row.work, s);
+          }}
+        />
+      )}
+      {previewFor && <PreviewDialog row={previewFor} onClose={() => setPreviewFor(null)} />}
     </div>
+  );
+}
+
+function JobPanel({
+  job,
+  busy,
+  onStop,
+  onClose,
+}: {
+  job: Job;
+  busy: boolean;
+  onStop: () => void;
+  onClose: () => void;
+}) {
+  const pct = job.total ? Math.round((job.done / job.total) * 100) : 0;
+  return (
+    <div className="rounded-md border p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-sm font-medium flex items-center gap-2">
+          {busy && <Loader2Icon className="size-4 animate-spin" />}
+          {job.work} · {job.step} · {job.label}
+          <span className="text-muted-foreground font-normal">
+            {job.done}/{job.total}
+          </span>
+        </div>
+        {busy ? (
+          <Button size="sm" variant="outline" onClick={onStop}>
+            <SquareIcon className="size-4" /> Stop
+          </Button>
+        ) : (
+          <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close">
+            <XIcon className="size-4" />
+          </Button>
+        )}
+      </div>
+      <Progress value={pct} />
+      {job.log.length > 0 && (
+        <ul className="text-xs text-muted-foreground list-disc pl-5 max-h-40 overflow-auto">
+          {job.log.map((l, i) => (
+            <li key={i}>{l}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function WorkRowView({
+  row,
+  isAdmin,
+  busy,
+  processorVersion,
+  onPreview,
+  onCapture,
+  onBuild,
+  onCaptureAndBuild,
+  onDeleteEntities,
+  onDeleteOriginals,
+  onDeleteLegacy,
+}: {
+  row: WorkRow;
+  isAdmin: boolean;
+  busy: boolean;
+  processorVersion: number;
+  onPreview: () => void;
+  onCapture: () => void;
+  onBuild: () => void;
+  onCaptureAndBuild: () => void;
+  onDeleteEntities: () => void;
+  onDeleteOriginals: () => void;
+  onDeleteLegacy: (id: string) => void;
+}) {
+  const reference = row.kind === "reference";
+  const captured = !!row.capturedAt;
+  const built = !!row.builtAt;
+  const next: "capture" | "build" | null = reference
+    ? null
+    : !captured || row.sourceChanged
+      ? "capture"
+      : row.needsBuild
+        ? "build"
+        : null;
+
+  return (
+    <div className="p-3 flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-medium">{row.title ?? row.work}</span>
+            {row.title && <span className="text-xs text-muted-foreground">{row.work}</span>}
+            <span className="text-xs text-muted-foreground">
+              {row.files.length} file{row.files.length === 1 ? "" : "s"}
+            </span>
+            {reference && <Badge variant="outline">reference data</Badge>}
+          </div>
+          {reference && <span className="text-xs text-muted-foreground">{row.note}</span>}
+        </div>
+        {!reference && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={onPreview}>
+              <EyeIcon className="size-4" /> Preview
+            </Button>
+            {isAdmin && (
+              <>
+                {next === "capture" && (
+                  <Button size="sm" disabled={busy} onClick={onCaptureAndBuild}>
+                    <PlayIcon className="size-4" /> {captured ? "Re-capture & build" : "Capture & build"}
+                  </Button>
+                )}
+                {next === "build" && (
+                  <Button size="sm" disabled={busy} onClick={onBuild}>
+                    <HammerIcon className="size-4" /> {built ? "Rebuild" : "Build"}
+                  </Button>
+                )}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" disabled={busy} aria-label="More">
+                      <MoreHorizontalIcon className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={onCapture}>Capture only</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!captured} onClick={onBuild}>
+                      Build / rebuild…
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={onCaptureAndBuild}>Capture & build…</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled={!built} onClick={onDeleteEntities}>
+                      <Trash2Icon className="size-4" /> Delete built entities
+                    </DropdownMenuItem>
+                    <DropdownMenuItem disabled={!captured || built} onClick={onDeleteOriginals}>
+                      <Trash2Icon className="size-4" /> Delete originals
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {!reference && (
+        <div className="flex flex-wrap gap-2 text-xs">
+          {captured ? (
+            <Badge variant="secondary" title={row.sourceRevision ?? undefined}>
+              {row.rawCount} originals · captured {ago(row.capturedAt)}
+            </Badge>
+          ) : (
+            <Badge variant="outline">not captured</Badge>
+          )}
+          {row.sourceChanged && <Badge variant="destructive">source changed since capture</Badge>}
+          {built ? (
+            <Badge variant="secondary">
+              {row.entityCount} entities · built {ago(row.builtAt)}
+              {row.options?.entityType ? ` · ${row.options.entityType}` : ""}
+            </Badge>
+          ) : (
+            captured && <Badge variant="outline">not built</Badge>
+          )}
+          {built && row.builtVersion !== processorVersion && (
+            <Badge variant="destructive">built by processor v{row.builtVersion}</Badge>
+          )}
+          {built && row.needsBuild && row.builtVersion === processorVersion && (
+            <Badge variant="destructive">captured again since the build</Badge>
+          )}
+          {row.legacy.map((l) => (
+            <Badge key={l.id} variant="outline" className="gap-1">
+              <TriangleAlertIcon className="size-3" /> earlier import {l.id.slice(-6)}
+              {isAdmin && (
+                <button
+                  className="underline ml-1"
+                  onClick={() => onDeleteLegacy(l.id)}
+                  disabled={busy}
+                >
+                  delete
+                </button>
+              )}
+            </Badge>
+          ))}
+          {row.lastError && (
+            <span className="text-destructive" title={row.lastError}>
+              last error: {row.lastError.slice(0, 120)}
+            </span>
+          )}
+        </div>
+      )}
+
+      {row.unhandledFields.length > 0 && (
+        <div className="text-xs text-muted-foreground">
+          Fields without a rule (kept in the originals
+          {row.unhandledFields.some((f) => !f.field.includes(".")) ? "; plain values as src.* attributes" : ""}
+          ):{" "}
+          {row.unhandledFields.map((f) => (
+            <code key={f.field} className="mr-2">
+              {f.field}×{f.count}
+            </code>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Build settings                                                      */
+/* ------------------------------------------------------------------ */
+
+function BuildSettingsDialog({
+  row,
+  mode,
+  onClose,
+  onRun,
+}: {
+  row: WorkRow;
+  mode: "build" | "both";
+  onClose: () => void;
+  onRun: (s: BuildSettings) => void;
+}) {
+  const [s, setS] = useState<BuildSettings>({
+    entityType: row.options?.entityType ?? row.suggestedType,
+    parentId: row.options?.parentId ?? null,
+    bookmarkAll: row.options?.bookmarkAll ?? false,
+    overwriteEdited: false,
+    batchSize: 500,
+  });
+  const [pickParent, setPickParent] = useState(false);
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === "both" ? "Capture & build" : "Build"} {row.title ?? row.work}
+          </DialogTitle>
+          <DialogDescription>
+            {row.builtAt
+              ? "Entities are updated in place; bookmarks, notes, audio and annotations you added stay."
+              : "Creates an entity for the work, its books and chapters, and every verse."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <Label>Type of the work</Label>
+            <Select value={s.entityType} onValueChange={(v) => setS({ ...s, entityType: v })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ENTITY_TYPES_DDLB.map((t) => (
+                  <SelectItem key={t.value} value={t.value}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label>Place under (optional)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                value={s.parentId ?? ""}
+                placeholder="parent entity id"
+                onChange={(e) => setS({ ...s, parentId: e.target.value.trim() || null })}
+              />
+              <EntitySearchDlgTrigger
+                open={pickParent}
+                onOpenChange={setPickParent}
+                forTypes={ENTITY_TYPES_PARENTS[s.entityType] ?? []}
+                onClick={(entity) => {
+                  setS({ ...s, parentId: entity.id });
+                  setPickParent(false);
+                }}
+              />
+              {s.parentId && (
+                <Button size="icon" variant="ghost" onClick={() => setS({ ...s, parentId: null })}>
+                  <XIcon className="size-4" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="ss-bm">Bookmark new entities</Label>
+            <Switch
+              id="ss-bm"
+              checked={s.bookmarkAll}
+              onCheckedChange={(v) => setS({ ...s, bookmarkAll: v })}
+            />
+          </div>
+          {row.builtAt && (
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="ss-ow" className="leading-snug">
+                Overwrite entities edited by hand
+                <span className="block text-xs text-muted-foreground font-normal">
+                  Off: text, meaning and attributes you changed are kept.
+                </span>
+              </Label>
+              <Switch
+                id="ss-ow"
+                checked={s.overwriteEdited}
+                onCheckedChange={(v) => setS({ ...s, overwriteEdited: v })}
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <Label htmlFor="ss-bs">Entities per request</Label>
+            <Input
+              id="ss-bs"
+              type="number"
+              className="w-28"
+              min={50}
+              max={2000}
+              value={s.batchSize}
+              onChange={(e) =>
+                setS({ ...s, batchSize: Math.min(2000, Math.max(50, Number(e.target.value) || 500)) })
+              }
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={() => onRun(s)}>
+            <PlayIcon className="size-4" /> Start
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Preview                                                             */
+/* ------------------------------------------------------------------ */
+
+const PAGE = 10;
+
+function PreviewDialog({ row, onClose }: { row: WorkRow; onClose: () => void }) {
+  const [offset, setOffset] = useState(0);
+  const [search, setSearch] = useState("");
+  const [query, setQuery] = useState("");
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["sahitya-preview", row.work, offset, query],
+    queryFn: async () =>
+      unwrap(
+        await previewSahityaWork({
+          work: row.work,
+          offset,
+          limit: PAGE,
+          search: query || undefined,
+        }),
+      ),
+  });
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-5xl h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Preview — {data?.title ?? row.work}</DialogTitle>
+          <DialogDescription>
+            What the current processor builds from{" "}
+            {row.capturedAt ? "the stored originals" : "the first source file (not captured yet)"}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="key or chapter, e.g. v:1.1:4 or 1.1"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                setOffset(0);
+                setQuery(search.trim());
+              }
+            }}
+          />
+          <Button
+            size="icon"
+            variant="outline"
+            disabled={offset === 0}
+            onClick={() => setOffset(Math.max(0, offset - PAGE))}
+          >
+            <ChevronLeftIcon className="size-4" />
+          </Button>
+          <span className="text-xs text-muted-foreground whitespace-nowrap">
+            {data ? `${offset + 1}–${Math.min(offset + PAGE, data.total)} of ${data.total}` : "…"}
+          </span>
+          <Button
+            size="icon"
+            variant="outline"
+            disabled={!data || offset + PAGE >= data.total}
+            onClick={() => setOffset(offset + PAGE)}
+          >
+            <ChevronRightIcon className="size-4" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-auto flex flex-col gap-3">
+          {isLoading && <Skeleton className="h-40 w-full" />}
+          {error && <p className="text-sm text-destructive">{(error as Error).message}</p>}
+          {data?.items.map((item) => (
+            <div key={item.key} className="rounded-md border p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                <code>{item.key}</code>
+                <Badge variant="outline">{item.built.type}</Badge>
+                <span>under {item.parentKey || "the work"}</span>
+                <span>order {item.built.order}</span>
+              </div>
+              <Tabs defaultValue="built">
+                <TabsList>
+                  <TabsTrigger value="built">Entity</TabsTrigger>
+                  <TabsTrigger value="annotations">
+                    Annotations ({item.built.annotations.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="source">Source</TabsTrigger>
+                </TabsList>
+                <TabsContent value="built" className="flex flex-col gap-2 text-sm">
+                  <div className="markdown-content font-shobhika">
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                      {item.built.text.find((t) => t.language === "SAN")?.value ?? ""}
+                    </Markdown>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.built.text
+                      .filter((t) => t.language !== "SAN")
+                      .map((t) => t.language)
+                      .join(", ")}
+                  </div>
+                  {item.built.meaning.map((m) => (
+                    <div key={m.language} className="markdown-content border-l-2 pl-2">
+                      <div className="text-xs text-muted-foreground">meaning · {m.language}</div>
+                      <Markdown remarkPlugins={[remarkGfm]}>{m.value}</Markdown>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-1">
+                    {item.built.attributes.map((a, i) => (
+                      <Badge key={i} variant="secondary" className="font-normal">
+                        {a.key}: {a.value.length > 60 ? `${a.value.slice(0, 60)}…` : a.value}
+                      </Badge>
+                    ))}
+                  </div>
+                </TabsContent>
+                <TabsContent value="annotations" className="flex flex-col gap-3 text-sm">
+                  {item.built.annotations.length === 0 && (
+                    <span className="text-muted-foreground">None</span>
+                  )}
+                  {item.built.annotations.map((a, i) => (
+                    <div key={i} className="markdown-content">
+                      <div className="text-xs text-muted-foreground">
+                        {a.kind} · {a.language} · {a.title}
+                      </div>
+                      <Markdown remarkPlugins={[remarkGfm]}>{a.text}</Markdown>
+                    </div>
+                  ))}
+                </TabsContent>
+                <TabsContent value="source">
+                  <pre className="text-xs whitespace-pre-wrap break-all max-h-80 overflow-auto bg-muted p-2 rounded">
+                    {JSON.stringify(item.row, null, 1)}
+                  </pre>
+                </TabsContent>
+              </Tabs>
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

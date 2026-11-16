@@ -20,6 +20,27 @@ export const ANNOTATION_KINDS = [
     private: false,
   },
   {
+    code: "ANVAYA",
+    label: "Anvaya",
+    plural: "Anvaya (prose order)",
+    titleLabel: "Source (optional)",
+    private: false,
+  },
+  {
+    code: "CHANDAS",
+    label: "Metre",
+    plural: "Metre (chandas)",
+    titleLabel: "Metre name (optional)",
+    private: false,
+  },
+  {
+    code: "WORD_ANALYSIS",
+    label: "Word analysis",
+    plural: "Word analysis",
+    titleLabel: "Source (optional)",
+    private: false,
+  },
+  {
     code: "THOUGHT",
     label: "Thought",
     plural: "My thoughts",
