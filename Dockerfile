@@ -1,83 +1,76 @@
-FROM node:23-alpine AS base
+# syntax=docker/dockerfile:1.7
 
-# Pin pnpm (matches local version / lockfile v9); avoids corepack signature-key failures
-RUN npm install -g pnpm@9.12.0
+ARG NODE_VERSION=24
+ARG PNPM_VERSION=9.12.0
 
-# Install dependencies only when needed
-FROM base AS deps
-# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
-# python3, make, and g++ are required to compile native addons (e.g. better-sqlite3) via node-gyp on Alpine
-RUN apk add --no-cache libc6-compat python3 make g++
+# ---------------------------------------------------------------------------
+# base: runtime OS layer shared by every stage
+# ---------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-alpine AS base
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
+ENV NEXT_TELEMETRY_DISABLED=1
 
-# Install dependencies based on the preferred package manager
-COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
-RUN \
-  if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
-  elif [ -f package-lock.json ]; then npm ci; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm i --frozen-lockfile; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
+# ---------------------------------------------------------------------------
+# pnpm: base + pinned pnpm (kept out of the final image)
+# Installed via npm rather than corepack to avoid corepack signature-key failures.
+# ---------------------------------------------------------------------------
+FROM base AS pnpm
+ARG PNPM_VERSION
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
+RUN npm install -g pnpm@${PNPM_VERSION} && npm cache clean --force
 
+# ---------------------------------------------------------------------------
+# deps: install node_modules (re-runs only when the lockfile changes)
+# python3/make/g++ compile native addons (e.g. better-sqlite3) when no prebuild matches.
+# ---------------------------------------------------------------------------
+FROM pnpm AS deps
+RUN apk add --no-cache python3 make g++
+COPY package.json pnpm-lock.yaml ./
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --frozen-lockfile --prefer-offline
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
+# ---------------------------------------------------------------------------
+# builder: prisma generate + next build
+# ---------------------------------------------------------------------------
+FROM pnpm AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN pnpm run db:gen
+RUN --mount=type=cache,id=next-cache,target=/app/.next/cache \
+    pnpm run build
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Uncomment the following line in case you want to disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Run Prisma generation
-RUN \
-  if [ -f yarn.lock ]; then yarn run db:gen; \
-  elif [ -f package-lock.json ]; then npm run db:gen; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm run db:gen; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Run build
-RUN \
-  if [ -f yarn.lock ]; then yarn run build; \
-  elif [ -f package-lock.json ]; then npm run build; \
-  elif [ -f pnpm-lock.yaml ]; then pnpm run build; \
-  else echo "Lockfile not found." && exit 1; \
-  fi
-
-# Production image, copy all the files and run next
+# ---------------------------------------------------------------------------
+# runner: minimal production image
+# ---------------------------------------------------------------------------
 FROM base AS runner
-WORKDIR /app
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0
 
-# Install only the necessary dependencies
-RUN apk add --no-cache libc6-compat curl su-exec libstdc++
+# tini: proper PID 1 (signal forwarding, zombie reaping)
+# su-exec: entrypoint drops root -> nextjs after fixing data-folder ownership
+# curl: for container healthchecks
+RUN apk add --no-cache tini su-exec curl && \
+    addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nextjs && \
+    mkdir -p .next data && \
+    chown nextjs:nodejs .next data
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Set the correct permission for prerender cache
-RUN mkdir -p .next data
-RUN chown nextjs:nodejs .next data
-
-# Automatically leverage output traces to reduce image size
-# https://nextjs.org/docs/advanced-features/output-file-tracing
-COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/src/app/generated ./src/app/generated
-
-COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# Standalone output traces only the files the server needs
+# (see outputFileTracingExcludes in next.config.ts)
+COPY --link --from=builder --chown=1001:1001 /app/public ./public
+COPY --link --from=builder --chown=1001:1001 /app/.next/standalone ./
+COPY --link --from=builder --chown=1001:1001 /app/.next/static ./.next/static
+COPY --link --from=builder --chown=1001:1001 /app/src/app/generated ./src/app/generated
+COPY --link --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 # Container starts as root so the entrypoint can fix ownership of the
 # (possibly mounted) data folder, then drops to the nextjs user via su-exec.
 EXPOSE 3000
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/sbin/tini", "--", "docker-entrypoint.sh"]
 CMD ["node", "server.js"]

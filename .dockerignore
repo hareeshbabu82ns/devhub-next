@@ -1,10 +1,33 @@
+# Docker
 Dockerfile
 .dockerignore
-node_modules
-npm-debug.log
-README.md
-.next
-!.next/static
-!.next/standalone
+
+# VCS / editor / tooling
 .git
+.github
+.vscode
+.specify
+.swc
+.DS_Store
+
+# Dependencies & build output (rebuilt inside the image)
+node_modules
+.next
+src/app/generated
+coverage
+*.tsbuildinfo
+npm-debug.log*
+.pnpm-debug.log*
+
+# Secrets — never bake into the image; pass at runtime
+.env
+.env.*
+!.env.sample
+
+# Large runtime data (mount as a volume)
 data
+
+# Docs / specs
+docs
+specs
+README.md

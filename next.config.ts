@@ -8,6 +8,33 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Dynamic fs paths (process.cwd()) make the tracer pull in the whole repo,
+  // including the multi-GB data/ folder and .env. Keep them out of standalone.
+  outputFileTracingExcludes: {
+    "*": [
+      "./data/**",
+      "./docs/**",
+      "./specs/**",
+      "./scripts/**",
+      "./.specify/**",
+      "./.github/**",
+      "./.vscode/**",
+      "./.env*",
+      "./*.md",
+      "./*.tsbuildinfo",
+      "./Dockerfile",
+      "./docker-entrypoint.sh",
+      "./pnpm-lock.yaml",
+      "./test-transliteration.js",
+      "./jest.*",
+      "./src/**/*.{ts,tsx,css}",
+      // Prisma client + engine is copied into the image explicitly (Dockerfile)
+      "./src/app/generated/**",
+      // Image is Alpine (musl): drop sharp's glibc binaries
+      "./node_modules/.pnpm/@img+sharp-libvips-linux-*/**",
+      "./node_modules/.pnpm/@img+sharp-linux-*/**",
+    ],
+  },
   reactStrictMode: true,
   env: {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,
